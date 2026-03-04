@@ -59,12 +59,12 @@
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 4.1 | Create `clientsStore` (list, create, update, delete) | state | `pending` |
-| 4.2 | Create `useClients` hook | state | `pending` |
-| 4.3 | Build Clients list screen with search | frontend | `pending` |
-| 4.4 | Build Client detail screen | frontend | `pending` |
-| 4.5 | Build Create/Edit client form with Zod validation | frontend | `pending` |
-| 4.6 | "Open in Google Maps" button (address + city) | frontend | `pending` |
+| 4.1 | Create `clientsStore` (list, create, update, delete) | state | `done` |
+| 4.2 | Create `useClients` hook | state | `done` |
+| 4.3 | Build Clients list screen with search | frontend | `done` |
+| 4.4 | Build Client detail screen | frontend | `done` |
+| 4.5 | Build Create/Edit client form with Zod validation | frontend | `done` |
+| 4.6 | "Open in Google Maps" button (address + city) | frontend | `done` |
 
 ---
 
