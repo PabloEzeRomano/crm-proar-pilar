@@ -11,10 +11,10 @@
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 0.1 | Define design tokens in `/constants/theme.ts` (colors, typography, spacing, radius) | ui-ux | `pending` |
-| 0.2 | Create white-label config in `/constants/brand.ts` (appName, primaryColor, logoUrl) | ui-ux | `pending` |
-| 0.3 | Document component specs: Button, Card, Input, Badge, StatusBadge, Banner | ui-ux | `pending` |
-| 0.4 | Define navigation structure and tab bar visual spec | ui-ux | `pending` |
+| 0.1 | Define design tokens in `/constants/theme.ts` (colors, typography, spacing, radius) | ui-ux | `done` |
+| 0.2 | Create white-label config in `/constants/brand.ts` (appName, primaryColor, logoUrl) | ui-ux | `done` |
+| 0.3 | Document component specs: Button, Card, Input, Badge, StatusBadge, Banner | ui-ux | `done` |
+| 0.4 | Define navigation structure and tab bar visual spec | ui-ux | `done` |
 
 ---
 
