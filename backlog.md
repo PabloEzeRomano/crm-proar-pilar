@@ -23,7 +23,7 @@
 | # | Story | Agent | Status |
 |---|---|---|---|
 | 1.1 | Initialize Expo project with TypeScript and Expo Router | pm-tl | `done` |
-| 1.2 | Set up Supabase project and store credentials in `.env` | backend | `pending` |
+| 1.2 | Set up Supabase project and store credentials in `.env` | backend | `done` |
 | 1.3 | Configure `supabase-js` client singleton in `/lib/supabase.ts` | state | `done` |
 | 1.4 | Configure `dayjs` with locale in `/lib/dayjs.ts` | state | `done` |
 | 1.5 | Set up folder structure as defined in CLAUDE.md | pm-tl | `done` |
@@ -47,11 +47,11 @@
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 3.1 | Create `authStore` (session, user, login, logout) | state | `pending` |
-| 3.2 | Build Login screen (`/(auth)/login.tsx`) | frontend | `pending` |
-| 3.3 | Protect routes: redirect to login if no session | frontend | `pending` |
-| 3.4 | Auto-restore session on app launch | state | `pending` |
-| 3.5 | Create/upsert profile row on first login | state | `pending` |
+| 3.1 | Create `authStore` (session, user, login, logout) | state | `done` |
+| 3.2 | Build Login screen (`/(auth)/login.tsx`) | frontend | `done` |
+| 3.3 | Protect routes: redirect to login if no session | frontend | `done` |
+| 3.4 | Auto-restore session on app launch | state | `done` |
+| 3.5 | Create/upsert profile row on first login | state | `done` |
 
 ---
 
