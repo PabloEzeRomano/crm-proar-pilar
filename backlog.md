@@ -22,12 +22,12 @@
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 1.1 | Initialize Expo project with TypeScript and Expo Router | pm-tl | `pending` |
+| 1.1 | Initialize Expo project with TypeScript and Expo Router | pm-tl | `done` |
 | 1.2 | Set up Supabase project and store credentials in `.env` | backend | `pending` |
-| 1.3 | Configure `supabase-js` client singleton in `/lib/supabase.ts` | state | `pending` |
-| 1.4 | Configure `dayjs` with locale in `/lib/dayjs.ts` | state | `pending` |
-| 1.5 | Set up folder structure as defined in CLAUDE.md | pm-tl | `pending` |
-| 1.6 | Install and configure all dependencies (zustand, zod, dayjs, etc.) | pm-tl | `pending` |
+| 1.3 | Configure `supabase-js` client singleton in `/lib/supabase.ts` | state | `done` |
+| 1.4 | Configure `dayjs` with locale in `/lib/dayjs.ts` | state | `done` |
+| 1.5 | Set up folder structure as defined in CLAUDE.md | pm-tl | `done` |
+| 1.6 | Install and configure all dependencies (zustand, zod, dayjs, etc.) | pm-tl | `done` |
 
 ---
 
