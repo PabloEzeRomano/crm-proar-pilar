@@ -85,13 +85,13 @@
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 6.1 | Create `todayStore` with today's visits + clients | state | `pending` |
-| 6.2 | Offline cache: persist today's data to AsyncStorage | state | `pending` |
-| 6.3 | Auto-refresh every 60 seconds while screen is active | state | `pending` |
-| 6.4 | Build Today screen: list of today's appointments | frontend | `pending` |
-| 6.5 | "Next appointment" banner with countdown | frontend | `pending` |
-| 6.6 | "Overdue by X minutes" state when past scheduled time | frontend | `pending` |
-| 6.7 | Offline banner when showing cached data | frontend | `pending` |
+| 6.1 | Create `todayStore` with today's visits + clients | state | `done` |
+| 6.2 | Offline cache: persist today's data to AsyncStorage | state | `done` |
+| 6.3 | Auto-refresh every 60 seconds while screen is active | state | `done` |
+| 6.4 | Build Today screen: list of today's appointments | frontend | `done` |
+| 6.5 | "Next appointment" banner with countdown | frontend | `done` |
+| 6.6 | "Overdue by X minutes" state when past scheduled time | frontend | `done` |
+| 6.7 | Offline banner when showing cached data | frontend | `done` |
 
 ---
 
