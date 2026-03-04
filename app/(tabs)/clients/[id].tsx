@@ -2,6 +2,7 @@
  * app/(tabs)/clients/[id].tsx — Client detail screen
  *
  * Story 4.4 — EP-004
+ * Story 5.6 — EP-005 (visits history section)
  *
  * Features:
  *   - Reads client from store by id (no extra network call)
@@ -9,9 +10,10 @@
  *   - Phone / email open native links
  *   - "Abrir en Maps" opens Google Maps
  *   - Header right: "Editar" navigates to form modal
+ *   - Visits history: up to 10 most recent visits with StatusBadge and notes preview
  */
 
-import React, { useLayoutEffect } from 'react'
+import React, { useEffect, useLayoutEffect } from 'react'
 import {
   Linking,
   Pressable,
@@ -21,8 +23,10 @@ import {
   View,
 } from 'react-native'
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 
 import { useClientsStore } from '@/stores/clientsStore'
+import { useVisits } from '@/hooks/useVisits'
 import {
   borderRadius,
   colors,
@@ -30,6 +34,67 @@ import {
   fontWeight,
   spacing,
 } from '@/constants/theme'
+import { VisitStatus, VisitWithClient } from '@/types'
+import dayjs from '@/lib/dayjs'
+
+// ---------------------------------------------------------------------------
+// StatusBadge (inline — shared pattern from visits screens)
+// ---------------------------------------------------------------------------
+
+const STATUS_CONFIG = {
+  pending: {
+    label: 'Pendiente',
+    bg: colors.statusPendingLight,
+    text: colors.statusPending,
+    icon: 'clock-outline' as const,
+  },
+  completed: {
+    label: 'Completada',
+    bg: colors.statusCompletedLight,
+    text: colors.statusCompleted,
+    icon: 'check-circle-outline' as const,
+  },
+  canceled: {
+    label: 'Cancelada',
+    bg: colors.statusCanceledLight,
+    text: colors.statusCanceled,
+    icon: 'close-circle-outline' as const,
+  },
+} as const
+
+function StatusBadge({ status }: { status: VisitStatus }) {
+  const config = STATUS_CONFIG[status]
+  return (
+    <View style={[sbStyles.container, { backgroundColor: config.bg }]}>
+      <MaterialCommunityIcons name={config.icon} size={14} color={config.text} />
+      <Text style={[sbStyles.label, { color: config.text }]}>{config.label}</Text>
+    </View>
+  )
+}
+
+const sbStyles = StyleSheet.create({
+  container: {
+    height: 26,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing[2],
+    borderRadius: borderRadius.full,
+    gap: spacing[1],
+  },
+  label: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold as '600',
+  },
+})
+
+// ---------------------------------------------------------------------------
+// Date formatting helper
+// ---------------------------------------------------------------------------
+
+function formatVisitDate(scheduledAt: string): string {
+  return dayjs(scheduledAt).format('D MMM YYYY · HH:mm')
+}
 
 // ---------------------------------------------------------------------------
 // Component
@@ -43,6 +108,13 @@ export default function ClientDetailScreen() {
   const client = useClientsStore((state) =>
     state.clients.find((c) => c.id === id),
   )
+
+  // Visits for this client
+  const { visits, fetchVisits } = useVisits(id)
+
+  useEffect(() => {
+    fetchVisits()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Set "Editar" button in the header
   useLayoutEffect(() => {
@@ -222,10 +294,57 @@ export default function ClientDetailScreen() {
 
       <View style={styles.divider} />
 
-      {/* ── Sección: Historial de visitas (placeholder) ──────────────── */}
+      {/* ── Sección: Historial de visitas ────────────────────────────── */}
       <View style={styles.section}>
         <SectionHeader title="Historial de visitas" />
-        <Text style={styles.placeholderText}>Próximamente</Text>
+
+        {/* Nueva visita button */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.newVisitButton,
+            pressed && styles.newVisitButtonPressed,
+          ]}
+          onPress={() => router.push(`/visits/form?clientId=${id}`)}
+          accessibilityRole="button"
+          accessibilityLabel="Agregar nueva visita"
+        >
+          <Text style={styles.newVisitButtonText}>Nueva visita</Text>
+        </Pressable>
+
+        {/* Visit list — up to 10 most recent (already sorted DESC by store) */}
+        {visits.length === 0 ? (
+          <Text style={styles.emptyField}>No hay visitas registradas</Text>
+        ) : (
+          visits.slice(0, 10).map((visit: VisitWithClient, index: number) => (
+            <React.Fragment key={visit.id}>
+              {index > 0 ? <View style={styles.visitDivider} /> : null}
+              <Pressable
+                style={({ pressed }) => [
+                  styles.visitRow,
+                  pressed && styles.visitRowPressed,
+                ]}
+                onPress={() => router.push(`/visits/${visit.id}`)}
+                accessibilityRole="button"
+                accessibilityLabel={`Ver visita del ${formatVisitDate(visit.scheduled_at)}`}
+              >
+                {/* Date + status */}
+                <View style={styles.visitRowTop}>
+                  <Text style={styles.visitDate}>
+                    {formatVisitDate(visit.scheduled_at)}
+                  </Text>
+                  <StatusBadge status={visit.status} />
+                </View>
+
+                {/* Notes preview */}
+                {visit.notes ? (
+                  <Text style={styles.visitNotes} numberOfLines={1}>
+                    {visit.notes.slice(0, 60)}
+                  </Text>
+                ) : null}
+              </Pressable>
+            </React.Fragment>
+          ))
+        )}
       </View>
     </ScrollView>
   )
@@ -360,9 +479,51 @@ const styles = StyleSheet.create({
     color: colors.textDisabled,
     fontStyle: 'italic',
   },
-  placeholderText: {
+
+  // Visit history rows (min 56px per spec)
+  newVisitButton: {
+    height: 48,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  newVisitButtonPressed: {
+    opacity: 0.75,
+  },
+  newVisitButtonText: {
     fontSize: fontSize.base,
-    color: colors.textDisabled,
-    fontStyle: 'italic',
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.primary,
+  },
+  visitRow: {
+    minHeight: 56,
+    paddingVertical: spacing[3],
+    gap: spacing[1],
+    justifyContent: 'center',
+  },
+  visitRowPressed: {
+    opacity: 0.7,
+  },
+  visitRowTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing[2],
+  },
+  visitDate: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.regular as '400',
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  visitNotes: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.regular as '400',
+    color: colors.textSecondary,
+  },
+  visitDivider: {
+    height: 1,
+    backgroundColor: colors.border,
   },
 })

@@ -72,12 +72,12 @@
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 5.1 | Create `visitsStore` (list by client, create, update) | state | `pending` |
-| 5.2 | Create `useVisits` hook | state | `pending` |
-| 5.3 | Build Visit detail / notes screen | frontend | `pending` |
-| 5.4 | Build Create/Edit visit form with Zod validation | frontend | `pending` |
-| 5.5 | Status update flow (pending → completed / canceled) | frontend | `pending` |
-| 5.6 | Show visit history on Client detail screen | frontend | `pending` |
+| 5.1 | Create `visitsStore` (list by client, create, update) | state | `done` |
+| 5.2 | Create `useVisits` hook | state | `done` |
+| 5.3 | Build Visit detail / notes screen | frontend | `done` |
+| 5.4 | Build Create/Edit visit form with Zod validation | frontend | `done` |
+| 5.5 | Status update flow (pending → completed / canceled) | frontend | `done` |
+| 5.6 | Show visit history on Client detail screen | frontend | `done` |
 
 ---
 
