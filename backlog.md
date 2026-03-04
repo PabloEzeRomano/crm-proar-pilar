@@ -35,11 +35,11 @@
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 2.1 | Create `profiles` table + RLS policies | backend | `pending` |
-| 2.2 | Create `clients` table + RLS policies | backend | `pending` |
-| 2.3 | Create `visits` table + RLS policies | backend | `pending` |
-| 2.4 | Create `updated_at` trigger function (reusable) | backend | `pending` |
-| 2.5 | Seed test user via Supabase Auth (dev only) | backend | `pending` |
+| 2.1 | Create `profiles` table + RLS policies | backend | `done` |
+| 2.2 | Create `clients` table + RLS policies | backend | `done` |
+| 2.3 | Create `visits` table + RLS policies | backend | `done` |
+| 2.4 | Create `updated_at` trigger function (reusable) | backend | `done` |
+| 2.5 | Seed test user via Supabase Auth (dev only) | backend | `done` |
 
 ---
 
