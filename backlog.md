@@ -99,12 +99,13 @@
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 7.1 | Write `import-excel.ts` script with column mapping | scripts | `pending` |
-| 7.2 | Client deduplication logic (name + address) | scripts | `pending` |
-| 7.3 | Visit creation logic (rows with Fecha) | scripts | `pending` |
-| 7.4 | Default time 10:00 for rows without time in Fecha | scripts | `pending` |
-| 7.5 | Dry-run mode: log what would be inserted without writing | scripts | `pending` |
-| 7.6 | Run import against dev Supabase and verify data | pm-tl | `pending` |
+| 7.1 | Write `import-excel.ts` script with column mapping | scripts | `done` |
+| 7.2 | Client deduplication logic (name + address) | scripts | `done` |
+| 7.3 | Visit creation logic (rows with Fecha) | scripts | `done` |
+| 7.4 | Default time 10:00 for rows without time in Fecha | scripts | `done` |
+| 7.5 | Dry-run mode: log what would be inserted without writing | scripts | `done` |
+| 7.6 | In-app import from Settings screen (importStore + expo-document-picker) | frontend | `done` |
+| 7.7 | Run import against dev Supabase and verify data | pm-tl | `pending` |
 
 ---
 
@@ -112,12 +113,84 @@
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 8.1 | Store email config in `profiles.email_config` (sender, recipients, enabled) | backend | `pending` |
-| 8.2 | Build Supabase Edge Function: query last week's visits | backend | `pending` |
-| 8.3 | Generate HTML email with client name, date, notes | backend | `pending` |
-| 8.4 | Send via Resend API | backend | `pending` |
-| 8.5 | Schedule function with pg_cron (every Monday 08:00) | backend | `pending` |
-| 8.6 | Settings screen: configure sender + recipients | frontend | `pending` |
+| 8.1 | Store email config in `profiles.email_config` (sender, recipients, enabled) | backend | `done` |
+| 8.2 | Build Supabase Edge Function: query last week's visits | backend | `done` |
+| 8.3 | Generate HTML email with client name, date, notes | backend | `done` |
+| 8.4 | Send via Resend API | backend | `done` |
+| 8.5 | Schedule function with pg_cron (every Monday 08:00) | backend | `done` |
+| 8.6 | Settings screen: configure sender + recipients | frontend | `done` |
+
+---
+
+## EP-009 — Onboarding Tour
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 9.1 | Migration: add `show_tour BOOLEAN DEFAULT TRUE` to `profiles` | backend | `done` |
+| 9.2 | Add `completeTour` / `resetTour` actions to `authStore` | state | `done` |
+| 9.3 | Build `OnboardingTour` modal component (5 steps) | frontend | `done` |
+| 9.4 | Show tour from root layout when `profile.show_tour = true` | frontend | `done` |
+| 9.5 | "Ver tour de nuevo" button in Settings | frontend | `done` |
+
+---
+
+## EP-010 — Email Sending Strategy
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 10.1 | Use `MAIL_FROM_NAME` / `MAIL_FROM_ADDRESS` env vars for `from` field | backend | `done` |
+| 10.2 | Use `email_config.sender` as `reply_to` (user's personal/business email) | backend | `done` |
+| 10.3 | Update Settings label: "Email remitente" → "Tu email (para respuestas)" | frontend | `done` |
+| 10.4 | Verify sending domain in Resend dashboard and set secrets | pm-tl | `pending` |
+
+---
+
+---
+
+## EP-011 — Navigation: Back to Agenda from Visit Detail
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 11.1 | Pass `from=agenda` query param when navigating to `/visits/[id]` from Agenda screen | frontend | `done` |
+| 11.2 | Visit detail reads `from` param; if `agenda` → custom back button navigates to `/(tabs)/` | frontend | `done` |
+
+> Post-MVP: investigate proper shared stack context so back always works naturally.
+
+---
+
+## EP-012 — Shared Lookup Values (Rubro / Localidad)
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 12.1 | Migration: create `lookup_values` table `(id, type TEXT, value TEXT, UNIQUE(type,value))` — no `owner_user_id`, readable by all authenticated users | backend | `done` |
+| 12.2 | Seed migration: populate from distinct `industry` and `city` values already in `clients` table | backend | `done` |
+| 12.3 | Create `lookupsStore` with `fetchLookups()` — loads all lookup values, cached in AsyncStorage | state | `done` |
+| 12.4 | Bootstrap `fetchLookups()` in root layout alongside clients/visits on app open | state | `done` |
+| 12.5 | Replace free-text `industry` and `city` inputs in client form with Select pickers backed by lookup lists | frontend | `done` |
+| 12.6 | Add Rubro and Localidad filter pills above the clients list | frontend | `done` |
+
+---
+
+## EP-013 — Visit Defaults & Status Logic
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 13.1 | Verify & fix: visits created or imported with `date >= today` default to `pending`; past dates default to `completed` | frontend + scripts | `done` |
+| 13.2 | Default visit time logic: find the latest visit on the selected date in the store → `latest_time + gap`; no visits that day → 10:00 | frontend | `done` |
+| 13.3 | Visit gap preference stored in AsyncStorage (default: 60 min) | state | `done` |
+| 13.4 | Gap picker in visit creation/edit form: 30 min / 1 h / 1.5 h / 2 h | frontend | `done` |
+
+---
+
+## Future (Post-MVP)
+
+| Idea | Notes |
+|---|---|
+| Better onboarding tour | Point at actual UI elements, guide user to import Excel/CSV |
+| Auto-organize agenda by distance | Requires device location permission + route optimization |
+| Add new Rubro / Localidad from client form | Inline "add new" option in the lookup picker; writes to `lookup_values` table |
+| Proper Agenda navigation context | Navigate within the Agenda's own stack so back arrow always returns correctly without query params |
+| Tester / QA Agent + Playwright | Add a dedicated QA agent with scope over `/e2e/` tests; implement Playwright for end-to-end testing of critical flows (login, import, visit creation, email send) |
 
 ---
 
@@ -134,3 +207,6 @@
 | 2026-03-04 | White-label design system with token-based theming | App should be sellable to different salespeople/agencies without code changes |
 | 2026-03-04 | High-contrast UI optimized for outdoor/sunlight readability | Primary user works in the field on a phone |
 | 2026-03-04 | EP-000 Design System must complete before any frontend work | Prevents hardcoded values from spreading across components |
+| 2026-03-06 | Tabs with nested Stacks must set `headerShown: false` on the Tab.Screen | Expo Router renders both the Tabs header AND the nested Stack header, creating duplicate titles |
+| 2026-03-06 | Email `from` uses a verified technical domain (env var); user's email goes in `reply_to` | Better deliverability; replies still reach the user's inbox |
+| 2026-03-06 | New Supabase projects use ES256 JWT signing; Edge Function gateway rejects it | Deploy Edge Functions with `--no-verify-jwt` and do auth at the app level |

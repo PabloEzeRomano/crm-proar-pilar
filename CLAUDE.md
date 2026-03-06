@@ -180,6 +180,7 @@ This project uses a **multi-agent team** managed by a PM+TL orchestrator. When s
 **Rules:**
 - Screens in `/app/`, components in `/components/`.
 - Use Expo Router conventions (file-based routing, `<Link>`, `useRouter`).
+- **Tabs with nested Stacks:** If a tab points to a folder with its own `_layout.tsx` (Stack), the `Tabs.Screen` for that tab MUST set `headerShown: false`. Otherwise Expo Router renders both the Tabs header AND the Stack header, creating a duplicate title. The nested Stack owns the header for all its screens.
 - Mobile-first. No web-specific code for MVP.
 - Use `dayjs` for all date formatting. Never use `new Date().toLocaleString()`.
 - Read data from Zustand stores — do not call Supabase directly from components.
