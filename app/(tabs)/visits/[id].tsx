@@ -97,13 +97,21 @@ type SaveState = 'idle' | 'saving' | 'saved'
 // ---------------------------------------------------------------------------
 
 export default function VisitDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>()
+  const { id, from } = useLocalSearchParams<{ id: string; from?: string }>()
   const router = useRouter()
   const navigation = useNavigation()
+  const fromAgenda = from === 'agenda'
 
   const visit = useVisitsStore((state) => state.visits.find((v) => v.id === id))
+  const fetchVisit = useVisitsStore((state) => state.fetchVisit)
   const updateVisit = useVisitsStore((state) => state.updateVisit)
   const updateStatus = useVisitsStore((state) => state.updateStatus)
+
+  // If the visit isn't in the store yet (e.g. navigating from Today tab
+  // before visitsStore has been populated), fetch it on demand.
+  useEffect(() => {
+    if (!visit && id) fetchVisit(id)
+  }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [notesText, setNotesText] = useState<string>(visit?.notes ?? '')
   const [saveState, setSaveState] = useState<SaveState>('idle')
@@ -116,10 +124,23 @@ export default function VisitDetailScreen() {
     }
   }, [visit?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Set "Editar" button in the header
+  // Set header: custom back (when from=agenda) + "Editar" button
   useLayoutEffect(() => {
     if (!visit) return
     navigation.setOptions({
+      headerLeft: fromAgenda
+        ? () => (
+            <Pressable
+              onPress={() => router.navigate('/(tabs)/')}
+              style={styles.headerButton}
+              accessibilityRole="button"
+              accessibilityLabel="Volver a Agenda"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <MaterialCommunityIcons name="arrow-left" size={24} color={colors.primary} />
+            </Pressable>
+          )
+        : undefined,
       headerRight: () => (
         <Pressable
           onPress={() => router.push(`/visits/form?visitId=${id}`)}
@@ -132,7 +153,7 @@ export default function VisitDetailScreen() {
         </Pressable>
       ),
     })
-  }, [visit, id, navigation, router])
+  }, [visit, id, navigation, router, fromAgenda])
 
   // -------------------------------------------------------------------------
   // Not found
@@ -141,7 +162,7 @@ export default function VisitDetailScreen() {
   if (!visit) {
     return (
       <View style={styles.notFoundContainer}>
-        <Text style={styles.notFoundText}>Visita no encontrada</Text>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     )
   }

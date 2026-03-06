@@ -31,6 +31,7 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import { useVisitsStore } from '@/stores/visitsStore'
 import { useClientsStore } from '@/stores/clientsStore'
@@ -41,8 +42,22 @@ import {
   fontWeight,
   spacing,
 } from '@/constants/theme'
-import { Client } from '@/types'
+import { Client, VisitStatus } from '@/types'
 import dayjs from '@/lib/dayjs'
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const GAP_KEY = 'visit-gap-minutes'
+const DEFAULT_GAP = 60
+
+const GAP_OPTIONS = [
+  { label: '30 min', value: 30 },
+  { label: '1 hora', value: 60 },
+  { label: '1 h 30', value: 90 },
+  { label: '2 horas', value: 120 },
+]
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -55,6 +70,12 @@ function combineDateAndTime(date: Date, time: Date): string {
     .minute(dayjs(time).minute())
     .second(0)
     .toISOString()
+}
+
+/** Returns 'pending' if date >= today (date only), otherwise 'completed' */
+function defaultStatusForDate(date: Date): 'pending' | 'completed' {
+  const today = dayjs().startOf('day')
+  return dayjs(date).isBefore(today) ? 'completed' : 'pending'
 }
 
 // ---------------------------------------------------------------------------
@@ -94,6 +115,8 @@ export default function VisitFormScreen() {
   const [selectedDate, setSelectedDate] = useState<Date>(defaultDate)
   const [selectedTime, setSelectedTime] = useState<Date>(defaultTime)
   const [notes, setNotes] = useState<string>('')
+  const [status, setStatus] = useState<VisitStatus>('pending')
+  const [gapMinutes, setGapMinutes] = useState<number>(DEFAULT_GAP)
 
   // Date/time picker visibility (Android needs explicit show/hide)
   const [showDatePicker, setShowDatePicker] = useState(false)
@@ -111,10 +134,26 @@ export default function VisitFormScreen() {
   // -------------------------------------------------------------------------
 
   useEffect(() => {
-    // Ensure clients are loaded for the picker
-    if (clients.length === 0) {
-      fetchClients()
-    }
+    if (clients.length === 0) fetchClients()
+    // Load saved gap preference and compute initial default time for create mode
+    AsyncStorage.getItem(GAP_KEY).then((val) => {
+      const gap = val ? Number(val) : DEFAULT_GAP
+      setGapMinutes(gap)
+      if (!isEditMode) {
+        // Set status and time based on today
+        setStatus(defaultStatusForDate(defaultDate))
+        const today = dayjs().format('YYYY-MM-DD')
+        const todayVisits = useVisitsStore.getState().visits.filter(
+          (v) => dayjs(v.scheduled_at).format('YYYY-MM-DD') === today,
+        )
+        if (todayVisits.length > 0) {
+          const latest = todayVisits.reduce((a, b) =>
+            a.scheduled_at > b.scheduled_at ? a : b,
+          )
+          setSelectedTime(dayjs(latest.scheduled_at).add(gap, 'minute').toDate())
+        }
+      }
+    })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -123,8 +162,8 @@ export default function VisitFormScreen() {
       setSelectedDate(scheduledDate)
       setSelectedTime(scheduledDate)
       setNotes(existingVisit.notes ?? '')
+      setStatus(existingVisit.status)
 
-      // Pre-select client from the visit's client data
       const visitClient = clients.find((c) => c.id === existingVisit.client_id)
       if (visitClient) setSelectedClient(visitClient)
     } else if (paramClientId) {
@@ -193,6 +232,7 @@ export default function VisitFormScreen() {
       await updateVisit(visitId, {
         scheduled_at: isoString,
         notes: notes || undefined,
+        status,
       })
     } else {
       if (!selectedClient) {
@@ -203,6 +243,7 @@ export default function VisitFormScreen() {
         client_id: selectedClient.id,
         scheduled_at: isoString,
         notes: notes || undefined,
+        status,
       })
     }
 
@@ -210,16 +251,40 @@ export default function VisitFormScreen() {
     router.back()
   }
 
+  function applyDateDefaults(date: Date) {
+    // Auto-set status based on whether date is past or future (create mode only)
+    if (!isEditMode) {
+      setStatus(defaultStatusForDate(date))
+    }
+    // Default time: latest visit on that date + gap, else 10:00
+    const dateKey = dayjs(date).format('YYYY-MM-DD')
+    const visitsOnDate = visits.filter(
+      (v) => dayjs(v.scheduled_at).format('YYYY-MM-DD') === dateKey,
+    )
+    if (visitsOnDate.length > 0) {
+      const latest = visitsOnDate.reduce((a, b) =>
+        a.scheduled_at > b.scheduled_at ? a : b,
+      )
+      setSelectedTime(dayjs(latest.scheduled_at).add(gapMinutes, 'minute').toDate())
+    } else {
+      setSelectedTime(dayjs().hour(10).minute(0).second(0).toDate())
+    }
+  }
+
   function handleDateChange(_event: DateTimePickerEvent, date?: Date) {
     if (Platform.OS === 'android') {
       setShowDatePicker(false)
       if (date) {
         setSelectedDate(date)
+        applyDateDefaults(date)
         // On Android, show time picker after date is selected
         setShowTimePicker(true)
       }
     } else {
-      if (date) setSelectedDate(date)
+      if (date) {
+        setSelectedDate(date)
+        applyDateDefaults(date)
+      }
     }
   }
 
@@ -501,6 +566,72 @@ export default function VisitFormScreen() {
         ) : null}
       </View>
 
+      {/* ── Intervalo (create mode only) ─────────────────────────────────── */}
+      {!isEditMode ? (
+        <View style={styles.fieldGroup}>
+          <FieldLabel label="Intervalo con visita anterior" />
+          <View style={styles.gapRow}>
+            {GAP_OPTIONS.map(({ label, value }) => {
+              const active = gapMinutes === value
+              return (
+                <Pressable
+                  key={value}
+                  style={[styles.gapOption, active && styles.gapOptionActive]}
+                  onPress={() => {
+                    setGapMinutes(value)
+                    AsyncStorage.setItem(GAP_KEY, String(value))
+                    // Recompute time with new gap
+                    applyDateDefaults(selectedDate)
+                  }}
+                  accessibilityRole="radio"
+                  accessibilityLabel={label}
+                  accessibilityState={{ checked: active }}
+                >
+                  <Text style={[styles.gapOptionLabel, active && styles.gapOptionLabelActive]}>
+                    {label}
+                  </Text>
+                </Pressable>
+              )
+            })}
+          </View>
+        </View>
+      ) : null}
+
+      {/* ── Estado ───────────────────────────────────────────────────────── */}
+      <View style={styles.fieldGroup}>
+          <FieldLabel label="Estado" />
+          <View style={styles.statusRow}>
+            {(
+              [
+                { value: 'pending', label: 'Pendiente', icon: 'clock-outline', color: colors.statusPending },
+                { value: 'completed', label: 'Completada', icon: 'check-circle-outline', color: colors.statusCompleted },
+                { value: 'canceled', label: 'Cancelada', icon: 'close-circle-outline', color: colors.statusCanceled },
+              ] as { value: VisitStatus; label: string; icon: string; color: string }[]
+            ).map(({ value, label, icon, color }) => {
+              const active = status === value
+              return (
+                <Pressable
+                  key={value}
+                  style={[styles.statusOption, active && { borderColor: color, backgroundColor: color + '18' }]}
+                  onPress={() => setStatus(value)}
+                  accessibilityRole="radio"
+                  accessibilityLabel={label}
+                  accessibilityState={{ checked: active }}
+                >
+                  <MaterialCommunityIcons
+                    name={icon as 'clock-outline'}
+                    size={18}
+                    color={active ? color : colors.textSecondary}
+                  />
+                  <Text style={[styles.statusOptionLabel, active && { color }]}>
+                    {label}
+                  </Text>
+                </Pressable>
+              )
+            })}
+          </View>
+      </View>
+
       {/* ── Notas ────────────────────────────────────────────────────────── */}
       <View style={styles.fieldGroup}>
         <FieldLabel label="Notas (opcional)" />
@@ -690,6 +821,57 @@ const styles = StyleSheet.create({
   iosTimePicker: {
     height: 120,
     alignSelf: 'stretch',
+  },
+
+  // Gap picker
+  gapRow: {
+    flexDirection: 'row',
+    gap: spacing[2],
+  },
+  gapOption: {
+    flex: 1,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.background,
+  },
+  gapOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  gapOptionLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textSecondary,
+  },
+  gapOptionLabelActive: {
+    color: colors.primary,
+  },
+
+  // Status picker
+  statusRow: {
+    flexDirection: 'row',
+    gap: spacing[2],
+  },
+  statusOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[1],
+    height: 48,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.background,
+  },
+  statusOptionLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textSecondary,
   },
 
   // Notes

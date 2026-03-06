@@ -26,6 +26,7 @@ import { useFocusEffect, useNavigation, useRouter } from 'expo-router'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 
 import { useToday } from '@/hooks/useToday'
+import { TodaySpan } from '@/stores/todayStore'
 import {
   borderRadius,
   colors,
@@ -117,6 +118,7 @@ export default function TodayScreen() {
 
   const {
     visits,
+    span,
     nextVisit,
     isNextOverdue,
     loading,
@@ -128,15 +130,25 @@ export default function TodayScreen() {
   // ── Auto-refresh while screen is focused ────────────────────────────────
   useFocusEffect(
     useCallback(() => {
-      fetchTodayVisits()
-      const interval = setInterval(() => {
-        fetchTodayVisits()
-      }, 60_000)
+      fetchTodayVisits(span)
+      const interval = setInterval(() => fetchTodayVisits(span), 60_000)
       return () => clearInterval(interval)
-    }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [span]) // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   // ── Header: gear icon + date subtitle ───────────────────────────────────
+  const headerSubtitle = useMemo(() => {
+    if (span === 'today') return dayjs().format('dddd D [de] MMMM')
+    if (span === 'week') {
+      const start = dayjs().startOf('week')
+      const end = dayjs().endOf('week')
+      return `${start.format('D')} – ${end.format('D [de] MMMM')}`
+    }
+    return dayjs().format('MMMM YYYY')
+  }, [span])
+
+  const sectionTitle = span === 'today' ? 'Agenda de hoy' : span === 'week' ? 'Esta semana' : 'Este mes'
+
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -151,14 +163,14 @@ export default function TodayScreen() {
       ),
       headerTitle: () => (
         <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>Hoy</Text>
-          <Text style={styles.headerSubtitle}>
-            {dayjs().format('dddd D [de] MMMM')}
+          <Text style={styles.headerTitle}>
+            {span === 'today' ? 'Agenda' : span === 'week' ? 'Esta semana' : 'Este mes'}
           </Text>
+          <Text style={styles.headerSubtitle}>{headerSubtitle}</Text>
         </View>
       ),
     })
-  }, [navigation, router])
+  }, [navigation, router, span, headerSubtitle])
 
   // ── Next visit card state ────────────────────────────────────────────────
   const cardState: 'loading' | 'done' | 'overdue' | 'upcoming' =
@@ -203,7 +215,7 @@ export default function TodayScreen() {
   // ── Helpers ─────────────────────────────────────────────────────────────
 
   function handleVisitPress(visit: VisitWithClient) {
-    router.push(`/visits/${visit.id}`)
+    router.push(`/visits/${visit.id}?from=agenda`)
   }
 
   function handleNextCardPress() {
@@ -295,7 +307,9 @@ export default function TodayScreen() {
 
   function renderVisitRow(visit: VisitWithClient) {
     const scheduledDayjs = dayjs(visit.scheduled_at)
-    const timeText = scheduledDayjs.format('HH:mm')
+    const timeText = span === 'today'
+      ? scheduledDayjs.format('HH:mm')
+      : scheduledDayjs.format('ddd D · HH:mm')
     const clientName = visit.client?.name ?? 'Cliente desconocido'
 
     const subtitleParts: string[] = []
@@ -356,7 +370,11 @@ export default function TodayScreen() {
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyEmoji}>📅</Text>
         <Text style={styles.emptyText}>
-          No hay visitas programadas para hoy
+          {span === 'today'
+            ? 'No hay visitas programadas para hoy'
+            : span === 'week'
+            ? 'No hay visitas esta semana'
+            : 'No hay visitas este mes'}
         </Text>
         <Pressable
           style={({ pressed }) => [
@@ -395,14 +413,36 @@ export default function TodayScreen() {
         </View>
       )}
 
+      {/* Span selector pills */}
+      <View style={styles.spanRow}>
+        {(['today', 'week', 'month'] as TodaySpan[]).map((s) => {
+          const label = s === 'today' ? 'Hoy' : s === 'week' ? 'Esta semana' : 'Este mes'
+          const active = span === s
+          return (
+            <Pressable
+              key={s}
+              style={[styles.spanPill, active && styles.spanPillActive]}
+              onPress={() => fetchTodayVisits(s)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={label}
+            >
+              <Text style={[styles.spanPillText, active && styles.spanPillTextActive]}>
+                {label}
+              </Text>
+            </Pressable>
+          )
+        })}
+      </View>
+
       {/* Next appointment card — stories 6.5 + 6.6 */}
       <View style={styles.section}>{renderNextCard()}</View>
 
-      {/* Today's visit list — story 6.4 */}
+      {/* Visit list */}
       <View style={styles.section}>
         {/* Section header */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Agenda de hoy</Text>
+          <Text style={styles.sectionTitle}>{sectionTitle}</Text>
           {visits.length > 0 && (
             <View style={styles.countBadge}>
               <Text style={styles.countBadgeText}>
@@ -460,6 +500,36 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.regular as '400',
     color: colors.textSecondary,
     textTransform: 'capitalize',
+  },
+
+  // ── Span selector ─────────────────────────────────────────────────────────
+  spanRow: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[3],
+    gap: spacing[2],
+  },
+  spanPill: {
+    flex: 1,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  spanPillActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  spanPillText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textSecondary,
+  },
+  spanPillTextActive: {
+    color: colors.textOnPrimary,
   },
 
   // ── Offline banner — story 6.7 ────────────────────────────────────────────
