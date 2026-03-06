@@ -12,6 +12,7 @@
 import React, { useCallback, useLayoutEffect, useState } from 'react'
 import {
   ActivityIndicator,
+  FlatList,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -21,11 +22,13 @@ import {
   TextInput,
   View,
 } from 'react-native'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
 import { ZodError } from 'zod'
 
 import { useClients } from '@/hooks/useClients'
 import { useClientsStore } from '@/stores/clientsStore'
+import { useLookupsStore } from '@/stores/lookupsStore'
 import {
   createClientSchema,
   updateClientSchema,
@@ -130,6 +133,11 @@ export default function ClientFormScreen() {
   const [errors, setErrors] = useState<FieldErrors>({})
   const [focusedField, setFocusedField] = useState<keyof FormFields | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [showRubroPicker, setShowRubroPicker] = useState(false)
+  const [showLocalidadPicker, setShowLocalidadPicker] = useState(false)
+
+  const rubros = useLookupsStore((s) => s.rubros)
+  const localidades = useLookupsStore((s) => s.localidades)
 
   const { createClient, updateClient, loading } = useClients()
 
@@ -291,17 +299,52 @@ export default function ClientFormScreen() {
         {/* ── Rubro ─────────────────────────────────────────────────── */}
         <View style={styles.fieldWrapper}>
           <Text style={styles.label}>Rubro</Text>
-          <TextInput
-            style={getInputStyle('industry')}
-            value={form.industry}
-            onChangeText={(text) => setField('industry', text)}
-            onFocus={() => setFocusedField('industry')}
-            onBlur={() => setFocusedField(null)}
-            placeholder="Ej: Construcción, Retail…"
-            placeholderTextColor={colors.textDisabled}
-            autoCapitalize="sentences"
-            returnKeyType="next"
-          />
+          <Pressable
+            style={[styles.input, styles.selectField]}
+            onPress={() => { setShowRubroPicker((v) => !v); setShowLocalidadPicker(false) }}
+            accessibilityRole="button"
+            accessibilityLabel="Seleccionar rubro"
+          >
+            <Text style={form.industry ? styles.selectText : styles.selectPlaceholder} numberOfLines={1}>
+              {form.industry || 'Seleccionar rubro…'}
+            </Text>
+            <MaterialCommunityIcons
+              name={showRubroPicker ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color={colors.textSecondary}
+            />
+          </Pressable>
+          {showRubroPicker && (
+            <View style={styles.pickerList}>
+              {form.industry ? (
+                <Pressable
+                  style={styles.pickerRow}
+                  onPress={() => { setField('industry', ''); setShowRubroPicker(false) }}
+                >
+                  <Text style={styles.pickerRowClear}>Sin rubro</Text>
+                </Pressable>
+              ) : null}
+              <FlatList
+                data={rubros}
+                keyExtractor={(item) => item}
+                scrollEnabled={false}
+                renderItem={({ item }) => (
+                  <Pressable
+                    style={({ pressed }) => [styles.pickerRow, pressed && styles.pickerRowPressed]}
+                    onPress={() => { setField('industry', item); setShowRubroPicker(false) }}
+                  >
+                    <Text style={[styles.pickerRowText, form.industry === item && styles.pickerRowActive]}>
+                      {item}
+                    </Text>
+                    {form.industry === item && (
+                      <MaterialCommunityIcons name="check" size={16} color={colors.primary} />
+                    )}
+                  </Pressable>
+                )}
+                ItemSeparatorComponent={() => <View style={styles.pickerDivider} />}
+              />
+            </View>
+          )}
           {errors.industry ? (
             <Text style={styles.fieldError}>{errors.industry}</Text>
           ) : null}
@@ -329,17 +372,52 @@ export default function ClientFormScreen() {
         {/* ── Localidad ─────────────────────────────────────────────── */}
         <View style={styles.fieldWrapper}>
           <Text style={styles.label}>Localidad</Text>
-          <TextInput
-            style={getInputStyle('city')}
-            value={form.city}
-            onChangeText={(text) => setField('city', text)}
-            onFocus={() => setFocusedField('city')}
-            onBlur={() => setFocusedField(null)}
-            placeholder="Ciudad o localidad"
-            placeholderTextColor={colors.textDisabled}
-            autoCapitalize="words"
-            returnKeyType="next"
-          />
+          <Pressable
+            style={[styles.input, styles.selectField]}
+            onPress={() => { setShowLocalidadPicker((v) => !v); setShowRubroPicker(false) }}
+            accessibilityRole="button"
+            accessibilityLabel="Seleccionar localidad"
+          >
+            <Text style={form.city ? styles.selectText : styles.selectPlaceholder} numberOfLines={1}>
+              {form.city || 'Seleccionar localidad…'}
+            </Text>
+            <MaterialCommunityIcons
+              name={showLocalidadPicker ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color={colors.textSecondary}
+            />
+          </Pressable>
+          {showLocalidadPicker && (
+            <View style={styles.pickerList}>
+              {form.city ? (
+                <Pressable
+                  style={styles.pickerRow}
+                  onPress={() => { setField('city', ''); setShowLocalidadPicker(false) }}
+                >
+                  <Text style={styles.pickerRowClear}>Sin localidad</Text>
+                </Pressable>
+              ) : null}
+              <FlatList
+                data={localidades}
+                keyExtractor={(item) => item}
+                scrollEnabled={false}
+                renderItem={({ item }) => (
+                  <Pressable
+                    style={({ pressed }) => [styles.pickerRow, pressed && styles.pickerRowPressed]}
+                    onPress={() => { setField('city', item); setShowLocalidadPicker(false) }}
+                  >
+                    <Text style={[styles.pickerRowText, form.city === item && styles.pickerRowActive]}>
+                      {item}
+                    </Text>
+                    {form.city === item && (
+                      <MaterialCommunityIcons name="check" size={16} color={colors.primary} />
+                    )}
+                  </Pressable>
+                )}
+                ItemSeparatorComponent={() => <View style={styles.pickerDivider} />}
+              />
+            </View>
+          )}
           {errors.city ? (
             <Text style={styles.fieldError}>{errors.city}</Text>
           ) : null}
@@ -522,6 +600,65 @@ const styles = StyleSheet.create({
   // Error state
   inputError: {
     borderColor: colors.error,
+  },
+
+  // Select field (lookup picker trigger)
+  selectField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 0,
+  },
+  selectText: {
+    flex: 1,
+    fontSize: fontSize.base,
+    color: colors.textPrimary,
+  },
+  selectPlaceholder: {
+    flex: 1,
+    fontSize: fontSize.base,
+    color: colors.textDisabled,
+  },
+
+  // Inline dropdown list
+  pickerList: {
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+    backgroundColor: colors.surface,
+    maxHeight: 240,
+  },
+  pickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[3],
+    minHeight: 48,
+    backgroundColor: colors.surface,
+  },
+  pickerRowPressed: {
+    backgroundColor: colors.background,
+  },
+  pickerRowText: {
+    fontSize: fontSize.base,
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  pickerRowActive: {
+    color: colors.primary,
+    fontWeight: fontWeight.semibold as '600',
+  },
+  pickerRowClear: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  pickerDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginLeft: spacing[3],
   },
 
   // Inline field error
