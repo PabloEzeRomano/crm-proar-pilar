@@ -5,13 +5,14 @@ import dayjs from '../lib/dayjs'
 
 export function useToday() {
   const visits = useTodayStore((s) => s.visits)
+  const span = useTodayStore((s) => s.span)
   const loading = useTodayStore((s) => s.loading)
   const error = useTodayStore((s) => s.error)
   const isStale = useTodayStore((s) => s.isStale)
   const lastFetched = useTodayStore((s) => s.lastFetched)
   const fetchTodayVisits = useTodayStore((s) => s.fetchTodayVisits)
 
-  // Next pending visit (the first pending visit by scheduled_at, ASC order)
+  // Next pending visit not yet completed (first by scheduled_at ASC)
   const nextVisit = useMemo<VisitWithClient | null>(() => {
     const pending = visits.filter((v) => v.status === 'pending')
     if (pending.length === 0) return null
@@ -32,6 +33,7 @@ export function useToday() {
 
   return {
     visits,
+    span,
     nextVisit,
     isNextOverdue,
     minutesUntilNext,

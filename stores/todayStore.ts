@@ -5,35 +5,40 @@ import { supabase } from '../lib/supabase'
 import dayjs from '../lib/dayjs'
 import { VisitWithClient } from '../types'
 
+export type TodaySpan = 'today' | 'week' | 'month'
+
 interface TodayState {
   visits: VisitWithClient[]
+  span: TodaySpan
   loading: boolean
   error: string | null
   lastFetched: string | null
   isStale: boolean
-  fetchTodayVisits: () => Promise<void>
+  fetchTodayVisits: (span?: TodaySpan) => Promise<void>
 }
 
 export const useTodayStore = create<TodayState>()(
   persist(
     (set, get) => ({
       visits: [],
+      span: 'today',
       loading: false,
       error: null,
       lastFetched: null,
       isStale: false,
 
-      fetchTodayVisits: async () => {
-        set({ loading: true, error: null })
+      fetchTodayVisits: async (span: TodaySpan = get().span) => {
+        set({ loading: true, error: null, span })
 
-        const todayStart = dayjs().startOf('day').toISOString()
-        const todayEnd = dayjs().endOf('day').toISOString()
+        const now = dayjs()
+        const start = now.startOf(span === 'today' ? 'day' : span === 'week' ? 'week' : 'month').toISOString()
+        const end = now.endOf(span === 'today' ? 'day' : span === 'week' ? 'week' : 'month').toISOString()
 
         const { data, error } = await supabase
           .from('visits')
           .select('*, client:clients(*)')
-          .gte('scheduled_at', todayStart)
-          .lte('scheduled_at', todayEnd)
+          .gte('scheduled_at', start)
+          .lte('scheduled_at', end)
           .order('scheduled_at', { ascending: true })
 
         if (error) {
@@ -63,6 +68,7 @@ export const useTodayStore = create<TodayState>()(
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         visits: state.visits,
+        span: state.span,
         lastFetched: state.lastFetched,
       }),
     }

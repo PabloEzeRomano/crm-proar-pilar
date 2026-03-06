@@ -1,4 +1,6 @@
 import { create } from 'zustand'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '../lib/supabase'
 import { Client } from '../types'
 import { CreateClientInput, UpdateClientInput } from '../validators/client'
@@ -26,7 +28,9 @@ function normalizeClientInput(data: CreateClientInput) {
   }
 }
 
-export const useClientsStore = create<ClientsState>()((set) => ({
+export const useClientsStore = create<ClientsState>()(
+  persist(
+    (set) => ({
   clients: [],
   loading: false,
   error: null,
@@ -120,4 +124,11 @@ export const useClientsStore = create<ClientsState>()((set) => ({
       clients: state.clients.filter((c) => c.id !== id),
     }))
   },
-}))
+    }),
+    {
+      name: 'clients-store',
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({ clients: state.clients }),
+    }
+  )
+)

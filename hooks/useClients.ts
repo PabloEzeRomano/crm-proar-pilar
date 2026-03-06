@@ -3,7 +3,7 @@ import { useClientsStore } from '../stores/clientsStore'
 import { Client } from '../types'
 import { CreateClientInput, UpdateClientInput } from '../validators/client'
 
-export function useClients(searchQuery?: string) {
+export function useClients(searchQuery?: string, rubroFilter?: string, localidadFilter?: string) {
   const clients = useClientsStore((state) => state.clients)
   const loading = useClientsStore((state) => state.loading)
   const error = useClientsStore((state) => state.error)
@@ -13,18 +13,29 @@ export function useClients(searchQuery?: string) {
   const deleteClient = useClientsStore((state) => state.deleteClient)
 
   const filteredClients = useMemo<Client[]>(() => {
+    let result = clients
+
     const trimmed = searchQuery?.trim()
-    if (!trimmed) return clients
+    if (trimmed) {
+      const query = trimmed.toLowerCase()
+      result = result.filter(
+        (client) =>
+          client.name.toLowerCase().includes(query) ||
+          (client.city?.toLowerCase().includes(query) ?? false) ||
+          (client.industry?.toLowerCase().includes(query) ?? false),
+      )
+    }
 
-    const query = trimmed.toLowerCase()
+    if (rubroFilter) {
+      result = result.filter((c) => c.industry === rubroFilter)
+    }
 
-    return clients.filter(
-      (client) =>
-        client.name.toLowerCase().includes(query) ||
-        (client.city?.toLowerCase().includes(query) ?? false) ||
-        (client.industry?.toLowerCase().includes(query) ?? false),
-    )
-  }, [clients, searchQuery])
+    if (localidadFilter) {
+      result = result.filter((c) => c.city === localidadFilter)
+    }
+
+    return result
+  }, [clients, searchQuery, rubroFilter, localidadFilter])
 
   return {
     clients: filteredClients,
