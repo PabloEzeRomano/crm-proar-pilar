@@ -71,14 +71,14 @@ export default function TabsLayout() {
           fontWeight: '600', // fontWeight.semibold — must be a string literal for RN header
           color: colors.textPrimary,
         },
-        headerBackButtonMenuEnabled: false,
+        // headerBackButtonMenuEnabled: false,
       }}
     >
-      {/* ── Hoy (Today) ──────────────────────────────────────────────── */}
+      {/* ── Agenda (Today) ───────────────────────────────────────────── */}
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Hoy',
+          title: 'Agenda',
           tabBarIcon: ({ focused, color }) => (
             <TabIcon
               activeIcon="home"
@@ -95,6 +95,7 @@ export default function TabsLayout() {
         name="clients"
         options={{
           title: 'Clientes',
+          headerShown: false, // nested Stack in clients/_layout.tsx owns the header
           tabBarIcon: ({ focused, color }) => (
             <TabIcon
               activeIcon="account-group"
@@ -111,6 +112,7 @@ export default function TabsLayout() {
         name="visits"
         options={{
           title: 'Visitas',
+          headerShown: false, // nested Stack in visits/_layout.tsx owns the header
           tabBarIcon: ({ focused, color }) => (
             <TabIcon
               activeIcon="calendar"

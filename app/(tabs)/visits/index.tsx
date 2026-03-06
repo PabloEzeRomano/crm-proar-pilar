@@ -99,10 +99,11 @@ const sbStyles = StyleSheet.create({
 // Filter tab definitions
 // ---------------------------------------------------------------------------
 
-type FilterOption = { key: VisitStatus | 'all'; label: string }
+type FilterOption = { key: VisitStatus | 'all' | 'upcoming'; label: string }
 
 const FILTER_OPTIONS: FilterOption[] = [
   { key: 'all', label: 'Todas' },
+  { key: 'upcoming', label: 'Próximas' },
   { key: 'pending', label: 'Pendientes' },
   { key: 'completed', label: 'Completadas' },
   { key: 'canceled', label: 'Canceladas' },
@@ -114,8 +115,8 @@ const FILTER_OPTIONS: FilterOption[] = [
 
 export default function VisitsIndexScreen() {
   const router = useRouter()
-  const [activeFilter, setActiveFilter] = useState<VisitStatus | 'all'>('all')
-  const { visits, loading, fetchVisits } = useVisits(undefined, activeFilter)
+  const [activeFilter, setActiveFilter] = useState<VisitStatus | 'all' | 'upcoming'>('all')
+  const { visits, hasMore, loading, loadingMore, fetchVisits, fetchMoreVisits } = useVisits(undefined, activeFilter)
 
   useEffect(() => {
     fetchVisits()
@@ -229,6 +230,17 @@ export default function VisitsIndexScreen() {
           ItemSeparatorComponent={renderSeparator}
           ListEmptyComponent={renderEmpty}
           contentContainerStyle={visits.length === 0 ? styles.listEmptyContent : undefined}
+          onEndReached={() => { if (hasMore && !loadingMore) fetchMoreVisits() }}
+          onEndReachedThreshold={0.3}
+          ListFooterComponent={
+            loadingMore
+              ? () => (
+                  <View style={styles.footerLoader}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
+                )
+              : null
+          }
         />
       )}
 
@@ -260,7 +272,7 @@ function formatVisitDate(scheduledAt: string): string {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
   },
 
   // Filter pills
@@ -305,11 +317,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'stretch',
     minHeight: 64,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     overflow: 'hidden',
   },
   rowPressed: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
   },
   statusStrip: {
     width: 4,
@@ -354,6 +366,11 @@ const styles = StyleSheet.create({
   },
   listEmptyContent: {
     flex: 1,
+  },
+
+  footerLoader: {
+    paddingVertical: spacing[4],
+    alignItems: 'center',
   },
 
   // FAB

@@ -16,6 +16,7 @@ import {
   ActivityIndicator,
   FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -25,6 +26,7 @@ import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 
 import { useClients } from '@/hooks/useClients'
+import { useLookupsStore } from '@/stores/lookupsStore'
 import {
   borderRadius,
   colors,
@@ -41,7 +43,11 @@ import { Client } from '@/types'
 export default function ClientsIndexScreen() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
-  const { clients, loading, fetchClients } = useClients(searchQuery)
+  const [activeRubro, setActiveRubro] = useState<string | null>(null)
+  const [activeLocalidad, setActiveLocalidad] = useState<string | null>(null)
+  const { clients, loading, fetchClients } = useClients(searchQuery, activeRubro ?? undefined, activeLocalidad ?? undefined)
+  const rubros = useLookupsStore((s) => s.rubros)
+  const localidades = useLookupsStore((s) => s.localidades)
 
   useEffect(() => {
     fetchClients()
@@ -133,6 +139,62 @@ export default function ClientsIndexScreen() {
         </View>
       </View>
 
+      {/* Rubro filter pills */}
+      {rubros.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterBar}
+          contentContainerStyle={styles.filterScroll}
+        >
+          {rubros.map((r) => {
+            const active = activeRubro === r
+            return (
+              <Pressable
+                key={r}
+                style={[styles.pill, active ? styles.pillActive : styles.pillInactive]}
+                onPress={() => setActiveRubro(active ? null : r)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={`Filtrar por rubro ${r}`}
+              >
+                <Text style={[styles.pillText, active ? styles.pillTextActive : styles.pillTextInactive]}>
+                  {r}
+                </Text>
+              </Pressable>
+            )
+          })}
+        </ScrollView>
+      )}
+
+      {/* Localidad filter pills */}
+      {localidades.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterBar}
+          contentContainerStyle={styles.filterScroll}
+        >
+          {localidades.map((l) => {
+            const active = activeLocalidad === l
+            return (
+              <Pressable
+                key={l}
+                style={[styles.pill, active ? styles.pillActive : styles.pillInactive]}
+                onPress={() => setActiveLocalidad(active ? null : l)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={`Filtrar por localidad ${l}`}
+              >
+                <Text style={[styles.pillText, active ? styles.pillTextActive : styles.pillTextInactive]}>
+                  {l}
+                </Text>
+              </Pressable>
+            )
+          })}
+        </ScrollView>
+      )}
+
       {/* Loading state */}
       {loading && clients.length === 0 ? (
         <View style={styles.loadingContainer}>
@@ -171,13 +233,14 @@ export default function ClientsIndexScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
   },
 
   // Search bar
   searchWrapper: {
     paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
+    paddingTop: spacing[3],
+    paddingBottom: spacing[3],
     backgroundColor: colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -209,10 +272,10 @@ const styles = StyleSheet.create({
     minHeight: 64,
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[3],
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
   },
   rowPressed: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
   },
   rowContent: {
     flex: 1,
@@ -253,6 +316,43 @@ const styles = StyleSheet.create({
   },
   listEmptyContent: {
     flex: 1,
+  },
+
+  // Filter pills
+  filterBar: {
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  filterScroll: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    gap: spacing[2],
+  },
+  pill: {
+    height: 32,
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pillActive: {
+    backgroundColor: colors.primary,
+  },
+  pillInactive: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  pillText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+  },
+  pillTextActive: {
+    color: colors.textOnPrimary,
+  },
+  pillTextInactive: {
+    color: colors.textSecondary,
   },
 
   // FAB — 56px as per primary-action spec
