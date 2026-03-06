@@ -13,6 +13,9 @@ export interface AuthState {
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
   clearError: () => void
+  updateEmailConfig: (config: import('../types').EmailConfig) => Promise<void>
+  completeTour: () => Promise<void>
+  resetTour: () => Promise<void>
 }
 
 // Module-level variable to hold the auth state change subscription so it
@@ -65,7 +68,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
     }
 
     const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
         set({ session, user: session.user })
         await fetchProfile(session.user.id, set)
       } else if (event === 'SIGNED_OUT') {
@@ -83,7 +86,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
   signIn: async (email: string, password: string) => {
     set({ loading: true, error: null })
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error }= await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
       set({ error: error.message, loading: false })
@@ -102,4 +105,40 @@ export const useAuthStore = create<AuthState>()((set) => ({
   },
 
   clearError: () => set({ error: null }),
+
+  completeTour: async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase.from('profiles').update({ show_tour: false }).eq('id', user.id)
+    set((state) => ({
+      profile: state.profile ? { ...state.profile, show_tour: false } : state.profile,
+    }))
+  },
+
+  resetTour: async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    await supabase.from('profiles').update({ show_tour: true }).eq('id', user.id)
+    set((state) => ({
+      profile: state.profile ? { ...state.profile, show_tour: true } : state.profile,
+    }))
+  },
+
+  updateEmailConfig: async (config) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ email_config: config })
+      .eq('id', user.id)
+      .select('*')
+      .single()
+
+    if (!error && data) {
+      set((state) => ({
+        profile: state.profile ? { ...state.profile, email_config: config } : (data as Profile),
+      }))
+    }
+  },
 }))

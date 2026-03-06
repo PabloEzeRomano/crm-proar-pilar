@@ -1,17 +1,19 @@
 export type VisitStatus = 'pending' | 'completed' | 'canceled'
 
+export interface EmailConfig {
+  /** User's personal/business email — used as Reply-To in outgoing emails */
+  sender: string | null
+  recipients: string[]
+  enabled: boolean
+}
+
 export interface Profile {
   id: string
   full_name: string | null
   email_config: EmailConfig
+  show_tour: boolean
   created_at: string
   updated_at: string
-}
-
-export interface EmailConfig {
-  sender: string | null
-  recipients: string[]
-  enabled: boolean
 }
 
 export interface Client {
