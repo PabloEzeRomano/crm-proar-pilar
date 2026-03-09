@@ -21,9 +21,7 @@ function normalizeClientInput(data: CreateClientInput) {
     industry: data.industry || null,
     address: data.address || null,
     city: data.city || null,
-    contact_name: data.contact_name || null,
-    phone: data.phone || null,
-    email: data.email || null,
+    contacts: data.contacts ?? [],
     notes: data.notes || null,
   }
 }

@@ -13,12 +13,15 @@
       "backgroundColor": "#ffffff"
     },
     "updates": {
-      "updates": { "enabled": false }
+      "updates": {
+        "enabled": false
+      }
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "package": "com.proar.crm",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -30,6 +33,11 @@
     "web": {
       "bundler": "metro",
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "2ce91658-de90-41b3-870a-ec5d0c0c54c9"
+      }
     }
   }
 }

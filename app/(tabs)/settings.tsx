@@ -29,6 +29,8 @@ import { z } from 'zod'
 
 import { useAuthStore } from '@/stores/authStore'
 import { useImportStore } from '@/stores/importStore'
+import { useTodayStore } from '@/stores/todayStore'
+import { useVisitsStore } from '@/stores/visitsStore'
 import { supabase } from '@/lib/supabase'
 import { brand } from '@/constants/brand'
 import {
@@ -65,6 +67,9 @@ export default function SettingsScreen() {
   const importError = useImportStore((s) => s.error)
   const clearImportResult = useImportStore((s) => s.clearResult)
 
+  const fetchTodayVisits = useTodayStore((s) => s.fetchTodayVisits)
+  const fetchVisits = useVisitsStore((s) => s.fetchVisits)
+
   // -------------------------------------------------------------------------
   // Local state
   // -------------------------------------------------------------------------
@@ -80,6 +85,14 @@ export default function SettingsScreen() {
   const [addEmailError, setAddEmailError] = useState<string | null>(null)
   const [sendingReport, setSendingReport] = useState(false)
   const [reportFeedback, setReportFeedback] = useState<{ ok: boolean; message: string } | null>(null)
+
+  // Refresh agenda + visits stores after a successful import
+  useEffect(() => {
+    if (importResult) {
+      fetchTodayVisits()
+      fetchVisits()
+    }
+  }, [importResult]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync from store only when not dirty (profile may load after first render)
   useEffect(() => {
@@ -170,6 +183,28 @@ export default function SettingsScreen() {
     } finally {
       setSendingReport(false)
     }
+  }
+
+  async function handleDevReset() {
+    Alert.alert(
+      'Borrar todos los datos',
+      'Esto eliminará TODOS los clientes y visitas del usuario. ¿Continuar?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Borrar todo',
+          style: 'destructive',
+          onPress: async () => {
+            const { data: { user: u } } = await supabase.auth.getUser()
+            if (!u) return
+            await supabase.from('visits').delete().eq('owner_user_id', u.id)
+            await supabase.from('clients').delete().eq('owner_user_id', u.id)
+            fetchVisits()
+            fetchTodayVisits()
+          },
+        },
+      ],
+    )
   }
 
   function handleSignOut() {
@@ -457,6 +492,28 @@ export default function SettingsScreen() {
             </Pressable>
           </View>
         </View>
+
+        {/* ================================================================
+            Section DEV — only visible in development builds
+        ================================================================ */}
+        {__DEV__ && (
+          <>
+            <Text style={styles.sectionHeader}>DESARROLLO</Text>
+            <View style={styles.section}>
+              <View style={styles.rowNoBorder}>
+                <Pressable
+                  style={styles.devResetButton}
+                  onPress={handleDevReset}
+                  accessibilityRole="button"
+                  accessibilityLabel="Borrar todos los clientes y visitas"
+                >
+                  <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors.error} />
+                  <Text style={styles.devResetButtonText}>Borrar clientes y visitas</Text>
+                </Pressable>
+              </View>
+            </View>
+          </>
+        )}
 
         {/* ================================================================
             Section 3 — Aplicación
@@ -751,6 +808,20 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: fontWeight.regular as '400',
     color: colors.textDisabled,
+  },
+
+  // ── Dev section ───────────────────────────────────────────────────────────
+
+  devResetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    paddingVertical: spacing[3],
+  },
+  devResetButtonText: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.error,
   },
 
   // ── Floating save bar ─────────────────────────────────────────────────────

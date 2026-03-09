@@ -15,6 +15,7 @@
 
 import React, { useEffect, useLayoutEffect } from 'react'
 import {
+  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -36,6 +37,22 @@ import {
 } from '@/constants/theme'
 import { VisitStatus, VisitWithClient } from '@/types'
 import dayjs from '@/lib/dayjs'
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function handleContactPhone(phone: string) {
+  Alert.alert(phone, undefined, [
+    { text: 'Llamar', onPress: () => Linking.openURL(`tel:${phone}`) },
+    { text: 'WhatsApp', onPress: () => Linking.openURL(`https://wa.me/${phone.replace(/\D/g, '')}`) },
+    { text: 'Cancelar', style: 'cancel' },
+  ])
+}
+
+function handleContactEmail(email: string) {
+  Linking.openURL(`mailto:${email}`)
+}
 
 // ---------------------------------------------------------------------------
 // StatusBadge (inline — shared pattern from visits screens)
@@ -109,12 +126,12 @@ export default function ClientDetailScreen() {
     state.clients.find((c) => c.id === id),
   )
 
-  // Visits for this client
-  const { visits, fetchVisits } = useVisits(id)
+  // Visits for this client — fetch directly by client_id to bypass global pagination
+  const { visits, fetchVisitsByClient } = useVisits(id)
 
   useEffect(() => {
-    fetchVisits()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    if (id) fetchVisitsByClient(id)
+  }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Set "Editar" button in the header
   useLayoutEffect(() => {
@@ -150,16 +167,6 @@ export default function ClientDetailScreen() {
   // -------------------------------------------------------------------------
   // Link handlers
   // -------------------------------------------------------------------------
-
-  function handlePhone() {
-    if (!client?.phone) return
-    Linking.openURL(`tel:${client.phone}`)
-  }
-
-  function handleEmail() {
-    if (!client?.email) return
-    Linking.openURL(`mailto:${client.email}`)
-  }
 
   function handleMaps() {
     const query = `${client?.address ?? ''} ${client?.city ?? ''}`.trim()
@@ -218,39 +225,38 @@ export default function ClientDetailScreen() {
       {/* ── Sección: Contacto ────────────────────────────────────────── */}
       <View style={styles.section}>
         <SectionHeader title="Contacto" />
-        <InfoRow label="Nombre de contacto" value={client.contact_name} />
 
-        {client.phone ? (
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Teléfono</Text>
-            <Pressable
-              onPress={handlePhone}
-              accessibilityRole="link"
-              accessibilityLabel={`Llamar a ${client.phone}`}
-              hitSlop={{ top: 8, bottom: 8, left: 0, right: 8 }}
-            >
-              <Text style={styles.infoLink}>{client.phone}</Text>
-            </Pressable>
-          </View>
-        ) : null}
-
-        {client.email ? (
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Email</Text>
-            <Pressable
-              onPress={handleEmail}
-              accessibilityRole="link"
-              accessibilityLabel={`Enviar email a ${client.email}`}
-              hitSlop={{ top: 8, bottom: 8, left: 0, right: 8 }}
-            >
-              <Text style={styles.infoLink}>{client.email}</Text>
-            </Pressable>
-          </View>
-        ) : null}
-
-        {!client.contact_name && !client.phone && !client.email ? (
+        {client.contacts.length === 0 ? (
           <Text style={styles.emptyField}>Sin datos de contacto</Text>
-        ) : null}
+        ) : (
+          client.contacts.map((contact, index) => (
+            <View key={index} style={[styles.contactCard, index > 0 && styles.contactCardBorder]}>
+              {contact.name ? (
+                <Text style={styles.contactName}>{contact.name}</Text>
+              ) : null}
+              {contact.phone ? (
+                <Pressable
+                  onPress={() => handleContactPhone(contact.phone!)}
+                  accessibilityRole="link"
+                  accessibilityLabel={`Contactar ${contact.phone}`}
+                  hitSlop={{ top: 8, bottom: 8, left: 0, right: 8 }}
+                >
+                  <Text style={styles.contactLink}>{contact.phone}</Text>
+                </Pressable>
+              ) : null}
+              {contact.email ? (
+                <Pressable
+                  onPress={() => handleContactEmail(contact.email!)}
+                  accessibilityRole="link"
+                  accessibilityLabel={`Enviar email a ${contact.email}`}
+                  hitSlop={{ top: 8, bottom: 8, left: 0, right: 8 }}
+                >
+                  <Text style={styles.contactLink}>{contact.email}</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ))
+        )}
       </View>
 
       <View style={styles.divider} />
@@ -440,11 +446,25 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.regular as '400',
     color: colors.textPrimary,
   },
-  infoLink: {
+  contactCard: {
+    paddingVertical: spacing[2],
+    gap: spacing[1],
+  },
+  contactCardBorder: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    marginTop: spacing[2],
+    paddingTop: spacing[3],
+  },
+  contactName: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textPrimary,
+  },
+  contactLink: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.regular as '400',
     color: colors.primary,
-    textDecorationLine: 'underline',
+    fontWeight: fontWeight.medium as '500',
   },
 
   // Maps button — secondary appearance per ui-specs

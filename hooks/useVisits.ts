@@ -11,6 +11,7 @@ export function useVisits(clientId?: string, statusFilter?: VisitStatus | 'all' 
   const error = useVisitsStore((state) => state.error)
   const fetchVisits = useVisitsStore((state) => state.fetchVisits)
   const fetchMoreVisits = useVisitsStore((state) => state.fetchMoreVisits)
+  const fetchVisitsByClient = useVisitsStore((state) => state.fetchVisitsByClient)
   const createVisit = useVisitsStore((state) => state.createVisit)
   const updateVisit = useVisitsStore((state) => state.updateVisit)
   const updateStatus = useVisitsStore((state) => state.updateStatus)
@@ -42,6 +43,7 @@ export function useVisits(clientId?: string, statusFilter?: VisitStatus | 'all' 
     error,
     fetchVisits,
     fetchMoreVisits,
+    fetchVisitsByClient,
     createVisit,
     updateVisit,
     updateStatus,

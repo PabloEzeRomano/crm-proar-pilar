@@ -16,6 +16,7 @@ interface VisitsState {
   fetchVisits: () => Promise<void>
   fetchMoreVisits: () => Promise<void>
   fetchVisit: (id: string) => Promise<void>
+  fetchVisitsByClient: (clientId: string) => Promise<void>
   createVisit: (data: CreateVisitInput) => Promise<Visit | null>
   updateVisit: (id: string, data: UpdateVisitInput) => Promise<void>
   updateStatus: (id: string, status: VisitStatus) => Promise<void>
@@ -76,6 +77,23 @@ export const useVisitsStore = create<VisitsState>()(
           hasMore: rows.length === PAGE_SIZE,
           loadingMore: false,
         }))
+      },
+
+      fetchVisitsByClient: async (clientId: string) => {
+        const { data, error } = await supabase
+          .from('visits')
+          .select('*, client:clients(*)')
+          .eq('client_id', clientId)
+          .order('scheduled_at', { ascending: false })
+
+        if (error || !data) return
+
+        const incoming = data as VisitWithClient[]
+        set((state) => {
+          // Merge: replace any existing visits for this client, keep the rest
+          const others = state.visits.filter((v) => v.client_id !== clientId)
+          return { visits: [...others, ...incoming] }
+        })
       },
 
       fetchVisit: async (id: string) => {

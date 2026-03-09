@@ -16,6 +16,12 @@ export interface Profile {
   updated_at: string
 }
 
+export interface ContactInfo {
+  name?: string
+  phone?: string
+  email?: string
+}
+
 export interface Client {
   id: string
   owner_user_id: string
@@ -23,9 +29,7 @@ export interface Client {
   industry: string | null
   address: string | null
   city: string | null
-  contact_name: string | null
-  phone: string | null
-  email: string | null
+  contacts: ContactInfo[]
   notes: string | null
   created_at: string
   updated_at: string

@@ -3,7 +3,7 @@ import { useClientsStore } from '../stores/clientsStore'
 import { Client } from '../types'
 import { CreateClientInput, UpdateClientInput } from '../validators/client'
 
-export function useClients(searchQuery?: string, rubroFilter?: string, localidadFilter?: string) {
+export function useClients(searchQuery?: string, rubroFilter?: string[], localidadFilter?: string[]) {
   const clients = useClientsStore((state) => state.clients)
   const loading = useClientsStore((state) => state.loading)
   const error = useClientsStore((state) => state.error)
@@ -26,12 +26,12 @@ export function useClients(searchQuery?: string, rubroFilter?: string, localidad
       )
     }
 
-    if (rubroFilter) {
-      result = result.filter((c) => c.industry === rubroFilter)
+    if (rubroFilter?.length) {
+      result = result.filter((c) => c.industry && rubroFilter.includes(c.industry))
     }
 
-    if (localidadFilter) {
-      result = result.filter((c) => c.city === localidadFilter)
+    if (localidadFilter?.length) {
+      result = result.filter((c) => c.city && localidadFilter.includes(c.city))
     }
 
     return result

@@ -127,32 +127,41 @@ export default function VisitDetailScreen() {
   // Set header: custom back (when from=agenda) + "Editar" button
   useLayoutEffect(() => {
     if (!visit) return
-    navigation.setOptions({
-      headerLeft: fromAgenda
-        ? () => (
-            <Pressable
-              onPress={() => router.navigate('/(tabs)/')}
-              style={styles.headerButton}
-              accessibilityRole="button"
-              accessibilityLabel="Volver a Agenda"
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <MaterialCommunityIcons name="arrow-left" size={24} color={colors.primary} />
-            </Pressable>
-          )
-        : undefined,
-      headerRight: () => (
-        <Pressable
-          onPress={() => router.push(`/visits/form?visitId=${id}`)}
-          style={styles.headerButton}
-          accessibilityRole="button"
-          accessibilityLabel="Editar visita"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.headerButtonText}>Editar</Text>
-        </Pressable>
-      ),
-    })
+    const editButton = () => (
+      <Pressable
+        onPress={() => router.push(`/visits/form?visitId=${id}`)}
+        style={styles.headerButton}
+        accessibilityRole="button"
+        accessibilityLabel="Editar visita"
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Text style={styles.headerButtonText}>Editar</Text>
+      </Pressable>
+    )
+
+    if (fromAgenda) {
+      navigation.setOptions({
+        headerLeft: () => (
+          <Pressable
+            onPress={() => {
+              // Replace this screen with the visits root so the stack is clean,
+              // then switch to the Agenda tab.
+              router.replace('/(tabs)/visits/')
+              router.navigate('/(tabs)/')
+            }}
+            style={styles.headerButton}
+            accessibilityRole="button"
+            accessibilityLabel="Volver a Agenda"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.primary} />
+          </Pressable>
+        ),
+        headerRight: editButton,
+      })
+    } else {
+      navigation.setOptions({ headerRight: editButton })
+    }
   }, [visit, id, navigation, router, fromAgenda])
 
   // -------------------------------------------------------------------------

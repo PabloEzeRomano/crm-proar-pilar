@@ -9,7 +9,7 @@
  * - All Supabase access goes through useClients hook (store)
  */
 
-import React, { useCallback, useLayoutEffect, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 import {
   ActivityIndicator,
   FlatList,
@@ -41,6 +41,7 @@ import {
   fontWeight,
   spacing,
 } from '@/constants/theme'
+import type { ContactInfo } from '@/types'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -51,9 +52,6 @@ type FormFields = {
   industry: string
   address: string
   city: string
-  contact_name: string
-  phone: string
-  email: string
   notes: string
 }
 
@@ -64,9 +62,6 @@ const EMPTY_FORM: FormFields = {
   industry: '',
   address: '',
   city: '',
-  contact_name: '',
-  phone: '',
-  email: '',
   notes: '',
 }
 
@@ -74,16 +69,20 @@ const EMPTY_FORM: FormFields = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formToInput(form: FormFields): CreateClientInput {
+function formToInput(form: FormFields, contactList: ContactInfo[]): CreateClientInput {
   return {
     name: form.name,
     industry: form.industry || undefined,
     address: form.address || undefined,
     city: form.city || undefined,
-    contact_name: form.contact_name || undefined,
-    phone: form.phone || undefined,
-    email: form.email || undefined,
     notes: form.notes || undefined,
+    contacts: contactList
+      .map((c) => ({
+        name: c.name?.trim() || undefined,
+        phone: c.phone?.trim() || undefined,
+        email: c.email?.trim() || undefined,
+      }))
+      .filter((c) => c.name || c.phone || c.email),
   }
 }
 
@@ -121,17 +120,18 @@ export default function ClientFormScreen() {
         industry: existingClient.industry ?? '',
         address: existingClient.address ?? '',
         city: existingClient.city ?? '',
-        contact_name: existingClient.contact_name ?? '',
-        phone: existingClient.phone ?? '',
-        email: existingClient.email ?? '',
         notes: existingClient.notes ?? '',
       }
     }
     return EMPTY_FORM
   })
 
+  const [contacts, setContacts] = useState<ContactInfo[]>(() =>
+    existingClient?.contacts?.length ? existingClient.contacts : [{ name: '', phone: '', email: '' }],
+  )
+
   const [errors, setErrors] = useState<FieldErrors>({})
-  const [focusedField, setFocusedField] = useState<keyof FormFields | null>(null)
+  const [focusedField, setFocusedField] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [showRubroPicker, setShowRubroPicker] = useState(false)
   const [showLocalidadPicker, setShowLocalidadPicker] = useState(false)
@@ -141,13 +141,30 @@ export default function ClientFormScreen() {
 
   const { createClient, updateClient, loading } = useClients()
 
+  // Sync contacts when existingClient loads asynchronously (edit mode)
+  useEffect(() => {
+    if (!isEditMode || !existingClient) return
+    setForm({
+      name: existingClient.name ?? '',
+      industry: existingClient.industry ?? '',
+      address: existingClient.address ?? '',
+      city: existingClient.city ?? '',
+      notes: existingClient.notes ?? '',
+    })
+    setContacts(
+      existingClient.contacts?.length
+        ? existingClient.contacts
+        : [{ name: '', phone: '', email: '' }],
+    )
+  }, [isEditMode, existingClient])
+
   // -------------------------------------------------------------------------
   // Validate helper
   // -------------------------------------------------------------------------
 
   function validate(): boolean {
     const schema = isEditMode ? updateClientSchema : createClientSchema
-    const result = schema.safeParse(formToInput(form))
+    const result = schema.safeParse(formToInput(form, contacts))
     if (!result.success) {
       setErrors(extractZodErrors(result.error))
       return false
@@ -164,7 +181,7 @@ export default function ClientFormScreen() {
     if (!validate()) return
     setSubmitError(null)
 
-    const input = formToInput(form)
+    const input = formToInput(form, contacts)
 
     if (isEditMode && clientId) {
       await updateClient(clientId, input)
@@ -183,7 +200,7 @@ export default function ClientFormScreen() {
     }
 
     router.back()
-  }, [form, isEditMode, clientId, createClient, updateClient, router]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [form, contacts, isEditMode, clientId, createClient, updateClient, router]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // -------------------------------------------------------------------------
   // Is form valid for submit button state
@@ -251,6 +268,25 @@ export default function ClientFormScreen() {
       focusedField === key && styles.inputFocused,
       errors[key] ? styles.inputError : null,
     ]
+  }
+
+  // -------------------------------------------------------------------------
+  // Contact helpers
+  // -------------------------------------------------------------------------
+
+  function updateContact(index: number, field: keyof ContactInfo, value: string) {
+    setContacts((prev) => prev.map((c, i) => i === index ? { ...c, [field]: value } : c))
+  }
+
+  function removeContact(index: number) {
+    setContacts((prev) => {
+      const next = prev.filter((_, i) => i !== index)
+      return next.length > 0 ? next : [{ name: '', phone: '', email: '' }]
+    })
+  }
+
+  function addContact() {
+    setContacts((prev) => [...prev, { name: '', phone: '', email: '' }])
   }
 
   // -------------------------------------------------------------------------
@@ -423,66 +459,61 @@ export default function ClientFormScreen() {
           ) : null}
         </View>
 
-        {/* ── Contacto ──────────────────────────────────────────────── */}
+        {/* ── Contactos ─────────────────────────────────────────────── */}
         <View style={styles.fieldWrapper}>
-          <Text style={styles.label}>Contacto</Text>
-          <TextInput
-            style={getInputStyle('contact_name')}
-            value={form.contact_name}
-            onChangeText={(text) => setField('contact_name', text)}
-            onFocus={() => setFocusedField('contact_name')}
-            onBlur={() => setFocusedField(null)}
-            placeholder="Nombre del contacto"
-            placeholderTextColor={colors.textDisabled}
-            autoCapitalize="words"
-            returnKeyType="next"
-          />
-          {errors.contact_name ? (
-            <Text style={styles.fieldError}>{errors.contact_name}</Text>
-          ) : null}
-        </View>
+          <Text style={styles.label}>Contactos</Text>
 
-        {/* ── Teléfono ──────────────────────────────────────────────── */}
-        <View style={styles.fieldWrapper}>
-          <Text style={styles.label}>Teléfono</Text>
-          <TextInput
-            style={getInputStyle('phone')}
-            value={form.phone}
-            onChangeText={(text) => setField('phone', text)}
-            onFocus={() => setFocusedField('phone')}
-            onBlur={() => setFocusedField(null)}
-            placeholder="+54 9 11 1234-5678"
-            placeholderTextColor={colors.textDisabled}
-            keyboardType="phone-pad"
-            returnKeyType="next"
-          />
-          {errors.phone ? (
-            <Text style={styles.fieldError}>{errors.phone}</Text>
-          ) : null}
-        </View>
+          {contacts.map((contact, index) => (
+            <View key={index} style={styles.contactFormCard}>
+              <View style={styles.contactFormCardHeader}>
+                <Text style={styles.contactFormCardTitle}>
+                  {contact.name?.trim() || `Contacto ${index + 1}`}
+                </Text>
+                {contacts.length > 1 ? (
+                  <Pressable
+                    onPress={() => removeContact(index)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    accessibilityLabel="Eliminar contacto"
+                  >
+                    <MaterialCommunityIcons name="close-circle" size={20} color={colors.textDisabled} />
+                  </Pressable>
+                ) : null}
+              </View>
 
-        {/* ── Email ─────────────────────────────────────────────────── */}
-        <View style={styles.fieldWrapper}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={getInputStyle('email')}
-            value={form.email}
-            onChangeText={(text) => setField('email', text)}
-            onFocus={() => setFocusedField('email')}
-            onBlur={() => {
-              setFocusedField(null)
-              validate()
-            }}
-            placeholder="contacto@empresa.com"
-            placeholderTextColor={colors.textDisabled}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-            returnKeyType="next"
-          />
-          {errors.email ? (
-            <Text style={styles.fieldError}>{errors.email}</Text>
-          ) : null}
+              <TextInput
+                style={styles.contactFormInput}
+                value={contact.name ?? ''}
+                onChangeText={(text) => updateContact(index, 'name', text)}
+                placeholder="Nombre"
+                placeholderTextColor={colors.textDisabled}
+                returnKeyType="next"
+              />
+              <TextInput
+                style={styles.contactFormInput}
+                value={contact.phone ?? ''}
+                onChangeText={(text) => updateContact(index, 'phone', text)}
+                placeholder="Teléfono"
+                placeholderTextColor={colors.textDisabled}
+                keyboardType="phone-pad"
+                returnKeyType="next"
+              />
+              <TextInput
+                style={styles.contactFormInput}
+                value={contact.email ?? ''}
+                onChangeText={(text) => updateContact(index, 'email', text)}
+                placeholder="Email"
+                placeholderTextColor={colors.textDisabled}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                returnKeyType="done"
+              />
+            </View>
+          ))}
+
+          <Pressable onPress={addContact} style={styles.addContactButton}>
+            <MaterialCommunityIcons name="plus" size={16} color={colors.primary} />
+            <Text style={styles.addContactButtonText}>Agregar contacto</Text>
+          </Pressable>
         </View>
 
         {/* ── Notas ─────────────────────────────────────────────────── */}
@@ -666,5 +697,48 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.error,
     fontWeight: fontWeight.regular as '400',
+  },
+
+  // Contact form cards
+  contactFormCard: {
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    padding: spacing[3],
+    gap: spacing[2],
+    marginBottom: spacing[3],
+    backgroundColor: colors.background,
+  },
+  contactFormCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  contactFormCardTitle: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textSecondary,
+  },
+  contactFormInput: {
+    height: 44,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing[3],
+    fontSize: fontSize.base,
+    color: colors.textPrimary,
+    backgroundColor: colors.surface,
+  },
+  addContactButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    paddingVertical: spacing[2],
+    alignSelf: 'flex-start',
+  },
+  addContactButtonText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.primary,
   },
 })

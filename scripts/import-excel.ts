@@ -35,6 +35,8 @@ dayjs.extend(customParseFormat)
 // ---------------------------------------------------------------------------
 
 const DRY_RUN = process.argv.includes('--dry-run')
+const GAP_ARG = process.argv.find((a) => a.startsWith('--gap='))
+const GAP_MINUTES = GAP_ARG ? parseInt(GAP_ARG.split('=')[1], 10) : 60
 const EXCEL_PATH = path.join(
   os.homedir(),
   'Downloads',
@@ -59,6 +61,12 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey)
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
+interface ContactInfo {
+  name?: string
+  phone?: string
+  email?: string
+}
 
 interface RawRow {
   Fecha?: unknown
@@ -89,6 +97,139 @@ function clientKey(name: string | null, address: string | null): string {
   return `${(name ?? '').toLowerCase().trim()}|${(address ?? '').toLowerCase().trim()}`
 }
 
+/** Parse a phone cell segment into { name?, phone }.
+ *  Handles patterns like: "Name number", "number (Name)", "cel. Name number" */
+function parsePhoneSegment(seg: string): { name?: string; phone: string } | null {
+  seg = seg.trim()
+  if (!seg || seg === '-') return null
+
+  let name: string | undefined
+
+  // Extract (label) in parens — only if contains letters (not area codes like (011))
+  seg = seg.replace(/\(([^)]+)\)/g, (match, inner) => {
+    const trimmed = inner.trim()
+    if (/[a-zA-ZáéíóúñÁÉÍÓÚÑ]/.test(trimmed)) {
+      const candidate = trimmed.replace(/^(cel|tel|int)\b\.?\s*/i, '').trim()
+      // Skip if it's "int. NNN" style extension markers
+      if (candidate && !/^\d+$/.test(candidate) && !name) name = candidate
+      return ''
+    }
+    return match // keep area code parens like (011)
+  })
+
+  // Strip common prefixes
+  seg = seg.replace(/^\s*(cel\.?|tel\.?|teléfono\.?)\s*/i, '')
+
+  // Extract leading name (letters before first digit/+ group)
+  const leadingName = seg.match(/^([a-zA-ZáéíóúñÁÉÍÓÚÑ][a-zA-ZáéíóúñÁÉÍÓÚÑ\s.]+?)\s+(?=[\d+(])/)
+  if (leadingName) {
+    const candidate = leadingName[1].trim().replace(/\s*(cel\.?|tel\.?)$/i, '')
+    const isNoise = /^(cel|tel|int|empresa|planta|portería|y)\b/i.test(candidate)
+    if (!isNoise && candidate.length > 1) {
+      if (!name) name = candidate
+    }
+    seg = seg.slice(leadingName[0].length)
+  }
+
+  // Strip trailing "y NNN" style connectors that bleed into phone string
+  seg = seg.replace(/\s+y\s+[\d-]+.*$/i, '').trim()
+
+  // Remove any remaining letters (but preserve + and parens for area codes)
+  const phone = seg
+    .replace(/[a-zA-ZáéíóúñÁÉÍÓÚÑ]+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[.\s]+$/, '')
+
+  if (!phone || phone.replace(/\D/g, '').length < 6) return null
+  return { name: name || undefined, phone }
+}
+
+/** Parse a Tel 1 cell → array of { name?, phone } contacts */
+function parsePhoneCell(raw: unknown): { name?: string; phone: string }[] {
+  if (!raw) return []
+  const s = String(raw).trim()
+  if (!s || s === '-') return []
+  const segments = s.split(/\/\/|[\n\r]+|\//).map((x) => x.trim()).filter(Boolean)
+  return segments.flatMap((seg) => {
+    const r = parsePhoneSegment(seg)
+    return r ? [r] : []
+  })
+}
+
+/** Parse a Mail cell → array of { name?, email } contacts */
+function parseEmailCell(raw: unknown): { name?: string; email: string }[] {
+  if (!raw) return []
+  const s = String(raw).trim()
+  if (!s || s === '-') return []
+  const emailRe = /[\w.+%-]+@[\w.-]+\.[a-zA-Z]{2,}/g
+  const results: { name?: string; email: string }[] = []
+  let m: RegExpExecArray | null
+  while ((m = emailRe.exec(s)) !== null) {
+    const email = m[0]
+    const before = s.slice(0, m.index)
+    const parts = before.split(/[\/\n,]/)
+    const lastPart = (parts[parts.length - 1] ?? '').replace(/<.*$/, '').replace(/[=>\-]+$/, '').replace(/\(/, '').trim()
+    // Discard if the "name" is itself an email address
+    const name = lastPart.length > 1 && lastPart.length < 50 &&
+      /[a-zA-ZáéíóúñÁÉÍÓÚÑ]/.test(lastPart) && !lastPart.includes('@')
+      ? lastPart : undefined
+    results.push({ name, email })
+  }
+  return results
+}
+
+/** Build ContactInfo[] from a single Excel row's Contacto / Tel 1 / Mail fields */
+function parseContactsFromRow(
+  contacto: string | null,
+  tel1: unknown,
+  mail: unknown,
+): ContactInfo[] {
+  const phones = parsePhoneCell(tel1)
+  const emails = parseEmailCell(mail)
+  const contacts: ContactInfo[] = []
+
+  // Merge phones and emails by matching on name when possible
+  const usedEmailIdxs = new Set<number>()
+
+  for (const p of phones) {
+    // Try to find a matching email by name
+    let matchedEmail: string | undefined
+    if (p.name) {
+      const idx = emails.findIndex(
+        (e, i) =>
+          !usedEmailIdxs.has(i) &&
+          e.name &&
+          e.name.toLowerCase().includes(p.name!.toLowerCase().split(' ')[0]),
+      )
+      if (idx !== -1) {
+        matchedEmail = emails[idx].email
+        usedEmailIdxs.add(idx)
+      }
+    }
+    contacts.push({ name: p.name, phone: p.phone, email: matchedEmail })
+  }
+
+  // Add remaining unmatched emails
+  for (let i = 0; i < emails.length; i++) {
+    if (!usedEmailIdxs.has(i)) {
+      contacts.push({ name: emails[i].name, email: emails[i].email })
+    }
+  }
+
+  // If nothing was extracted but we have a Contacto name, create a name-only entry
+  if (contacts.length === 0 && contacto) {
+    contacts.push({ name: contacto })
+  }
+
+  // If we have contacts but none has a name, assign Contacto to first entry
+  if (contacts.length > 0 && !contacts[0].name && contacto) {
+    contacts[0] = { ...contacts[0], name: contacto }
+  }
+
+  return contacts
+}
+
 /**
  * Parse an Excel date cell into an ISO 8601 UTC string.
  *
@@ -103,8 +244,9 @@ function parseScheduledAt(val: unknown): string | null {
 
   if (val instanceof Date) {
     d = dayjs(val)
-    // Excel serial dates with no time portion decode to midnight UTC
-    hasExplicitTime = val.getUTCHours() !== 0 || val.getUTCMinutes() !== 0
+    // Check local hours/minutes — Excel date-only cells come with artifact seconds
+    // (e.g. 00:00:48 local). Using local time correctly treats these as date-only.
+    hasExplicitTime = d.hour() !== 0 || d.minute() !== 0
   } else {
     const s = String(val).trim()
     for (const [fmt, hasTime] of [
@@ -253,12 +395,20 @@ async function main(): Promise<void> {
 
   // "clientId|YYYY-MM-DD" → already exists
   const visitSet = new Set<string>()
+  // Track latest visit time per day for gap-based staggering
+  const dayLastTimeMap = new Map<string, dayjs.Dayjs>()
+
   for (const v of existingVisits ?? []) {
     const dateOnly = dayjs(v.scheduled_at).format('YYYY-MM-DD')
     visitSet.add(`${v.client_id}|${dateOnly}`)
+
+    const t = dayjs(v.scheduled_at)
+    const current = dayLastTimeMap.get(dateOnly)
+    if (!current || t.isAfter(current)) dayLastTimeMap.set(dateOnly, t)
   }
 
-  console.log(`  Existing visits in DB  : ${visitSet.size}\n`)
+  console.log(`  Existing visits in DB  : ${visitSet.size}`)
+  console.log(`  Visit gap              : ${GAP_MINUTES} min\n`)
 
   // ── 5. Process rows ────────────────────────────────────────────────────
 
@@ -286,9 +436,11 @@ async function main(): Promise<void> {
         industry: str(row['RUBRO']),
         address,
         city: str(row['Localidad']),
-        contact_name: str(row['Contacto']),
-        phone: str(row['Tel 1']),
-        email: str(row['Mail']),
+        contacts: parseContactsFromRow(
+          str(row['Contacto']),
+          row['Tel 1'],
+          row['Mail'],
+        ),
         notes: null as string | null,
       }
 
@@ -322,10 +474,10 @@ async function main(): Promise<void> {
 
     // ── Visit (only for rows with a date) ─────────────────────────────────
 
-    const scheduledAt = parseScheduledAt(row['Fecha'])
-    if (!scheduledAt) continue
+    const parsedAt = parseScheduledAt(row['Fecha'])
+    if (!parsedAt) continue
 
-    const dateOnly = dayjs(scheduledAt).format('YYYY-MM-DD')
+    const dateOnly = dayjs(parsedAt).format('YYYY-MM-DD')
     const visitKey = `${clientId}|${dateOnly}`
 
     if (visitSet.has(visitKey)) {
@@ -333,11 +485,19 @@ async function main(): Promise<void> {
       continue
     }
 
+    // Stagger visits within the same day by gap
+    const lastTime = dayLastTimeMap.get(dateOnly)
+    const assignedTime = lastTime
+      ? lastTime.add(GAP_MINUTES, 'minute')
+      : dayjs(dateOnly).hour(10).minute(0).second(0).millisecond(0)
+    const scheduledAt = assignedTime.toISOString()
+    dayLastTimeMap.set(dateOnly, assignedTime)
+
     const visitPayload = {
       owner_user_id: userId,
       client_id: clientId,
       scheduled_at: scheduledAt,
-      status: 'completed' as const,
+      status: dayjs(dateOnly).isBefore(dayjs().startOf('day')) ? 'completed' : 'pending',
       notes: str(row['Minuta de la Reunión']),
     }
 

@@ -216,7 +216,7 @@ export default function VisitFormScreen() {
         </Pressable>
       ),
     })
-  }, [isValid, saving, selectedClient, selectedDate, selectedTime, notes, navigation]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isValid, saving, selectedClient, selectedDate, selectedTime, notes, status, navigation]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // -------------------------------------------------------------------------
   // Handlers
