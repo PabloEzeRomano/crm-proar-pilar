@@ -103,6 +103,7 @@ export default function VisitDetailScreen() {
   const fromAgenda = from === 'agenda'
 
   const visit = useVisitsStore((state) => state.visits.find((v) => v.id === id))
+  const error = useVisitsStore((state) => state.error)
   const fetchVisit = useVisitsStore((state) => state.fetchVisit)
   const updateVisit = useVisitsStore((state) => state.updateVisit)
   const updateStatus = useVisitsStore((state) => state.updateStatus)
@@ -186,6 +187,13 @@ export default function VisitDetailScreen() {
 
     setSaveState('saving')
     await updateVisit(id, { notes: notesText })
+    
+    // Check if save was successful
+    if (error) {
+      setSaveState('idle')
+      return
+    }
+    
     setSaveState('saved')
 
     // Reset indicator after 2 seconds

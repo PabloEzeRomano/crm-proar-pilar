@@ -21,6 +21,7 @@ interface VisitsState {
   updateVisit: (id: string, data: UpdateVisitInput) => Promise<void>
   updateStatus: (id: string, status: VisitStatus) => Promise<void>
   deleteVisit: (id: string) => Promise<void>
+  deleteAllUserVisits: () => Promise<void>
 }
 
 export const useVisitsStore = create<VisitsState>()(
@@ -199,6 +200,29 @@ export const useVisitsStore = create<VisitsState>()(
         set((state) => ({
           visits: state.visits.filter((v) => v.id !== id),
         }))
+      },
+
+      deleteAllUserVisits: async () => {
+        set({ error: null })
+
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (!user) {
+          set({ error: 'Usuario no autenticado' })
+          return
+        }
+
+        const { error } = await supabase
+          .from('visits')
+          .delete()
+          .eq('owner_user_id', user.id)
+
+        if (error) {
+          set({ error: error.message })
+          return
+        }
+
+        set({ visits: [] })
       },
     }),
     {

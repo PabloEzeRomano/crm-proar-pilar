@@ -5,6 +5,25 @@ export interface EmailConfig {
   sender: string | null
   recipients: string[]
   enabled: boolean
+  /** Auto-generated sender address from auth email local part + send domain (e.g., gvega@send.gemm-apps.com) */
+  sender_address?: string
+  /** Auto-generated sender display name from auth email local part (e.g., gvega) */
+  sender_name?: string
+}
+
+/**
+ * Type guard to ensure EmailConfig has required sender fields.
+ * Used by Edge Function to validate profile data before sending emails.
+ */
+export function isValidEmailConfig(config: unknown): config is EmailConfig {
+  if (!config || typeof config !== 'object') return false
+  const obj = config as Record<string, unknown>
+  return (
+    typeof obj.sender_address === 'string' &&
+    typeof obj.sender_name === 'string' &&
+    Array.isArray(obj.recipients) &&
+    typeof obj.enabled === 'boolean'
+  )
 }
 
 export interface Profile {

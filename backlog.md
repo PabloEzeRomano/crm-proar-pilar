@@ -105,7 +105,12 @@
 | 7.4 | Default time 10:00 for rows without time in Fecha | scripts | `done` |
 | 7.5 | Dry-run mode: log what would be inserted without writing | scripts | `done` |
 | 7.6 | In-app import from Settings screen (importStore + expo-document-picker) | frontend | `done` |
-| 7.7 | Run import against dev Supabase and verify data | pm-tl | `pending` |
+| 7.7 | Run import against dev Supabase and verify data | pm-tl | `done` |
+| 7.8 | Fix `hasExplicitTime` check: use local hour/minute instead of UTC (Excel midnight artifact) | scripts + state | `done` |
+| 7.9 | Fix visit status: compare against `startOf('day')` so today's imports are `pending` | scripts + state | `done` |
+| 7.10 | Stagger visit times by gap within the same day (`dayLastTimeMap`); reads gap from AsyncStorage | scripts + state | `done` |
+| 7.11 | Parse multi-value phone/email cells (split on `\n`, `/`, `,`) into structured `ContactInfo[]` | scripts + state | `done` |
+| 7.12 | Extract contact names from parentheses and leading text in phone cells | scripts | `done` |
 
 ---
 
@@ -141,7 +146,7 @@
 | 10.1 | Use `MAIL_FROM_NAME` / `MAIL_FROM_ADDRESS` env vars for `from` field | backend | `done` |
 | 10.2 | Use `email_config.sender` as `reply_to` (user's personal/business email) | backend | `done` |
 | 10.3 | Update Settings label: "Email remitente" → "Tu email (para respuestas)" | frontend | `done` |
-| 10.4 | Verify sending domain in Resend dashboard and set secrets | pm-tl | `pending` |
+| 10.4 | Extract email name from auth email → populate sender_address/sender_name in email_config (multi-user ready) | backend + frontend + state | `done` |
 
 ---
 
@@ -182,15 +187,186 @@
 
 ---
 
-## Future (Post-MVP)
+## EP-014 — Contacts Refactor
 
-| Idea | Notes |
-|---|---|
-| Better onboarding tour | Point at actual UI elements, guide user to import Excel/CSV |
-| Auto-organize agenda by distance | Requires device location permission + route optimization |
-| Add new Rubro / Localidad from client form | Inline "add new" option in the lookup picker; writes to `lookup_values` table |
-| Proper Agenda navigation context | Navigate within the Agenda's own stack so back arrow always returns correctly without query params |
-| Tester / QA Agent + Playwright | Add a dedicated QA agent with scope over `/e2e/` tests; implement Playwright for end-to-end testing of critical flows (login, import, visit creation, email send) |
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 14.1 | Replace `contact_name`/`phone`/`email` columns with `contacts JSONB` (`ContactInfo[]`) — migration 0010 | backend | `done` |
+| 14.2 | Add `ContactInfo` type and update `Client` interface in `types/index.ts` | state | `done` |
+| 14.3 | Update `validators/client.ts` with `contactInfoSchema` and `contacts` field | state | `done` |
+| 14.4 | Update `clientsStore` to pass `contacts` through create/update | state | `done` |
+| 14.5 | Client detail: render `contacts[]` as tappable cards (Llamar / WhatsApp / mailto) | frontend | `done` |
+| 14.6 | Client form: dynamic contact cards (name/phone/email per card, add/remove) | frontend | `done` |
+| 14.7 | Run migration 0010 in Supabase and re-import with clean data | pm-tl | `done` |
+
+---
+
+## EP-015 — Android APK Build (EAS)
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 15.1 | Add `android.package` to `app.json` | pm-tl | `done` |
+| 15.2 | Create `eas.json` with `preview` (APK) and `production` (AAB) profiles | pm-tl | `done` |
+| 15.3 | Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` as EAS secrets | pm-tl | `done` |
+| 15.4 | Build and install APK on device via `eas build -p android --profile preview` | pm-tl | `done` |
+
+---
+
+## EP-016 — Client Health & Activity Indicators
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 16.1 | Show "last visited X days ago" badge on client card (color-coded: green <30d, amber 30-60d, red >60d) | frontend | `pending` |
+| 16.2 | Add "Sin visita en 30/60/90 días" filter option to client filter modal | frontend | `pending` |
+| 16.3 | Add `fetchVisitsByClient` bypass for pagination so all client visits are loaded in detail screen | state | `done` |
+
+---
+
+## EP-017 — UX Quick Wins
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 17.1 | WhatsApp pre-filled greeting: add `?text=Hola [name]!` to `wa.me` URL; handle Argentina +549 prefix | frontend | `pending` |
+| 17.2 | Structured minuta template: pre-fill empty notes with "Objetivo / Resultado / Próximos pasos" | frontend | `pending` |
+| 17.3 | "Visitar hoy" one-tap button on client detail: creates visit at smart default time, skips if already exists | frontend + state | `pending` |
+| 17.4 | Dev-only "Borrar clientes y visitas" button in Settings (guarded by `__DEV__`) | frontend | `done` |
+
+---
+
+## EP-018 — Visit Statistics
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 18.1 | Visits this week / month count, completion rate — computed from `visitsStore` | state | `pending` |
+| 18.2 | Top clients by visit frequency | state | `pending` |
+| 18.3 | Statistics UI — collapsible card on Today screen or dedicated section | frontend | `pending` |
+
+---
+
+## EP-019 — Onboarding Tour v2
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 19.1 | Point tour steps at actual UI elements (tooltips/highlights, not just modals) | frontend | `pending` |
+| 19.2 | Add import Excel/CSV step to tour flow | frontend | `pending` |
+| 19.3 | Add contact-tap demo step (show Llamar / WhatsApp) | frontend | `pending` |
+
+---
+
+## EP-020 — Agenda by Distance
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 20.1 | Request device location permission | frontend | `pending` |
+| 20.2 | Add `latitude` / `longitude` columns to `clients` (nullable) | backend | `pending` |
+| 20.3 | Geocode client address + city on save (Google Maps / OpenStreetMap API) | state | `pending` |
+| 20.4 | Sort today's agenda by distance from current location | frontend | `pending` |
+| 20.5 | "Optimize route" button on Today screen | frontend | `pending` |
+
+---
+
+## EP-021 — Inline Add Rubro / Localidad
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 21.1 | Add "Agregar nuevo…" option at bottom of Rubro and Localidad pickers in client form | frontend | `pending` |
+| 21.2 | On select: insert new value into `lookup_values` table + refresh lookupsStore | state | `pending` |
+| 21.3 | Deduplicate on insert (case-insensitive) | backend | `pending` |
+
+---
+
+## EP-022 — Proper Agenda Navigation Stack
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 22.1 | Give Agenda its own nested Stack so visit detail opens within the Agenda stack | frontend | `pending` |
+| 22.2 | Remove `from=agenda` query param workaround once stack context is correct | frontend | `pending` |
+
+---
+
+## EP-023 — QA Agent + E2E Tests
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 23.1 | Add Tester/QA agent definition to CLAUDE.md with scope over `/e2e/` | pm-tl | `pending` |
+| 23.2 | Set up Playwright with Expo Web target | scripts | `pending` |
+| 23.3 | E2E: login flow | scripts | `pending` |
+| 23.4 | E2E: Excel import flow | scripts | `pending` |
+| 23.5 | E2E: visit creation flow | scripts | `pending` |
+| 23.6 | E2E: weekly email send | scripts | `pending` |
+
+---
+
+## EP-024 — Critical Bugs (Code Review Audit)
+
+| # | Story | Agent | Status | Priority |
+|---|---|---|---|---|
+| 24.1 | Fix architecture violation: move `supabase.functions.invoke()` and auth/delete calls from settings.tsx to stores | state + frontend | `done` | 🔴 High |
+| 24.2 | Fix weekly-email XSS: add `escapeHtml()` helper to prevent HTML injection in email body | backend | `done` | 🔴 High |
+| 24.3 | Fix weekly-email: wrap per-user send in try/catch so one failure doesn't abort all users | backend | `done` | 🔴 High |
+| 24.4 | Fix visits/[id].tsx: show error state on failed save/status update instead of false "Guardado ✓" | frontend | `done` | 🔴 High |
+| 24.5 | Fix visits/form.tsx: check store error before calling `router.back()` on save | frontend | `done` | 🔴 High |
+| 24.6 | Fix authStore: defer `loading: false` until `fetchProfile` resolves in `onAuthStateChange` listener | state | `done` | 🔴 High |
+| 24.7 | Fix client detail screen stuck bug: add fetchClient() + loading state when navigating from visit | frontend + state | `done` | 🔴 High |
+
+---
+
+## EP-025 — Data/Logic Bugs & UX Violations (Code Review Audit)
+
+| # | Story | Agent | Status | Priority |
+|---|---|---|---|---|
+| 25.1 | Fix weekly-email: format dates/times in `America/Argentina/Buenos_Aires`, not UTC | backend | `pending` | 🟠 Medium |
+| 25.2 | Fix import script: anchor `dayjs` timezone to Argentina when converting Excel dates | scripts | `pending` | 🟠 Medium |
+| 25.3 | Fix visitsStore pagination cursor: use compound `(scheduled_at, id)` instead of just `scheduled_at` | state | `pending` | 🟠 Medium |
+| 25.4 | Fix importStore NaN guard on gap + migrate to `/lib/dayjs.ts` | state | `pending` | 🟠 Medium |
+| 25.5 | Extract shared `StatusBadge` component to `/components/ui/` (consolidate 4 duplicates) | frontend | `pending` | 🟠 Medium |
+| 25.6 | Fix all touch targets below 48px: span/filter pills, chips, contact form inputs | frontend | `pending` | 🟠 Medium |
+| 25.7 | Fix `+not-found.tsx`: apply theme tokens and translate copy to Spanish | frontend | `pending` | 🟠 Medium |
+| 25.8 | Add error/loading states to clients/index, visits/index, clients/[id], visits/[id], lookupsStore | frontend + state | `pending` | 🟠 Medium |
+
+---
+
+## EP-026 — Performance & Code Quality (Code Review Audit)
+
+| # | Story | Agent | Status | Priority |
+|---|---|---|---|---|
+| 26.1 | Optimize importStore: batch Supabase inserts in chunks of 50 instead of 986 sequential calls | state | `pending` | 🟡 Low |
+| 26.2 | Add DB filter for `enabled=true` in weekly-email instead of filtering in JS | backend | `pending` | 🟡 Low |
+| 26.3 | Add `CREATE INDEX lookup_values_type_idx` migration for picker queries | backend | `pending` | 🟡 Low |
+| 26.4 | Add lookupsStore stale-refresh on app focus | state | `pending` | 🟡 Low |
+| 26.5 | Extend client search to `contacts[*].name` and `contacts[*].phone`, not just name/city/industry | state | `pending` | 🟡 Low |
+| 26.6 | Exclude canceled visits from weekly email query | backend | `pending` | 🟡 Low |
+| 26.7 | Use `Constants.expoConfig?.version` instead of hardcoded `'1.0.0'` in settings | frontend | `pending` | 🟡 Low |
+| 26.8 | Fix `0005_seed_dev.sql`: update to use `contacts` JSONB format and add `ON CONFLICT DO NOTHING` | backend | `pending` | 🟡 Low |
+| 26.9 | Wire `updateStatusSchema` validation in `visitsStore.updateStatus()` | state | `pending` | 🟡 Low |
+| 26.10 | Add `sender` email validation in Settings screen before save | frontend | `pending` | 🟡 Low |
+
+---
+
+## Pending
+
+> All stories across all EPs that are not yet `done`.
+
+| EP | # | Story | Agent |
+|---|---|---|---|
+| EP-007 | 7.7 | Run import against dev Supabase and verify data | pm-tl |
+| EP-010 | 10.4 | Extract email name from auth email → populate sender_address/sender_name in email_config (multi-user ready) | backend + frontend + state |
+| EP-014 | 14.7 | Run migration 0010 and re-import with clean data | pm-tl |
+| EP-016 | 16.1 | "Last visited" badge on client card (color-coded) | frontend |
+| EP-016 | 16.2 | "Sin visita en X días" filter in client filter modal | frontend |
+| EP-017 | 17.1 | WhatsApp pre-filled greeting (`?text=Hola [name]!`, +549 prefix) | frontend |
+| EP-017 | 17.2 | Structured minuta template pre-fill on empty visit notes | frontend |
+| EP-017 | 17.3 | "Visitar hoy" one-tap button on client detail | frontend + state |
+| EP-018 | 18.1 | Visit stats: this week/month count + completion rate | state |
+| EP-018 | 18.2 | Top clients by visit frequency | state |
+| EP-018 | 18.3 | Statistics UI on Today screen | frontend |
+| EP-019 | 19.1–19.3 | Onboarding tour v2 | frontend |
+| EP-020 | 20.1–20.5 | Agenda by distance | frontend + backend + state |
+| EP-021 | 21.1–21.3 | Inline add Rubro / Localidad | frontend + state + backend |
+| EP-022 | 22.1–22.2 | Proper Agenda navigation stack | frontend |
+| EP-023 | 23.1–23.6 | QA agent + Playwright E2E tests | pm-tl + scripts |
+| EP-025 | 25.1–25.8 | Data/logic bugs & UX violations: timezone, pagination, touch targets, error states | frontend + backend + state + scripts |
+| EP-026 | 26.1–26.10 | Performance & code quality: batch inserts, indexes, email validation, hardcoded values | frontend + backend + state |
 
 ---
 
@@ -205,8 +381,14 @@
 | 2026-03-04 | All DB tables/columns in English | Consistency and tooling compatibility |
 | 2026-03-04 | Deduplicate Excel clients by name+address (lowercased) | Matches how field data is entered |
 | 2026-03-04 | White-label design system with token-based theming | App should be sellable to different salespeople/agencies without code changes |
-| 2026-03-04 | High-contrast UI optimized for outdoor/sunlight readability | Primary user works in the field on a phone |
+| 2026-03-04 | High
+-contrast UI optimized for outdoor/sunlight readability | Primary user works in the field on a phone |
 | 2026-03-04 | EP-000 Design System must complete before any frontend work | Prevents hardcoded values from spreading across components |
 | 2026-03-06 | Tabs with nested Stacks must set `headerShown: false` on the Tab.Screen | Expo Router renders both the Tabs header AND the nested Stack header, creating duplicate titles |
 | 2026-03-06 | Email `from` uses a verified technical domain (env var); user's email goes in `reply_to` | Better deliverability; replies still reach the user's inbox |
 | 2026-03-06 | New Supabase projects use ES256 JWT signing; Edge Function gateway rejects it | Deploy Edge Functions with `--no-verify-jwt` and do auth at the app level |
+| 2026-03-09 | `contacts JSONB` array of `{name,phone,email}` replaces flat columns | Supports multiple contacts per client; parser extracts names from messy Excel phone cells |
+| 2026-03-09 | Excel date-only cells arrive as `Date` at `00:00:48` local (file creation artifact) | Check local `hour/minute` (not UTC hours) to detect date-only cells and default to 10:00 |
+| 2026-03-09 | Import uses `dayLastTimeMap` keyed by date to stagger visits by gap | Aligns import behavior with the form's smart default time logic (EP-013.2) |
+| 2026-03-09 | `visitsStore` paginates to 100; client detail used filtered store list | Added `fetchVisitsByClient` that fetches all visits for one client directly, bypassing pagination |
+| 2026-03-09 | EAS cloud builds do not read local `.env` | Set `EXPO_PUBLIC_*` vars as EAS secrets via `eas secret:create` or expo.dev dashboard |

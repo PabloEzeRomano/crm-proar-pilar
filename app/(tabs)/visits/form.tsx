@@ -96,6 +96,7 @@ export default function VisitFormScreen() {
   const visits = useVisitsStore((state) => state.visits)
   const createVisit = useVisitsStore((state) => state.createVisit)
   const updateVisit = useVisitsStore((state) => state.updateVisit)
+  const error = useVisitsStore((state) => state.error)
   const clients = useClientsStore((state) => state.clients)
   const fetchClients = useClientsStore((state) => state.fetchClients)
 
@@ -248,7 +249,11 @@ export default function VisitFormScreen() {
     }
 
     setSaving(false)
-    router.back()
+    
+    // Only navigate back if save was successful
+    if (!error) {
+      router.back()
+    }
   }
 
   function applyDateDefaults(date: Date) {

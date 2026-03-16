@@ -10,9 +10,11 @@ interface ClientsState {
   loading: boolean
   error: string | null
   fetchClients: () => Promise<void>
+  fetchClient: (id: string) => Promise<Client | null>
   createClient: (data: CreateClientInput) => Promise<Client | null>
   updateClient: (id: string, data: UpdateClientInput) => Promise<void>
   deleteClient: (id: string) => Promise<void>
+  deleteAllUserClients: () => Promise<void>
 }
 
 function normalizeClientInput(data: CreateClientInput) {
@@ -47,6 +49,34 @@ export const useClientsStore = create<ClientsState>()(
     }
 
     set({ clients: (data as Client[]) ?? [], loading: false })
+  },
+
+  fetchClient: async (id: string) => {
+    set({ error: null })
+
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (error) {
+      set({ error: error.message })
+      return null
+    }
+
+    const client = (data as Client) ?? null
+    if (client) {
+      set((state) => {
+        const existing = state.clients.find((c) => c.id === id)
+        return {
+          clients: existing
+            ? state.clients.map((c) => (c.id === id ? client : c))
+            : [...state.clients, client],
+        }
+      })
+    }
+    return client
   },
 
   createClient: async (data: CreateClientInput) => {
@@ -121,6 +151,29 @@ export const useClientsStore = create<ClientsState>()(
     set((state) => ({
       clients: state.clients.filter((c) => c.id !== id),
     }))
+  },
+
+  deleteAllUserClients: async () => {
+    set({ error: null })
+
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      set({ error: 'Usuario no autenticado' })
+      return
+    }
+
+    const { error } = await supabase
+      .from('clients')
+      .delete()
+      .eq('owner_user_id', user.id)
+
+    if (error) {
+      set({ error: error.message })
+      return
+    }
+
+    set({ clients: [] })
   },
     }),
     {

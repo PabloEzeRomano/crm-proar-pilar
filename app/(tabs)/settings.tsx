@@ -28,10 +28,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { z } from 'zod'
 
 import { useAuthStore } from '@/stores/authStore'
+import { useClientsStore } from '@/stores/clientsStore'
 import { useImportStore } from '@/stores/importStore'
 import { useTodayStore } from '@/stores/todayStore'
 import { useVisitsStore } from '@/stores/visitsStore'
-import { supabase } from '@/lib/supabase'
 import { brand } from '@/constants/brand'
 import {
   borderRadius,
@@ -159,24 +159,13 @@ export default function SettingsScreen() {
     setSendingReport(true)
     setReportFeedback(null)
     try {
-      const { data, error } = await supabase.functions.invoke('weekly-email')
+      const invokeWeeklyEmail = useAuthStore((state) => state.invokeWeeklyEmail)
+      await invokeWeeklyEmail()
+      const { error } = useAuthStore((state) => state.error)
       if (error) {
-        const detail = (error as { context?: Response }).context
-        if (detail instanceof Response) {
-          const body = await detail.json().catch(() => null)
-          throw new Error(body?.error ?? error.message)
-        }
-        throw error
+        throw new Error(error)
       }
-      const results = (data as { results?: { userId: string; status: string }[] })?.results ?? []
-      const sent = results.filter((r) => r.status.startsWith('sent')).length
-      const skipped = results.filter((r) => r.status.startsWith('skipped')).length
-      const summary = sent > 0
-        ? `Enviado a ${sent} usuario${sent !== 1 ? 's' : ''}`
-        : skipped > 0
-        ? 'Sin visitas en el período — no se envió'
-        : 'Completado'
-      setReportFeedback({ ok: true, message: summary })
+      setReportFeedback({ ok: true, message: 'Enviado correctamente' })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al enviar el reporte'
       setReportFeedback({ ok: false, message })
@@ -195,10 +184,10 @@ export default function SettingsScreen() {
           text: 'Borrar todo',
           style: 'destructive',
           onPress: async () => {
-            const { data: { user: u } } = await supabase.auth.getUser()
-            if (!u) return
-            await supabase.from('visits').delete().eq('owner_user_id', u.id)
-            await supabase.from('clients').delete().eq('owner_user_id', u.id)
+            const deleteAllVisits = useVisitsStore((state) => state.deleteAllUserVisits)
+            const deleteAllClients = useClientsStore((state) => state.deleteAllUserClients)
+            await deleteAllVisits()
+            await deleteAllClients()
             fetchVisits()
             fetchTodayVisits()
           },
@@ -256,43 +245,60 @@ export default function SettingsScreen() {
             />
           </View>
 
-          {/* Send now button */}
-          <View style={[styles.row, styles.rowColumn, styles.rowBorderTop]}>
-            <Pressable
-              style={[styles.sendReportButton, sendingReport && styles.importButtonDisabled]}
-              onPress={handleSendReport}
-              disabled={sendingReport}
-              accessibilityRole="button"
-              accessibilityLabel="Enviar reporte ahora"
-              accessibilityState={{ disabled: sendingReport, busy: sendingReport }}
-            >
-              {sendingReport ? (
-                <ActivityIndicator color={colors.textOnPrimary} size="small" />
-              ) : (
-                <>
-                  <MaterialCommunityIcons name="email-fast-outline" size={18} color={colors.textOnPrimary} />
-                  <Text style={styles.importButtonLabel}>Enviar ahora</Text>
-                </>
-              )}
-            </Pressable>
+          {/* Send now button — dev only */}
+          {__DEV__ && (
+            <View style={[styles.row, styles.rowColumn, styles.rowBorderTop]}>
+              <Pressable
+                style={[styles.sendReportButton, sendingReport && styles.importButtonDisabled]}
+                onPress={handleSendReport}
+                disabled={sendingReport}
+                accessibilityRole="button"
+                accessibilityLabel="Enviar reporte ahora"
+                accessibilityState={{ disabled: sendingReport, busy: sendingReport }}
+              >
+                {sendingReport ? (
+                  <ActivityIndicator color={colors.textOnPrimary} size="small" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="email-fast-outline" size={18} color={colors.textOnPrimary} />
+                    <Text style={styles.importButtonLabel}>Enviar ahora</Text>
+                  </>
+                )}
+              </Pressable>
 
-            {reportFeedback && (
-              <View style={[styles.importResult, !reportFeedback.ok && styles.importResultError]}>
-                <MaterialCommunityIcons
-                  name={reportFeedback.ok ? 'check-circle' : 'alert-circle'}
-                  size={16}
-                  color={reportFeedback.ok ? colors.success : colors.error}
-                />
-                <Text style={[styles.importResultText, !reportFeedback.ok && styles.importResultErrorText]}>
-                  {reportFeedback.message}
-                </Text>
-              </View>
-            )}
-          </View>
+              {reportFeedback && (
+                <View style={[styles.importResult, !reportFeedback.ok && styles.importResultError]}>
+                  <MaterialCommunityIcons
+                    name={reportFeedback.ok ? 'check-circle' : 'alert-circle'}
+                    size={16}
+                    color={reportFeedback.ok ? colors.success : colors.error}
+                  />
+                  <Text style={[styles.importResultText, !reportFeedback.ok && styles.importResultErrorText]}>
+                    {reportFeedback.message}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
 
           {/* Expanded config when enabled */}
           {localConfig.enabled && (
             <>
+              {/* Sender address (read-only, auto-generated from auth email) */}
+              <View style={[styles.row, styles.rowColumn, styles.rowBorderTop]}>
+                <Text style={styles.label}>Email de envío</Text>
+                <Text style={styles.rowSubtitle}>
+                  Se generó automáticamente desde tu email de inicio de sesión
+                </Text>
+                <View style={[styles.input, styles.inputReadOnly]}>
+                  <Text style={styles.inputReadOnlyText}>
+                    {profile?.email_config?.sender_name && profile?.email_config?.sender_address
+                      ? `${profile.email_config.sender_name} <${profile.email_config.sender_address}>`
+                      : '—'}
+                  </Text>
+                </View>
+              </View>
+
               {/* Reply-To email input */}
               <View style={[styles.row, styles.rowColumn, styles.rowBorderTop]}>
                 <Text style={styles.label}>Tu email (para respuestas)</Text>
@@ -671,6 +677,15 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     fontWeight: fontWeight.regular as '400',
     color: colors.textPrimary,
+  },
+  inputReadOnly: {
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+  },
+  inputReadOnlyText: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.regular as '400',
+    color: colors.textSecondary,
   },
 
   // ── Recipients chips ──────────────────────────────────────────────────────

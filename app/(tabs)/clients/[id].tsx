@@ -15,6 +15,7 @@
 
 import React, { useEffect, useLayoutEffect } from 'react'
 import {
+  ActivityIndicator,
   Alert,
   Linking,
   Pressable,
@@ -125,6 +126,8 @@ export default function ClientDetailScreen() {
   const client = useClientsStore((state) =>
     state.clients.find((c) => c.id === id),
   )
+  const loading = useClientsStore((state) => state.loading)
+  const fetchClient = useClientsStore((state) => state.fetchClient)
 
   // Visits for this client — fetch directly by client_id to bypass global pagination
   const { visits, fetchVisitsByClient } = useVisits(id)
@@ -132,6 +135,13 @@ export default function ClientDetailScreen() {
   useEffect(() => {
     if (id) fetchVisitsByClient(id)
   }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch client if not in store
+  useEffect(() => {
+    if (id && !client) {
+      fetchClient(id)
+    }
+  }, [id, client, fetchClient])
 
   // Set "Editar" button in the header
   useLayoutEffect(() => {
@@ -157,6 +167,13 @@ export default function ClientDetailScreen() {
   // -------------------------------------------------------------------------
 
   if (!client) {
+    if (loading) {
+      return (
+        <View style={styles.notFoundContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )
+    }
     return (
       <View style={styles.notFoundContainer}>
         <Text style={styles.notFoundText}>Cliente no encontrado</Text>

@@ -16,6 +16,7 @@ export interface AuthState {
   updateEmailConfig: (config: import('../types').EmailConfig) => Promise<void>
   completeTour: () => Promise<void>
   resetTour: () => Promise<void>
+  invokeWeeklyEmail: () => Promise<void>
 }
 
 // Module-level variable to hold the auth state change subscription so it
@@ -69,10 +70,11 @@ export const useAuthStore = create<AuthState>()((set) => ({
 
     const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
-        set({ session, user: session.user })
+        set({ session, user: session.user, loading: true })
         await fetchProfile(session.user.id, set)
+        set({ loading: false })
       } else if (event === 'SIGNED_OUT') {
-        set({ session: null, user: null, profile: null })
+        set({ session: null, user: null, profile: null, loading: false })
       } else if (event === 'TOKEN_REFRESHED' && session) {
         set({ session })
       }
@@ -80,6 +82,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
 
     authSubscription = data.subscription
 
+    // Set loading to false after initial session restore
     set({ loading: false })
   },
 
@@ -139,6 +142,16 @@ export const useAuthStore = create<AuthState>()((set) => ({
       set((state) => ({
         profile: state.profile ? { ...state.profile, email_config: config } : (data as Profile),
       }))
+    }
+  },
+
+  invokeWeeklyEmail: async () => {
+    set({ error: null })
+
+    const { error } = await supabase.functions.invoke('weekly-email')
+
+    if (error) {
+      set({ error: typeof error === 'string' ? error : 'Error sending weekly email' })
     }
   },
 }))

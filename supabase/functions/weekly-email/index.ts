@@ -9,13 +9,13 @@
  *  3. Generate an HTML email with visits grouped by date
  *  4. Send via Resend API
  *
+ * Sender address and name are extracted from each user's auth email at signup
+ * and stored in profiles.email_config (e.g., gvega@proarpilar.com → gvega@send.gemm-apps.com).
+ * The user's `email_config.sender` (if set) is used as Reply-To so replies
+ * go to their personal/business inbox, not the sending domain.
+ *
  * Required Edge Function secrets (set in Supabase dashboard):
  *   RESEND_API_KEY      — your Resend API key
- *   MAIL_FROM_ADDRESS   — verified sender address (e.g. crm@mail.gemm-apps.com)
- *   MAIL_FROM_NAME      — display name (e.g. Proar CRM)
- *
- * The user's `email_config.sender` (if set) is used as Reply-To so replies
- * go to their personal/business inbox, not the technical sending domain.
  *
  * Standard Supabase secrets are injected automatically:
  *   SUPABASE_URL
@@ -25,6 +25,23 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 // ---------------------------------------------------------------------------
+// HTML Escaping Helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Escape HTML special characters to prevent XSS injection in email body.
+ */
+function escapeHtml(text: string | null | undefined): string {
+  if (!text) return ''
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -32,6 +49,22 @@ interface EmailConfig {
   sender: string | null
   recipients: string[]
   enabled: boolean
+  sender_address?: string
+  sender_name?: string
+}
+
+/**
+ * Type guard: ensure EmailConfig has valid sender_address and sender_name.
+ */
+function isValidEmailConfig(config: unknown): config is EmailConfig {
+  if (!config || typeof config !== 'object') return false
+  const obj = config as Record<string, unknown>
+  return (
+    typeof obj.sender_address === 'string' &&
+    typeof obj.sender_name === 'string' &&
+    Array.isArray(obj.recipients) &&
+    typeof obj.enabled === 'boolean'
+  )
 }
 
 interface Profile {
@@ -162,9 +195,14 @@ function generateHtml(
 
     for (const visit of dayVisits) {
       const status = visit.status ?? 'pending'
-      const notesHtml = visit.notes
-        ? `<div style="margin-top:4px;font-size:13px;color:#6B7280;">${visit.notes.replace(/\n/g, '<br>')}</div>`
+      const escapedNotes = escapeHtml(visit.notes)
+      const notesHtml = escapedNotes
+        ? `<div style="margin-top:4px;font-size:13px;color:#6B7280;">${escapedNotes.replace(/\n/g, '<br>')}</div>`
         : ''
+
+      const clientName = escapeHtml(visit.client.name)
+      const clientAddress = escapeHtml(visit.client.address)
+      const clientCity = escapeHtml(visit.client.city)
 
       rows += `
         <tr>
@@ -172,8 +210,8 @@ function generateHtml(
             <span style="font-size:14px;color:#111827;font-weight:500;">${formatTime(visit.scheduled_at)}</span>
           </td>
           <td style="padding:10px 8px;border-bottom:1px solid #F3F4F6;vertical-align:top;">
-            <div style="font-size:14px;font-weight:600;color:#111827;">${visit.client.name}</div>
-            ${visit.client.address ? `<div style="font-size:12px;color:#9CA3AF;">${visit.client.address}${visit.client.city ? `, ${visit.client.city}` : ''}</div>` : ''}
+            <div style="font-size:14px;font-weight:600;color:#111827;">${clientName}</div>
+            ${clientAddress ? `<div style="font-size:12px;color:#9CA3AF;">${clientAddress}${clientCity ? `, ${clientCity}` : ''}</div>` : ''}
             ${notesHtml}
           </td>
           <td style="padding:10px 16px;border-bottom:1px solid #F3F4F6;vertical-align:top;white-space:nowrap;">
@@ -338,6 +376,15 @@ Deno.serve(async (_req) => {
       const config = profile.email_config
       if (!config?.enabled || !config.recipients?.length) continue
 
+      // Validate email_config has required sender fields
+      if (!isValidEmailConfig(config)) {
+        results.push({
+          userId: profile.id,
+          status: 'error: invalid email_config (missing sender_address or sender_name)',
+        })
+        continue
+      }
+
       // Fetch last week's visits for this user
       const { data: visits, error: visitsErr } = await supabase
         .from('visits')
@@ -359,18 +406,25 @@ Deno.serve(async (_req) => {
 
       const html = generateHtml(profile, visits as Visit[], label)
 
-      const mailFromName = Deno.env.get('MAIL_FROM_NAME') ?? 'Proar CRM'
-      const mailFromAddress = Deno.env.get('MAIL_FROM_ADDRESS') ?? 'onboarding@resend.dev'
+      // Use profile's sender_address and sender_name (extracted from auth email at signup)
+      const mailFromName = config.sender_name ?? 'CRM'
+      const mailFromAddress = config.sender_address ?? 'onboarding@resend.dev'
 
-      await sendEmail({
-        from: `${mailFromName} <${mailFromAddress}>`,
-        replyTo: config.sender ?? undefined,
-        to: config.recipients,
-        subject: `Resumen de visitas: ${label}`,
-        html,
-      })
+      try {
+        await sendEmail({
+          from: `${mailFromName} <${mailFromAddress}>`,
+          replyTo: config.sender ?? undefined,
+          to: config.recipients,
+          subject: `Resumen de visitas: ${label}`,
+          html,
+        })
 
-      results.push({ userId: profile.id, status: `sent to ${config.recipients.length} recipient(s)` })
+        results.push({ userId: profile.id, status: `sent to ${config.recipients.length} recipient(s)` })
+      } catch (sendErr: unknown) {
+        const sendErrMsg = sendErr instanceof Error ? sendErr.message : String(sendErr)
+        results.push({ userId: profile.id, status: `error sending: ${sendErrMsg}` })
+        // Continue to next user instead of aborting
+      }
     }
 
     return new Response(JSON.stringify({ ok: true, results }), {
