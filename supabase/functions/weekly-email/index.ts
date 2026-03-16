@@ -366,7 +366,7 @@ Deno.serve(async (_req) => {
     const { data: profiles, error: profilesErr } = await supabase
       .from('profiles')
       .select('id, full_name, email_config')
-      .not('email_config', 'is', null)
+      .not('email_config', 'is', null)\n      .filter('email_config->>enabled', 'eq', 'true')
 
     if (profilesErr) throw profilesErr
 

@@ -426,50 +426,81 @@ export const useImportStore = create<ImportState>()((set) => ({
         errors: 0,
       };
 
-      for (const row of allRows) {
+      // Collect clients and visits to insert in batches
+      const clientsToInsert: Array<{ owner_user_id: string; name: string; industry: string | null; address: string | null; city: string | null; contacts: any; notes: null }> = [];
+      const visitsToInsert: Array<{ owner_user_id: string; client_id: string; scheduled_at: string; status: string; notes: string | null }> = [];
+      const rowToClientMap = new Map<number, string>(); // row index → clientId for visits
+
+      // First pass: collect clients to insert
+      for (let i = 0; i < allRows.length; i++) {
+        const row = allRows[i];
         const name = str(row['Cliente']);
         if (!name) continue;
 
         const address = str(row['Domicilio']);
         const key = clientKey(name, address);
-
-        // Client
         let clientId = clientMap.get(key);
 
         if (!clientId) {
-          const { data, error } = await supabase
-            .from('clients')
-            .insert({
-              owner_user_id: userId,
-              name,
-              industry: str(row['RUBRO']),
-              address,
-              city: str(row['Localidad']),
-              contacts: parseContactsFromRow(
-                str(row['Contacto']),
-                row['Tel 1'],
-                row['Mail'],
-              ),
-              notes: null,
-            })
-            .select('id')
-            .single();
-
-          if (error || !data || !isString(data.id)) {
-            result.errors++;
-            continue;
-          }
-
-          clientId = data.id;
-          clientMap.set(key, clientId);
-          result.clientsCreated++;
+          // Will be inserted in batch; generate temp ID for visit references
+          clientsToInsert.push({
+            owner_user_id: userId,
+            name,
+            industry: str(row['RUBRO']),
+            address,
+            city: str(row['Localidad']),
+            contacts: parseContactsFromRow(
+              str(row['Contacto']),
+              row['Tel 1'],
+              row['Mail'],
+            ),
+            notes: null,
+          });
+          rowToClientMap.set(i, `__temp_${i}`); // Placeholder for batch insert
         } else {
+          rowToClientMap.set(i, clientId);
           result.clientsSkipped++;
         }
+      }
 
-        if (!clientId) continue;
+      // Batch insert clients in chunks of 50
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < clientsToInsert.length; i += BATCH_SIZE) {
+        const batch = clientsToInsert.slice(i, i + BATCH_SIZE);
+        const { data: insertedClients, error: batchErr } = await supabase
+          .from('clients')
+          .insert(batch)
+          .select('id');
 
-        // Visit (only rows with a date)
+        if (batchErr || !insertedClients) {
+          result.errors += batch.length;
+          continue;
+        }
+
+        // Map temp IDs to real IDs and update clientMap
+        for (let j = 0; j < batch.length; j++) {
+          const realId = insertedClients[j]?.id;
+          if (realId) {
+            const client = batch[j];
+            const key = clientKey(client.name, client.address);
+            clientMap.set(key, realId);
+            // Update rowToClientMap for corresponding rows
+            for (const [rowIdx, tempId] of rowToClientMap) {
+              if (tempId === `__temp_${i + j}`) {
+                rowToClientMap.set(rowIdx, realId);
+              }
+            }
+            result.clientsCreated++;
+          }
+        }
+      }
+
+      // Second pass: collect visits to insert
+      for (let i = 0; i < allRows.length; i++) {
+        const row = allRows[i];
+        const clientId = rowToClientMap.get(i);
+        if (!clientId || clientId.startsWith('__temp_')) continue;
+
         const parsedAt = parseScheduledAt(row['Fecha']);
         if (!parsedAt) continue;
 
@@ -481,30 +512,36 @@ export const useImportStore = create<ImportState>()((set) => ({
           continue;
         }
 
-        // Assign staggered time: first visit of the day → 10:00, each next → +gap
         const lastTime = dayLastTimeMap.get(dateOnly);
         const assignedTime = lastTime
           ? lastTime.add(gap, 'minute')
           : dayjs(dateOnly).hour(10).minute(0).second(0).millisecond(0);
-        const scheduledAt = assignedTime.toISOString();
+        const scheduledAt = assignedTime.utc().toISOString();
         dayLastTimeMap.set(dateOnly, assignedTime);
 
         const isPast = dayjs(dateOnly).isBefore(dayjs().startOf('day'));
-        const { error: visitErr } = await supabase.from('visits').insert({
+        visitsToInsert.push({
           owner_user_id: userId,
           client_id: clientId,
           scheduled_at: scheduledAt,
           status: isPast ? 'completed' : 'pending',
-          notes: str(row['Minuta de la Reunión']),
+          notes: str(row['Minuta de la Reunião']),
         });
-
-        if (visitErr) {
-          result.errors++;
-          continue;
-        }
-
         visitSet.add(visitKey);
-        result.visitsCreated++;
+      }
+
+      // Batch insert visits in chunks of 50
+      for (let i = 0; i < visitsToInsert.length; i += BATCH_SIZE) {
+        const batch = visitsToInsert.slice(i, i + BATCH_SIZE);
+        const { error: batchErr } = await supabase
+          .from('visits')
+          .insert(batch);
+
+        if (batchErr) {
+          result.errors += batch.length;
+        } else {
+          result.visitsCreated += batch.length;
+        }
       }
 
       set({ importing: false, result });

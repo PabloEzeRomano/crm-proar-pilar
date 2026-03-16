@@ -315,14 +315,14 @@
 
 | # | Story | Agent | Status | Priority |
 |---|---|---|---|---|
-| 25.1 | Fix weekly-email: format dates/times in `America/Argentina/Buenos_Aires`, not UTC | backend | `pending` | 🟠 Medium |
-| 25.2 | Fix import script: anchor `dayjs` timezone to Argentina when converting Excel dates | scripts | `pending` | 🟠 Medium |
-| 25.3 | Fix visitsStore pagination cursor: use compound `(scheduled_at, id)` instead of just `scheduled_at` | state | `pending` | 🟠 Medium |
-| 25.4 | Fix importStore NaN guard on gap + migrate to `/lib/dayjs.ts` | state | `pending` | 🟠 Medium |
-| 25.5 | Extract shared `StatusBadge` component to `/components/ui/` (consolidate 4 duplicates) | frontend | `pending` | 🟠 Medium |
+| 25.1 | Fix weekly-email: format dates/times in `America/Argentina/Buenos_Aires`, not UTC | backend | `done` | 🟠 Medium |
+| 25.2 | Fix import script: anchor `dayjs` timezone to Argentina when converting Excel dates | scripts | `done` | 🟠 Medium |
+| 25.3 | Fix visitsStore pagination cursor: use compound `(scheduled_at, id)` instead of just `scheduled_at` | state | `done` | 🟠 Medium |
+| 25.4 | Fix importStore NaN guard on gap + migrate to `/lib/dayjs.ts` | state | `done` | 🟠 Medium |
+| 25.5 | Extract shared `StatusBadge` component to `/components/ui/` (consolidate 4 duplicates) | frontend | `done` | 🟠 Medium |
 | 25.6 | Fix all touch targets below 48px: span/filter pills, chips, contact form inputs | frontend | `pending` | 🟠 Medium |
-| 25.7 | Fix `+not-found.tsx`: apply theme tokens and translate copy to Spanish | frontend | `pending` | 🟠 Medium |
-| 25.8 | Add error/loading states to clients/index, visits/index, clients/[id], visits/[id], lookupsStore | frontend + state | `pending` | 🟠 Medium |
+| 25.7 | Fix `+not-found.tsx`: apply theme tokens and translate copy to Spanish | frontend | `done` | 🟠 Medium |
+| 25.8 | Add error/loading states to clients/index, visits/index, clients/[id], visits/[id], lookupsStore | frontend + state | `done` | 🟠 Medium |
 
 ---
 
