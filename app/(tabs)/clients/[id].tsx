@@ -27,6 +27,8 @@ import {
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 
+import { StatusBadge, STATUS_CONFIG } from '@/components/ui/StatusBadge'
+
 import { useClientsStore } from '@/stores/clientsStore'
 import { useVisits } from '@/hooks/useVisits'
 import {
@@ -59,52 +61,14 @@ function handleContactEmail(email: string) {
 // StatusBadge (inline — shared pattern from visits screens)
 // ---------------------------------------------------------------------------
 
-const STATUS_CONFIG = {
-  pending: {
-    label: 'Pendiente',
-    bg: colors.statusPendingLight,
-    text: colors.statusPending,
-    icon: 'clock-outline' as const,
-  },
-  completed: {
-    label: 'Completada',
-    bg: colors.statusCompletedLight,
-    text: colors.statusCompleted,
-    icon: 'check-circle-outline' as const,
-  },
-  canceled: {
-    label: 'Cancelada',
-    bg: colors.statusCanceledLight,
-    text: colors.statusCanceled,
-    icon: 'close-circle-outline' as const,
-  },
-} as const
-
-function StatusBadge({ status }: { status: VisitStatus }) {
-  const config = STATUS_CONFIG[status]
-  return (
-    <View style={[sbStyles.container, { backgroundColor: config.bg }]}>
+]}>
       <MaterialCommunityIcons name={config.icon} size={14} color={config.text} />
       <Text style={[sbStyles.label, { color: config.text }]}>{config.label}</Text>
     </View>
   )
 }
 
-const sbStyles = StyleSheet.create({
-  container: {
-    height: 26,
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing[2],
-    borderRadius: borderRadius.full,
-    gap: spacing[1],
-  },
-  label: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
-  },
-})
+
 
 // ---------------------------------------------------------------------------
 // Date formatting helper

@@ -24,6 +24,8 @@ import {
 import { useRouter } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 
+import { StatusBadge, STATUS_CONFIG } from '@/components/ui/StatusBadge'
+
 import { useVisits } from '@/hooks/useVisits'
 import {
   borderRadius,
@@ -39,27 +41,6 @@ import dayjs from '@/lib/dayjs'
 // Status configuration
 // ---------------------------------------------------------------------------
 
-const STATUS_CONFIG = {
-  pending: {
-    label: 'Pendiente',
-    bg: colors.statusPendingLight,
-    text: colors.statusPending,
-    icon: 'clock-outline' as const,
-  },
-  completed: {
-    label: 'Completada',
-    bg: colors.statusCompletedLight,
-    text: colors.statusCompleted,
-    icon: 'check-circle-outline' as const,
-  },
-  canceled: {
-    label: 'Cancelada',
-    bg: colors.statusCanceledLight,
-    text: colors.statusCanceled,
-    icon: 'close-circle-outline' as const,
-  },
-} as const
-
 const STATUS_STRIP_COLOR: Record<VisitStatus, string> = {
   pending: colors.statusPending,
   completed: colors.statusCompleted,
@@ -70,30 +51,14 @@ const STATUS_STRIP_COLOR: Record<VisitStatus, string> = {
 // StatusBadge
 // ---------------------------------------------------------------------------
 
-function StatusBadge({ status }: { status: VisitStatus }) {
-  const config = STATUS_CONFIG[status]
-  return (
-    <View style={[sbStyles.container, { backgroundColor: config.bg }]}>
+]}>
       <MaterialCommunityIcons name={config.icon} size={14} color={config.text} />
       <Text style={[sbStyles.label, { color: config.text }]}>{config.label}</Text>
     </View>
   )
 }
 
-const sbStyles = StyleSheet.create({
-  container: {
-    height: 26,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing[2],
-    borderRadius: borderRadius.full,
-    gap: spacing[1],
-  },
-  label: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
-  },
-})
+
 
 // ---------------------------------------------------------------------------
 // Filter tab definitions

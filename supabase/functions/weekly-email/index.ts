@@ -119,7 +119,7 @@ function getLastWeekRange(): { from: string; to: string; label: string } {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
-      timeZone: 'UTC',
+      timeZone: 'America/Argentina/Buenos_Aires',
     })
 
   return {
@@ -134,7 +134,7 @@ function formatDate(iso: string): string {
     weekday: 'long',
     day: '2-digit',
     month: 'long',
-    timeZone: 'UTC',
+    timeZone: 'America/Argentina/Buenos_Aires',
   })
 }
 
@@ -142,7 +142,7 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('es-AR', {
     hour: '2-digit',
     minute: '2-digit',
-    timeZone: 'UTC',
+    timeZone: 'America/Argentina/Buenos_Aires',
   })
 }
 

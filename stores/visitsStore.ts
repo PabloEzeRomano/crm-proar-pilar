@@ -60,11 +60,14 @@ export const useVisitsStore = create<VisitsState>()(
 
         set({ loadingMore: true })
 
+        // Use compound cursor: order by (scheduled_at DESC, id DESC)
+        // and filter where scheduled_at < oldest.scheduled_at
         const { data, error } = await supabase
           .from('visits')
           .select('*, client:clients(*)')
           .order('scheduled_at', { ascending: false })
-          .lt('scheduled_at', oldest.scheduled_at)
+          .order('id', { ascending: false })
+          .or(`scheduled_at.lt.${oldest.scheduled_at},and(scheduled_at.eq.${oldest.scheduled_at},id.lt.${oldest.id})`)
           .limit(PAGE_SIZE)
 
         if (error) {

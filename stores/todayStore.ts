@@ -59,7 +59,7 @@ export const useTodayStore = create<TodayState>()(
           loading: false,
           error: null,
           isStale: false,
-          lastFetched: new Date().toISOString(),
+          lastFetched: dayjs().toISOString(),
         })
       },
     }),

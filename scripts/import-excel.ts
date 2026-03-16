@@ -25,10 +25,14 @@ import * as XLSX from 'xlsx'
 import * as dotenv from 'dotenv'
 import dayjs from 'dayjs'
 import customParseFormat from 'dayjs/plugin/customParseFormat'
+import utc from 'dayjs/plugin/utc'
+import timezone from 'dayjs/plugin/timezone'
 import { createClient } from '@supabase/supabase-js'
 
 dotenv.config()
 dayjs.extend(customParseFormat)
+dayjs.extend(utc)
+dayjs.extend(timezone)
 
 // ---------------------------------------------------------------------------
 // Config
@@ -243,7 +247,8 @@ function parseScheduledAt(val: unknown): string | null {
   let hasExplicitTime = false
 
   if (val instanceof Date) {
-    d = dayjs(val)
+    // Parse as Argentina timezone to handle Excel date artifacts correctly
+    d = dayjs.tz(val, 'America/Argentina/Buenos_Aires')
     // Check local hours/minutes — Excel date-only cells come with artifact seconds
     // (e.g. 00:00:48 local). Using local time correctly treats these as date-only.
     hasExplicitTime = d.hour() !== 0 || d.minute() !== 0
@@ -257,7 +262,7 @@ function parseScheduledAt(val: unknown): string | null {
       ['YYYY-MM-DD HH:mm', true],
       ['YYYY-MM-DD', false],
     ] as [string, boolean][]) {
-      const parsed = dayjs(s, fmt, true)
+      const parsed = dayjs.tz(s, fmt, 'America/Argentina/Buenos_Aires', true)
       if (parsed.isValid()) {
         d = parsed
         hasExplicitTime = hasTime
@@ -272,7 +277,7 @@ function parseScheduledAt(val: unknown): string | null {
     d = d.hour(10).minute(0).second(0).millisecond(0)
   }
 
-  return d.toISOString()
+  return d.utc().toISOString()
 }
 
 // ---------------------------------------------------------------------------

@@ -20,7 +20,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File as FSFile } from 'expo-file-system';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as XLSX from 'xlsx';
-import dayjs from 'dayjs';
+import dayjs from '@/lib/dayjs'
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 
 import { supabase } from '../lib/supabase';
@@ -414,7 +414,7 @@ export const useImportStore = create<ImportState>()((set) => ({
 
       // Read user's gap preference (same key used by the visit form)
       const gapStr = await AsyncStorage.getItem(GAP_KEY);
-      const gap = gapStr ? parseInt(gapStr, 10) : DEFAULT_GAP;
+      const gap = gapStr ? (parseInt(gapStr, 10) || DEFAULT_GAP) : DEFAULT_GAP;
 
       // ── 7. Process rows ─────────────────────────────────────────────────
 
