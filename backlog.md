@@ -330,16 +330,16 @@
 
 | # | Story | Agent | Status | Priority |
 |---|---|---|---|---|
-| 26.1 | Optimize importStore: batch Supabase inserts in chunks of 50 instead of 986 sequential calls | state | `pending` | 🟡 Low |
-| 26.2 | Add DB filter for `enabled=true` in weekly-email instead of filtering in JS | backend | `pending` | 🟡 Low |
-| 26.3 | Add `CREATE INDEX lookup_values_type_idx` migration for picker queries | backend | `pending` | 🟡 Low |
-| 26.4 | Add lookupsStore stale-refresh on app focus | state | `pending` | 🟡 Low |
-| 26.5 | Extend client search to `contacts[*].name` and `contacts[*].phone`, not just name/city/industry | state | `pending` | 🟡 Low |
-| 26.6 | Exclude canceled visits from weekly email query | backend | `pending` | 🟡 Low |
-| 26.7 | Use `Constants.expoConfig?.version` instead of hardcoded `'1.0.0'` in settings | frontend | `pending` | 🟡 Low |
-| 26.8 | Fix `0005_seed_dev.sql`: update to use `contacts` JSONB format and add `ON CONFLICT DO NOTHING` | backend | `pending` | 🟡 Low |
-| 26.9 | Wire `updateStatusSchema` validation in `visitsStore.updateStatus()` | state | `pending` | 🟡 Low |
-| 26.10 | Add `sender` email validation in Settings screen before save | frontend | `pending` | 🟡 Low |
+| 26.1 | Optimize importStore: batch Supabase inserts in chunks of 50 instead of 986 sequential calls | state | `done` | 🟡 Low |
+| 26.2 | Add DB filter for `enabled=true` in weekly-email instead of filtering in JS | backend | `done` | 🟡 Low |
+| 26.3 | Add `CREATE INDEX lookup_values_type_idx` migration for picker queries | backend | `done` | 🟡 Low |
+| 26.4 | Add lookupsStore stale-refresh on app focus | state | `done` | 🟡 Low |
+| 26.5 | Extend client search to `contacts[*].name` and `contacts[*].phone`, not just name/city/industry | state | `done` | 🟡 Low |
+| 26.6 | Exclude canceled visits from weekly email query | backend | `done` | 🟡 Low |
+| 26.7 | Use `Constants.expoConfig?.version` instead of hardcoded `'1.0.0'` in settings | frontend | `done` | 🟡 Low |
+| 26.8 | Fix `0005_seed_dev.sql`: update to use `contacts` JSONB format and add `ON CONFLICT DO NOTHING` | backend | `done` | 🟡 Low |
+| 26.9 | Wire `updateStatusSchema` validation in `visitsStore.updateStatus()` | state | `done` | 🟡 Low |
+| 26.10 | Add `sender` email validation in Settings screen before save | frontend | `done` | 🟡 Low |
 
 ---
 
@@ -365,8 +365,6 @@
 | EP-021 | 21.1–21.3 | Inline add Rubro / Localidad | frontend + state + backend |
 | EP-022 | 22.1–22.2 | Proper Agenda navigation stack | frontend |
 | EP-023 | 23.1–23.6 | QA agent + Playwright E2E tests | pm-tl + scripts |
-| EP-025 | 25.1–25.8 | Data/logic bugs & UX violations: timezone, pagination, touch targets, error states | frontend + backend + state + scripts |
-| EP-026 | 26.1–26.10 | Performance & code quality: batch inserts, indexes, email validation, hardcoded values | frontend + backend + state |
 
 ---
 
