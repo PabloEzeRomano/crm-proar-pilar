@@ -14,6 +14,7 @@ interface LookupsState {
   rubros: string[]
   localidades: string[]
   loading: boolean
+  error: string | null
   fetchLookups: () => Promise<void>
 }
 
@@ -23,9 +24,10 @@ export const useLookupsStore = create<LookupsState>()(
       rubros: [],
       localidades: [],
       loading: false,
+      error: null,
 
       fetchLookups: async () => {
-        set({ loading: true })
+        set({ loading: true, error: null })
 
         const { data, error } = await supabase
           .from('lookup_values')
@@ -33,7 +35,7 @@ export const useLookupsStore = create<LookupsState>()(
           .order('value')
 
         if (error || !data) {
-          set({ loading: false })
+          set({ loading: false, error: error?.message || 'Error loading lookups' })
           return
         }
 
@@ -45,6 +47,7 @@ export const useLookupsStore = create<LookupsState>()(
             .filter((d) => d.type === 'localidad')
             .map((d) => d.value as string),
           loading: false,
+          error: null,
         })
       },
     }),
