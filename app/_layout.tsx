@@ -14,7 +14,8 @@
  * do NOT trigger a spurious redirect away from deep tab screens.
  */
 
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
+import { useFocusEffect } from '@react-navigation/native'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
 
@@ -29,6 +30,16 @@ import { colors } from '@/constants/theme'
 // ---------------------------------------------------------------------------
 // Auth guard hook
 // ---------------------------------------------------------------------------
+
+function useRefreshLookupsOnFocus(): void {
+  const refetchIfStale = useLookupsStore((s) => s.refetchIfStale)
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchIfStale()
+    }, [refetchIfStale])
+  )
+}
 
 function useAuthGuard(): void {
   const userId = useAuthStore((s) => s.session?.user?.id ?? null)

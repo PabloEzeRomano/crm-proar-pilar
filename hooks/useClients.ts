@@ -22,7 +22,13 @@ export function useClients(searchQuery?: string, rubroFilter?: string[], localid
         (client) =>
           client.name.toLowerCase().includes(query) ||
           (client.city?.toLowerCase().includes(query) ?? false) ||
-          (client.industry?.toLowerCase().includes(query) ?? false),
+          (client.industry?.toLowerCase().includes(query) ?? false) ||
+          // Search in contact names and phone numbers
+          (client.contacts?.some((c) =>
+            (c.name?.toLowerCase().includes(query) ?? false) ||
+            (c.phone?.toLowerCase().includes(query) ?? false) ||
+            (c.email?.toLowerCase().includes(query) ?? false)
+          ) ?? false),
       )
     }
 

@@ -15,7 +15,9 @@ interface LookupsState {
   localidades: string[]
   loading: boolean
   error: string | null
+  lastFetchedAt: number | null
   fetchLookups: () => Promise<void>
+  refetchIfStale: (staleAfterMs?: number) => Promise<void>
 }
 
 export const useLookupsStore = create<LookupsState>()(
@@ -25,6 +27,7 @@ export const useLookupsStore = create<LookupsState>()(
       localidades: [],
       loading: false,
       error: null,
+      lastFetchedAt: null,
 
       fetchLookups: async () => {
         set({ loading: true, error: null })
@@ -48,7 +51,15 @@ export const useLookupsStore = create<LookupsState>()(
             .map((d) => d.value as string),
           loading: false,
           error: null,
+          lastFetchedAt: Date.now(),
         })
+
+      refetchIfStale: async (staleAfterMs = 5 * 60 * 1000) => {
+        // 5 minutes default
+        const { lastFetchedAt } = get()
+        if (!lastFetchedAt || Date.now() - lastFetchedAt > staleAfterMs) {
+          await get().fetchLookups()
+        }
       },
     }),
     {
