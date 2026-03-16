@@ -42,4 +42,8 @@ yarn-error.*
 /ios
 /android
 
+# supabase
 /supabase/.temp
+
+# claude
+.claude

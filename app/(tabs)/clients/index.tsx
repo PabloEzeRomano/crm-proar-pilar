@@ -43,7 +43,7 @@ export default function ClientsIndexScreen() {
   const [draftRubros, setDraftRubros] = useState<string[]>([])
   const [draftLocalidades, setDraftLocalidades] = useState<string[]>([])
 
-  const { clients, loading, fetchClients } = useClients(searchQuery, selectedRubros, selectedLocalidades)
+  const { clients, loading, error, fetchClients } = useClients(searchQuery, selectedRubros, selectedLocalidades)
   const rubros = useLookupsStore((s) => s.rubros)
   const localidades = useLookupsStore((s) => s.localidades)
 
@@ -104,7 +104,20 @@ export default function ClientsIndexScreen() {
   }
 
   function renderEmpty() {
-    if (loading) return null
+    if (loading) {
+      return (
+        <View style={styles.emptyContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )
+    }
+    if (error) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyTextError}>{error}</Text>
+        </View>
+      )
+    }
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>No hay clientes</Text>
@@ -483,6 +496,10 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: fontSize.base,
     color: colors.textSecondary,
+  },
+  emptyTextError: {
+    fontSize: fontSize.base,
+    color: colors.error,
   },
   listEmptyContent: {
     flex: 1,

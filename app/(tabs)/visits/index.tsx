@@ -81,7 +81,7 @@ const FILTER_OPTIONS: FilterOption[] = [
 export default function VisitsIndexScreen() {
   const router = useRouter()
   const [activeFilter, setActiveFilter] = useState<VisitStatus | 'all' | 'upcoming'>('all')
-  const { visits, hasMore, loading, loadingMore, fetchVisits, fetchMoreVisits } = useVisits(undefined, activeFilter)
+  const { visits, hasMore, loading, loadingMore, error, fetchVisits, fetchMoreVisits } = useVisits(undefined, activeFilter)
 
   useEffect(() => {
     fetchVisits()
@@ -157,7 +157,21 @@ export default function VisitsIndexScreen() {
   }
 
   function renderEmpty() {
-    if (loading) return null
+    if (loading) {
+      return (
+        <View style={styles.emptyContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )
+    }
+    if (error) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyError}>{error}</Text>
+        </View>
+      )
+    }
+    if (true) return null  // Original: return null
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>No hay visitas</Text>
