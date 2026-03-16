@@ -24,9 +24,7 @@ import {
 import { useRouter } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 
-import { StatusBadge, STATUS_CONFIG } from '@/components/ui/StatusBadge'
-
-import { useVisits } from '@/hooks/useVisits'
+import dayjs from '@/lib/dayjs'
 import {
   borderRadius,
   colors,
@@ -35,7 +33,8 @@ import {
   spacing,
 } from '@/constants/theme'
 import { VisitStatus, VisitWithClient } from '@/types'
-import dayjs from '@/lib/dayjs'
+import { useVisits } from '@/hooks/useVisits'
+import { StatusBadge } from '@/components/ui/StatusBadge'
 
 // ---------------------------------------------------------------------------
 // Status configuration
@@ -46,19 +45,6 @@ const STATUS_STRIP_COLOR: Record<VisitStatus, string> = {
   completed: colors.statusCompleted,
   canceled: colors.statusCanceled,
 }
-
-// ---------------------------------------------------------------------------
-// StatusBadge
-// ---------------------------------------------------------------------------
-
-]}>
-      <MaterialCommunityIcons name={config.icon} size={14} color={config.text} />
-      <Text style={[sbStyles.label, { color: config.text }]}>{config.label}</Text>
-    </View>
-  )
-}
-
-
 
 // ---------------------------------------------------------------------------
 // Filter tab definitions
@@ -342,6 +328,10 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: fontSize.base,
     color: colors.textSecondary,
+  },
+  emptyError: {
+    fontSize: fontSize.base,
+    color: colors.error,
   },
   listEmptyContent: {
     flex: 1,

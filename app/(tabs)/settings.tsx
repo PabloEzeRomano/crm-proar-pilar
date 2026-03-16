@@ -12,6 +12,10 @@
  */
 
 import React, { useEffect, useState } from 'react'
+import { z } from 'zod'
+import Constants from 'expo-constants'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
   ActivityIndicator,
   Alert,
@@ -23,16 +27,7 @@ import {
   TextInput,
   View,
 } from 'react-native'
-import Constants from 'expo-constants'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { z } from 'zod'
 
-import { useAuthStore } from '@/stores/authStore'
-import { useClientsStore } from '@/stores/clientsStore'
-import { useImportStore } from '@/stores/importStore'
-import { useTodayStore } from '@/stores/todayStore'
-import { useVisitsStore } from '@/stores/visitsStore'
 import { brand } from '@/constants/brand'
 import {
   borderRadius,
@@ -42,6 +37,11 @@ import {
   spacing,
 } from '@/constants/theme'
 import type { EmailConfig } from '@/types'
+import { useAuthStore } from '@/stores/authStore'
+import { useClientsStore } from '@/stores/clientsStore'
+import { useImportStore } from '@/stores/importStore'
+import { useTodayStore } from '@/stores/todayStore'
+import { useVisitsStore } from '@/stores/visitsStore'
 
 // ---------------------------------------------------------------------------
 // Email validation schema
@@ -174,7 +174,7 @@ export default function SettingsScreen() {
     try {
       const invokeWeeklyEmail = useAuthStore((state) => state.invokeWeeklyEmail)
       await invokeWeeklyEmail()
-      const { error } = useAuthStore((state) => state.error)
+      const error = useAuthStore((state) => state.error)
       if (error) {
         throw new Error(error)
       }

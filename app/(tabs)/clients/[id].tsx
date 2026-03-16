@@ -13,6 +13,7 @@
  *   - Visits history: up to 10 most recent visits with StatusBadge and notes preview
  */
 
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
 import React, { useEffect, useLayoutEffect } from 'react'
 import {
   ActivityIndicator,
@@ -24,13 +25,9 @@ import {
   Text,
   View,
 } from 'react-native'
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
 
-import { StatusBadge, STATUS_CONFIG } from '@/components/ui/StatusBadge'
+import { StatusBadge } from '@/components/ui/StatusBadge'
 
-import { useClientsStore } from '@/stores/clientsStore'
-import { useVisits } from '@/hooks/useVisits'
 import {
   borderRadius,
   colors,
@@ -38,8 +35,10 @@ import {
   fontWeight,
   spacing,
 } from '@/constants/theme'
-import { VisitStatus, VisitWithClient } from '@/types'
+import { useVisits } from '@/hooks/useVisits'
 import dayjs from '@/lib/dayjs'
+import { useClientsStore } from '@/stores/clientsStore'
+import { VisitWithClient } from '@/types'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -56,19 +55,6 @@ function handleContactPhone(phone: string) {
 function handleContactEmail(email: string) {
   Linking.openURL(`mailto:${email}`)
 }
-
-// ---------------------------------------------------------------------------
-// StatusBadge (inline — shared pattern from visits screens)
-// ---------------------------------------------------------------------------
-
-]}>
-      <MaterialCommunityIcons name={config.icon} size={14} color={config.text} />
-      <Text style={[sbStyles.label, { color: config.text }]}>{config.label}</Text>
-    </View>
-  )
-}
-
-
 
 // ---------------------------------------------------------------------------
 // Date formatting helper

@@ -10,7 +10,7 @@ import { Tabs } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 
 import { brand } from '@/constants/brand'
-import { colors, fontSize } from '@/constants/theme'
+import { colors, fontSize, spacing } from '@/constants/theme'
 
 // ---------------------------------------------------------------------------
 // Types

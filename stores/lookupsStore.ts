@@ -5,9 +5,10 @@
  * No owner_user_id — these lists are global/shared across all users.
  */
 
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+
 import { supabase } from '../lib/supabase'
 
 interface LookupsState {
@@ -22,7 +23,7 @@ interface LookupsState {
 
 export const useLookupsStore = create<LookupsState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       rubros: [],
       localidades: [],
       loading: false,
@@ -53,6 +54,7 @@ export const useLookupsStore = create<LookupsState>()(
           error: null,
           lastFetchedAt: Date.now(),
         })
+      },
 
       refetchIfStale: async (staleAfterMs = 5 * 60 * 1000) => {
         // 5 minutes default

@@ -14,18 +14,18 @@
  * do NOT trigger a spurious redirect away from deep tab screens.
  */
 
-import { useEffect, useCallback } from 'react'
-import { useFocusEffect } from '@react-navigation/native'
+import { useCallback, useEffect } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
+import { useFocusEffect } from '@react-navigation/native'
 
+import { colors } from '@/constants/theme'
+import OnboardingTour from '@/components/OnboardingTour'
 import { useAuthStore } from '@/stores/authStore'
 import { useClientsStore } from '@/stores/clientsStore'
-import { useVisitsStore } from '@/stores/visitsStore'
-import { useTodayStore } from '@/stores/todayStore'
 import { useLookupsStore } from '@/stores/lookupsStore'
-import OnboardingTour from '@/components/OnboardingTour'
-import { colors } from '@/constants/theme'
+import { useTodayStore } from '@/stores/todayStore'
+import { useVisitsStore } from '@/stores/visitsStore'
 
 // ---------------------------------------------------------------------------
 // Auth guard hook
@@ -81,6 +81,9 @@ export default function RootLayout() {
     if (!userId) return
     Promise.all([fetchClients(), fetchVisits(), fetchTodayVisits(), fetchLookups()])
   }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Refresh lookups when app comes into focus
+  useRefreshLookupsOnFocus()
 
   // Run the guard on every render that depends on session / loading.
   useAuthGuard()
