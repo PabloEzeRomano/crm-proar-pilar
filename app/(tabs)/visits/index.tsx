@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     gap: spacing[2],
   },
   pill: {
-    height: 36,
+    height: 48,
     paddingHorizontal: spacing[4],
     borderRadius: borderRadius.full,
     justifyContent: 'center',

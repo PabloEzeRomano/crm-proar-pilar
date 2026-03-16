@@ -175,10 +175,10 @@ const styles = StyleSheet.create({
   // Skip
   skipButton: {
     alignSelf: 'flex-end',
-    paddingVertical: spacing[1],
-    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
     marginBottom: spacing[2],
-    minHeight: 36,
+    minHeight: 48,
     justifyContent: 'center',
   },
   skipLabel: {

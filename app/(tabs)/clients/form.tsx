@@ -720,7 +720,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   contactFormInput: {
-    height: 44,
+    height: 48,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: borderRadius.sm,
@@ -733,7 +733,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[1],
+    minHeight: 48,
     paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
     alignSelf: 'flex-start',
   },
   addContactButtonText: {

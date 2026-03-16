@@ -56,7 +56,11 @@ export default function TabsLayout() {
         tabBarActiveTintColor: brand.primaryColor,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarLabelStyle: {
-          fontSize: fontSize.xs,
+          fontSize: fontSize.sm,
+          marginBottom: spacing[1],
+        },
+        tabBarStyle: {
+          minHeight: 56,
         },
 
         // ── Screen header ─────────────────────────────────────────────

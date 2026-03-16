@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
   },
   spanPill: {
     flex: 1,
-    height: 36,
+    height: 48,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: borderRadius.full,

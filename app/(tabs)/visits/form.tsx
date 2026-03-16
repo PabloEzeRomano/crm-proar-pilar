@@ -835,7 +835,7 @@ const styles = StyleSheet.create({
   },
   gapOption: {
     flex: 1,
-    height: 40,
+    height: 48,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,
