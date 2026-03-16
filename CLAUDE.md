@@ -1,3 +1,9 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+---
+
 # CRM Proar Pilar — Claude Code Instructions
 
 ## Project Overview
@@ -23,6 +29,113 @@ A mobile-first CRM for a salesperson who visits businesses in person. Designed a
 | Dates | dayjs |
 | Email | Resend |
 | Package Manager | yarn |
+
+---
+
+## Development
+
+### Environment Setup
+
+1. **Install dependencies:**
+   ```bash
+   yarn install
+   ```
+
+2. **Set up `.env` file** (copy from `.env.example`):
+   ```bash
+   EXPO_PUBLIC_SUPABASE_URL=...  # From Supabase project settings
+   EXPO_PUBLIC_SUPABASE_ANON_KEY=...  # From Supabase project settings
+   SUPABASE_SERVICE_ROLE_KEY=...  # From Supabase project settings (for scripts)
+   ```
+
+3. **For weekly email Edge Function:** Set `RESEND_API_KEY` and `MAIL_FROM_ADDRESS` in Supabase → Edge Functions → weekly-email → Secrets (not in `.env`).
+
+### Running the App Locally
+
+```bash
+# Start Expo dev server
+yarn start
+
+# In the Expo Go app or dev client:
+# - Press 'i' for iOS simulator
+# - Press 'a' for Android emulator
+# - Press 'w' for web (experimental)
+```
+
+For faster iteration with a development client:
+```bash
+# Install/run development client
+yarn start-dev
+```
+
+### Building and Deployment
+
+```bash
+# Build for Android (preview APK for testing)
+yarn APK  # → EAS preview build
+
+# Build for iOS (requires EAS credentials)
+eas build -p ios --profile development
+
+# Build for production
+eas build -p android --profile production
+eas build -p ios --profile production
+```
+
+### Database Migrations
+
+```bash
+# Create a new migration file
+# File should be numbered sequentially (e.g., 0012_your_feature.sql)
+# Store in /supabase/migrations/
+
+# Apply migrations:
+# Option 1: Push to dev via Supabase CLI
+supabase db push
+
+# Option 2: For prod, use Supabase dashboard SQL editor
+# Copy the migration content and run it directly
+```
+
+### Excel Import Script
+
+```bash
+# Dry run (preview what will be imported)
+yarn import:dry
+
+# Actual import (creates clients + visits)
+yarn import
+
+# The script:
+# - Deduplicates clients by (name + address)
+# - Creates visits with status 'completed' for rows with dates
+# - Defaults to 10:00 AM if no time provided
+# - Is idempotent (safe to run multiple times)
+```
+
+### Common Development Tasks
+
+**Add a new screen:**
+1. Create file in `/app/(tabs)/` or `/app/(auth)/` following Expo Router conventions
+2. Add route guard if needed (check `authStore.user`)
+3. Use Zustand stores for data (never call Supabase directly)
+
+**Add a new Zustand store:**
+1. Create file in `/stores/` (e.g., `featureStore.ts`)
+2. Define types in `/types/index.ts`
+3. Handle loading, error, and data state
+4. Expose only what components need
+
+**Add a new database table:**
+1. Create migration in `/supabase/migrations/` with next sequence number
+2. Include `owner_user_id UUID NOT NULL` and RLS policies
+3. Push migration via Supabase CLI
+4. Create store to handle Supabase calls
+
+**Update a Zod validator:**
+1. Edit the schema in `/validators/` (e.g., `visit.ts`)
+2. Use it in forms via `validator.parse()` or `.safeParse()`
+3. Keep validators close to where they're used
 
 ---
 
@@ -63,12 +176,12 @@ Businesses the salesperson visits.
 | industry | TEXT | RUBRO |
 | address | TEXT | Domicilio |
 | city | TEXT | Localidad |
-| contact_name | TEXT | Contacto |
-| phone | TEXT | Tel 1 |
-| email | TEXT | Mail |
+| contacts | JSONB | `ContactInfo[]` — `[{ name?, phone?, email? }]` — multiple contacts per client |
 | notes | TEXT | General notes |
 | created_at | TIMESTAMPTZ | |
 | updated_at | TIMESTAMPTZ | |
+
+> `contact_name`, `phone`, `email` columns were dropped in migration 0010 and replaced by `contacts JSONB`.
 
 ### `visits`
 Single entity: starts as scheduled appointment, updated with notes after.
@@ -332,9 +445,9 @@ Before marking any task `done`:
 | Cliente | `clients.name` |
 | Domicilio | `clients.address` |
 | Localidad | `clients.city` |
-| Contacto | `clients.contact_name` |
-| Tel 1 | `clients.phone` |
-| Mail | `clients.email` |
+| Contacto | `clients.contacts[0].name` (fallback name if none extracted from Tel 1) |
+| Tel 1 | `clients.contacts[*].phone` (parsed into multiple `ContactInfo` entries; names extracted from cell text) |
+| Mail | `clients.contacts[*].email` (parsed; merged with phone entries by name when possible) |
 | Minuta de la Reunión | `visits.notes` |
 
 **Import rules:**
