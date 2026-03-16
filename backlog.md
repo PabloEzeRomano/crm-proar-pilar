@@ -320,7 +320,7 @@
 | 25.3 | Fix visitsStore pagination cursor: use compound `(scheduled_at, id)` instead of just `scheduled_at` | state | `done` | 🟠 Medium |
 | 25.4 | Fix importStore NaN guard on gap + migrate to `/lib/dayjs.ts` | state | `done` | 🟠 Medium |
 | 25.5 | Extract shared `StatusBadge` component to `/components/ui/` (consolidate 4 duplicates) | frontend | `done` | 🟠 Medium |
-| 25.6 | Fix all touch targets below 48px: span/filter pills, chips, contact form inputs | frontend | `pending` | 🟠 Medium |
+| 25.6 | Fix all touch targets below 48px: span/filter pills, chips, contact form inputs | frontend | `done` | 🟠 Medium |
 | 25.7 | Fix `+not-found.tsx`: apply theme tokens and translate copy to Spanish | frontend | `done` | 🟠 Medium |
 | 25.8 | Add error/loading states to clients/index, visits/index, clients/[id], visits/[id], lookupsStore | frontend + state | `done` | 🟠 Medium |
 
