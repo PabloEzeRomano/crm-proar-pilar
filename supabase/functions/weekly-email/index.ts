@@ -390,7 +390,7 @@ Deno.serve(async (_req) => {
         .from('visits')
         .select('id, scheduled_at, status, notes, client:clients(id, name, address, city)')
         .eq('owner_user_id', profile.id)
-        .gte('scheduled_at', from)
+        \.neq('status', 'canceled')\n        .gte('scheduled_at', from)
         .lte('scheduled_at', to)
         .order('scheduled_at')
 

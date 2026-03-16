@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '../lib/supabase'
 import { Visit, VisitWithClient, VisitStatus } from '../types'
-import { CreateVisitInput, UpdateVisitInput } from '../validators/visit'
+import { CreateVisitInput, UpdateVisitInput, updateStatusSchema } from '../validators/visit'
 
 const PAGE_SIZE = 100
 
@@ -171,6 +171,13 @@ export const useVisitsStore = create<VisitsState>()(
 
       updateStatus: async (id: string, status: VisitStatus) => {
         set({ error: null })
+
+        // Validate status against schema
+        const validation = updateStatusSchema.safeParse({ status })
+        if (!validation.success) {
+          set({ error: 'Invalid status value' })
+          return
+        }
 
         const { data: updated, error } = await supabase
           .from('visits')

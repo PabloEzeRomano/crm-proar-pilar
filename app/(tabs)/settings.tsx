@@ -23,6 +23,7 @@ import {
   TextInput,
   View,
 } from 'react-native'
+import Constants from 'expo-constants'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { z } from 'zod'
@@ -146,6 +147,18 @@ export default function SettingsScreen() {
 
   async function handleSave() {
     setSaving(true)
+    
+    // Validate sender email if provided
+    if (localConfig.sender) {
+      const result = emailSchema.safeParse(localConfig.sender)
+      if (!result.success) {
+        // Show error
+        alert('Email remitente inválido')
+        setSaving(false)
+        return
+      }
+    }
+    
     await updateEmailConfig({
       enabled: localConfig.enabled,
       sender: localConfig.sender || null,
@@ -526,7 +539,7 @@ export default function SettingsScreen() {
         ================================================================ */}
         <View style={styles.appInfo}>
           <Text style={styles.appInfoText}>{brand.appName}</Text>
-          <Text style={styles.appInfoText}>Versión 1.0.0</Text>
+          <Text style={styles.appInfoText}>Versión {Constants.expoConfig?.version || 'desconocida'}</Text>
         </View>
       </ScrollView>
 
