@@ -38,19 +38,6 @@ import { VisitStatus } from '@/types'
 import dayjs from '@/lib/dayjs'
 
 // ---------------------------------------------------------------------------
-// StatusBadge (inline)
-// ---------------------------------------------------------------------------
-
-]}>
-      <MaterialCommunityIcons name={config.icon} size={14} color={config.text} />
-      <Text style={[sbStyles.label, { color: config.text }]}>{config.label}</Text>
-    </View>
-  )
-}
-
-
-
-// ---------------------------------------------------------------------------
 // Save indicator type
 // ---------------------------------------------------------------------------
 
