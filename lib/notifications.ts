@@ -61,9 +61,9 @@ export async function scheduleVisitReminder(
         title: `Visita con ${clientName}`,
         body: 'Quedan ~10 min. ¿Agendás la próxima visita?',
         data: { visitId: visit.id },
-      },
+      } as any,
       trigger,
-    })
+    } as any)
 
     return notificationId
   } catch (error) {

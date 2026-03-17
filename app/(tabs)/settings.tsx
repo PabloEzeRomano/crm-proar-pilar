@@ -160,7 +160,7 @@ export default function SettingsScreen() {
         content: {
           title: 'Prueba de notificación',
           body: 'Esta es una notificación de prueba para verificar que el sistema funciona.',
-        },
+        } as any,
         trigger: { type: 'date', date: new Date(Date.now() + 500) }, // Show in 500ms
       } as any)
       setNotificationFeedback({ ok: true, message: `Notificación enviada (ID: ${notificationId.slice(0, 8)}...)` })

@@ -29,6 +29,32 @@ import { useTodayStore } from '@/stores/todayStore'
 import { useVisitsStore } from '@/stores/visitsStore'
 
 // ---------------------------------------------------------------------------
+// Notification setup (Android channel configuration)
+// ---------------------------------------------------------------------------
+
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationChannelAsync('visits', {
+    name: 'Visitas',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: colors.primary,
+  }).catch(() => {
+    // Channel may already exist, ignore error
+  })
+
+  // Set default notification handler for foreground notifications
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  })
+}
+
+// ---------------------------------------------------------------------------
 // Auth guard hook
 // ---------------------------------------------------------------------------
 
