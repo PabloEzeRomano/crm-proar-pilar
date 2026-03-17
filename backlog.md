@@ -347,11 +347,11 @@
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 27.1 | Migration `0015_add_profile_role.sql`: add `role` column, protect from self-elevation (trigger blocks user changing own role), `auth.is_admin()` SECURITY DEFINER helper | backend | `pending` |
-| 27.2 | Migration `0016_admin_rls.sql`: drop + recreate SELECT/UPDATE/DELETE policies on `clients` and `visits` to add `OR auth.is_admin()` bypass | backend | `pending` |
-| 27.3 | Add `UserRole = 'user' \| 'admin' \| 'root'` type + `role: UserRole` to `Profile` interface | state | `pending` |
-| 27.4 | Admin clients view: when `profile.role === 'admin'`, clients list shows all users' clients with owner indicator (full_name or email label) | frontend | `pending` |
-| 27.5 | Admin visits view: same pattern — visits list and today screen show all users' visits when admin | frontend | `pending` |
+| 27.1 | Migration `0015_add_profile_role.sql`: add `role` column, protect from self-elevation (trigger blocks user changing own role), `auth.is_admin()` SECURITY DEFINER helper | backend | `done` |
+| 27.2 | Migration `0016_admin_rls.sql`: drop + recreate SELECT/UPDATE/DELETE policies on `clients` and `visits` to add `OR auth.is_admin()` bypass | backend | `done` |
+| 27.3 | Add `UserRole = 'user' \| 'admin' \| 'root'` type + `role: UserRole` to `Profile` interface | state | `done` |
+| 27.4 | Admin clients view: when `profile.role === 'admin'`, clients list shows all users' clients with owner indicator (full_name or email label) | frontend | `done` |
+| 27.5 | Admin visits view: same pattern — visits list and today screen show all users' visits when admin | frontend | `done` |
 | 27.6 | Docs only: role promotion happens via Supabase dashboard SQL (`UPDATE profiles SET role = 'admin' WHERE id = '...'`) — no in-app UI needed for MVP | pm-tl | `done` |
 
 **Note on Role Promotion (27.6):**
@@ -367,15 +367,19 @@
 
 ---
 
-## EP-028 — Web Version
+## EP-028 — Web Version (Deferred to Next.js)
+
+> **Status:** `deferred` — Migrating web to standalone Next.js app instead of React Native Web.
+>
+> **Rationale:** RNW caused extensive build complexity (conditional requires, Babel transpilation issues, metro.config stubs). Cleaner separation achieved via separate Next.js project that reuses API/Supabase layer.
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 28.1 | Verify `yarn web` boots + document any runtime errors | pm-tl | `pending` |
-| 28.2 | Fix DateTimePicker on web: wrap in `Platform.select` — native uses existing pickers, web uses `<input type="date">` + `<input type="time">` via `TextInput` styled inputs | frontend | `pending` |
-| 28.3 | Responsive shell: on wide screens (`width > 768`), wrap tab content in a `maxWidth: 480` centered container so it doesn't stretch; no full redesign | ui-ux + frontend | `pending` |
-| 28.4 | Admin web dashboard tab: when `profile.role === 'admin'` on web, add an "Equipo" tab showing visits/clients across all users (reuses EP-027 data layer) | frontend | `pending` |
-| 28.5 | Guard `expo-location` `sortByDistance` on web: already partially working (Geolocation API), verify or add `Platform.OS !== 'web'` guard | frontend | `pending` |
+| 28.1 | Verify `yarn web` boots + document any runtime errors | pm-tl | `deferred` |
+| 28.2 | Fix DateTimePicker on web: wrap in `Platform.select` — native uses existing pickers, web uses `<input type="date">` + `<input type="time">` via `TextInput` styled inputs | frontend | `deferred` |
+| 28.3 | Responsive shell: on wide screens (`width > 768`), wrap tab content in a `maxWidth: 480` centered container so it doesn't stretch; no full redesign | ui-ux + frontend | `deferred` |
+| 28.4 | Admin web dashboard tab: when `profile.role === 'admin'` on web, add an "Equipo" tab showing visits/clients across all users (reuses EP-027 data layer) | frontend | `deferred` |
+| 28.5 | Guard `expo-location` `sortByDistance` on web: already partially working (Geolocation API), verify or add `Platform.OS !== 'web'` guard | frontend | `deferred` |
 
 ---
 
@@ -383,13 +387,13 @@
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 29.1 | Install `expo-notifications`, add plugin to `app.json` (iOS + Android 13 permissions, `POST_NOTIFICATIONS`) | pm-tl | `pending` |
-| 29.2 | Permission request after auth + notification response listener (tap → navigate to visit) in root layout | frontend | `pending` |
-| 29.3 | `lib/notifications.ts`: `scheduleVisitReminder(visit, clientName, gapMinutes): Promise<string \| null>` — computes fire time, calls `scheduleNotificationAsync`, returns notificationId. `cancelVisitReminder(notificationId)`. Guards `Platform.OS !== 'web'`. | state | `pending` |
-| 29.4 | Add `notification_id?: string` column to `visits` table (migration `0017`) so we can cancel/reschedule across app restarts | backend | `pending` |
-| 29.5 | Add `notification_id` to `Visit` type + wire `scheduleVisitReminder` into `visitsStore.createVisit` + `updateVisit` (future visits only); `cancelVisitReminder` in `updateStatus('canceled')` + `deleteVisit` | state | `pending` |
+| 29.1 | Install `expo-notifications`, add plugin to `app.json` (iOS + Android 13 permissions, `POST_NOTIFICATIONS`) | pm-tl | `done` |
+| 29.2 | Permission request after auth + notification response listener (tap → navigate to visit) in root layout | frontend | `done` |
+| 29.3 | `lib/notifications.ts`: `scheduleVisitReminder(visit, clientName, gapMinutes): Promise<string \| null>` — computes fire time, calls `scheduleNotificationAsync`, returns notificationId. `cancelVisitReminder(notificationId)`. Guards `Platform.OS !== 'web'`. | state | `done` |
+| 29.4 | Add `notification_id?: string` column to `visits` table (migration `0017`) so we can cancel/reschedule across app restarts | backend | `done` |
+| 29.5 | Add `notification_id` to `Visit` type + wire `scheduleVisitReminder` into `visitsStore.createVisit` + `updateVisit` (future visits only); `cancelVisitReminder` in `updateStatus('canceled')` + `deleteVisit` | state | `done` |
 | 29.6 | Notification content: title `"Visita con {clientName}"`, body `"Quedan ~10 min. ¿Agendás la próxima visita?"` — tap opens `/visits/form?clientId=X` | state | `done` |
-| 29.7 | Settings toggle: allow user to disable visit reminders (stored in AsyncStorage `notifications-enabled`); check in `scheduleVisitReminder` before scheduling | frontend | `pending` |
+| 29.7 | Settings toggle: allow user to disable visit reminders (stored in AsyncStorage `notifications-enabled`); check in `scheduleVisitReminder` before scheduling | frontend | `done` |
 
 ---
 
@@ -436,3 +440,5 @@
 | 2026-03-09 | EAS cloud builds do not read local `.env` | Set `EXPO_PUBLIC_*` vars as EAS secrets via `eas secret:create` or expo.dev dashboard |
 | 2026-03-16 | Role promotion is admin-only and dashboard-only, not exposed in app UI | MVP requirement: prevents accidental/malicious elevation; only service-role (backend) can change roles; users self-elevate guard blocks app-level changes |
 | 2026-03-16 | Notification content format: title `"Visita con {clientName}"`, body `"Quedan ~10 min. ¿Agendás la próxima visita?"` | Hardcoded in `/lib/notifications.ts` for simplicity; fires ~10 min before gap time ends so salesperson can schedule next visit while current one is active |
+| 2026-03-16 | Android notification channels + foreground handler required for notifications to display | expo-notifications only shows notifications in foreground with `setNotificationHandler()` + channel setup; without these, notifications silently succeed but never appear to user |
+| 2026-03-16 | Web version deferred to standalone Next.js app instead of React Native Web | RNW build complexity: conditional requires break Babel transpilation, metro.config stubs failed, async imports weren't processed at build time. Cleaner to separate concerns: mobile = Expo, web = Next.js, shared = API/Supabase |
