@@ -1,5 +1,7 @@
 export type VisitStatus = 'pending' | 'completed' | 'canceled'
 
+export type UserRole = 'user' | 'admin' | 'root'
+
 export interface EmailConfig {
   /** User's personal/business email — used as Reply-To in outgoing emails */
   sender: string | null
@@ -30,6 +32,7 @@ export interface Profile {
   id: string
   full_name: string | null
   email_config: EmailConfig
+  role: UserRole
   show_tour: boolean
   created_at: string
   updated_at: string
@@ -50,6 +53,9 @@ export interface Client {
   city: string | null
   contacts: ContactInfo[]
   notes: string | null
+  last_visited_at?: string | null
+  latitude?: number | null
+  longitude?: number | null
   created_at: string
   updated_at: string
 }
@@ -61,6 +67,7 @@ export interface Visit {
   scheduled_at: string
   status: VisitStatus
   notes: string | null
+  notification_id?: string | null
   created_at: string
   updated_at: string
 }
@@ -68,4 +75,9 @@ export interface Visit {
 // Visit with client data joined
 export interface VisitWithClient extends Visit {
   client: Client
+  owner?: {
+    id: string
+    full_name: string | null
+    email_config: EmailConfig
+  }
 }

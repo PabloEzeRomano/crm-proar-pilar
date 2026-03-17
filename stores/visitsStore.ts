@@ -1,11 +1,15 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import dayjs from '../lib/dayjs'
 import { supabase } from '../lib/supabase'
+import { scheduleVisitReminder, cancelVisitReminder } from '../lib/notifications'
 import { Visit, VisitWithClient, VisitStatus } from '../types'
 import { CreateVisitInput, UpdateVisitInput, updateStatusSchema } from '../validators/visit'
 
 const PAGE_SIZE = 100
+const GAP_KEY = 'visit-gap-minutes'
+const DEFAULT_GAP = 60
 
 interface VisitsState {
   visits: VisitWithClient[]
@@ -13,8 +17,8 @@ interface VisitsState {
   loading: boolean
   loadingMore: boolean
   error: string | null
-  fetchVisits: () => Promise<void>
-  fetchMoreVisits: () => Promise<void>
+  fetchVisits: (showAll?: boolean) => Promise<void>
+  fetchMoreVisits: (showAll?: boolean) => Promise<void>
   fetchVisit: (id: string) => Promise<void>
   fetchVisitsByClient: (clientId: string) => Promise<void>
   createVisit: (data: CreateVisitInput) => Promise<Visit | null>
@@ -33,7 +37,7 @@ export const useVisitsStore = create<VisitsState>()(
       loadingMore: false,
       error: null,
 
-      fetchVisits: async () => {
+      fetchVisits: async (showAll?: boolean) => {
         set({ loading: true, error: null })
 
         const { data, error } = await supabase
@@ -47,11 +51,31 @@ export const useVisitsStore = create<VisitsState>()(
           return
         }
 
-        const rows = (data as VisitWithClient[]) ?? []
+        let rows = (data as unknown as VisitWithClient[]) ?? []
+
+        // If admin view, fetch owner profiles for all visits
+        if (showAll && rows.length > 0) {
+          const ownerIds = Array.from(new Set(rows.map((v) => v.owner_user_id)))
+          if (ownerIds.length > 0) {
+            const { data: profiles } = await supabase
+              .from('profiles')
+              .select('id, full_name, email_config')
+              .in('id', ownerIds)
+
+            if (profiles) {
+              const profileMap = Object.fromEntries(profiles.map((p) => [p.id, p]))
+              rows = rows.map((v) => ({
+                ...v,
+                owner: profileMap[v.owner_user_id],
+              }))
+            }
+          }
+        }
+
         set({ visits: rows, hasMore: rows.length === PAGE_SIZE, loading: false })
       },
 
-      fetchMoreVisits: async () => {
+      fetchMoreVisits: async (showAll?: boolean) => {
         const { visits, hasMore, loadingMore, loading } = get()
         if (!hasMore || loadingMore || loading) return
 
@@ -75,7 +99,27 @@ export const useVisitsStore = create<VisitsState>()(
           return
         }
 
-        const rows = (data as VisitWithClient[]) ?? []
+        let rows = (data as unknown as VisitWithClient[]) ?? []
+
+        // If admin view, fetch owner profiles for new visits
+        if (showAll && rows.length > 0) {
+          const ownerIds = Array.from(new Set(rows.map((v) => v.owner_user_id)))
+          if (ownerIds.length > 0) {
+            const { data: profiles } = await supabase
+              .from('profiles')
+              .select('id, full_name, email_config')
+              .in('id', ownerIds)
+
+            if (profiles) {
+              const profileMap = Object.fromEntries(profiles.map((p) => [p.id, p]))
+              rows = rows.map((v) => ({
+                ...v,
+                owner: profileMap[v.owner_user_id],
+              }))
+            }
+          }
+        }
+
         set((state) => ({
           visits: [...state.visits, ...rows],
           hasMore: rows.length === PAGE_SIZE,
@@ -144,12 +188,51 @@ export const useVisitsStore = create<VisitsState>()(
         }
 
         const newVisit = created as VisitWithClient
+
+        // Schedule notification for future visits only
+        const isCreatedInTheFuture = dayjs(newVisit.scheduled_at).isAfter(dayjs())
+        if (isCreatedInTheFuture && newVisit.client) {
+          try {
+            // Get gap preference from AsyncStorage
+            const gapStr = await AsyncStorage.getItem(GAP_KEY)
+            const gapMinutes = gapStr ? Number(gapStr) : DEFAULT_GAP
+
+            // Schedule reminder and store notification ID if successful
+            const notificationId = await scheduleVisitReminder(
+              newVisit,
+              newVisit.client.name,
+              gapMinutes,
+            )
+
+            if (notificationId) {
+              // Update visit record with notification_id
+              const { error: updateError } = await supabase
+                .from('visits')
+                .update({ notification_id: notificationId })
+                .eq('id', newVisit.id)
+
+              if (updateError) {
+                console.error('Failed to save notification_id:', updateError)
+              } else {
+                // Update local state with notification_id
+                newVisit.notification_id = notificationId
+              }
+            }
+          } catch (err) {
+            // Log error but don't fail the visit creation
+            console.error('Failed to schedule visit reminder:', err)
+          }
+        }
+
         set((state) => ({ visits: [newVisit, ...state.visits] }))
         return newVisit
       },
 
       updateVisit: async (id: string, data: UpdateVisitInput) => {
         set({ error: null })
+
+        // Get the existing visit to check if scheduled_at changed
+        const existingVisit = get().visits.find((v) => v.id === id)
 
         const { data: updated, error } = await supabase
           .from('visits')
@@ -164,6 +247,67 @@ export const useVisitsStore = create<VisitsState>()(
         }
 
         const updatedVisit = updated as VisitWithClient
+
+        // Handle notification rescheduling if scheduled_at changed
+        if (existingVisit && data.scheduled_at && existingVisit.scheduled_at !== data.scheduled_at) {
+          try {
+            // Cancel old notification if it exists
+            if (existingVisit.notification_id) {
+              await cancelVisitReminder(existingVisit.notification_id)
+            }
+
+            // Schedule new notification for future visits
+            const isScheduledInTheFuture = dayjs(updatedVisit.scheduled_at).isAfter(dayjs())
+            if (isScheduledInTheFuture && updatedVisit.client) {
+              const gapStr = await AsyncStorage.getItem(GAP_KEY)
+              const gapMinutes = gapStr ? Number(gapStr) : DEFAULT_GAP
+
+              const notificationId = await scheduleVisitReminder(
+                updatedVisit,
+                updatedVisit.client.name,
+                gapMinutes,
+              )
+
+              if (notificationId) {
+                // Update visit record with new notification_id
+                const { error: updateError } = await supabase
+                  .from('visits')
+                  .update({ notification_id: notificationId })
+                  .eq('id', id)
+
+                if (updateError) {
+                  console.error('Failed to save new notification_id:', updateError)
+                } else {
+                  updatedVisit.notification_id = notificationId
+                }
+              } else {
+                // Notification couldn't be scheduled (e.g., time in past)
+                const { error: clearError } = await supabase
+                  .from('visits')
+                  .update({ notification_id: null })
+                  .eq('id', id)
+                if (clearError) {
+                  console.error('Failed to clear notification_id:', clearError)
+                }
+                updatedVisit.notification_id = null
+              }
+            } else {
+              // Not scheduled in future, clear notification_id
+              const { error: clearError } = await supabase
+                .from('visits')
+                .update({ notification_id: null })
+                .eq('id', id)
+              if (clearError) {
+                console.error('Failed to clear notification_id:', clearError)
+              }
+              updatedVisit.notification_id = null
+            }
+          } catch (err) {
+            // Log error but don't fail the visit update
+            console.error('Failed to handle notification rescheduling:', err)
+          }
+        }
+
         set((state) => ({
           visits: state.visits.map((v) => (v.id === id ? updatedVisit : v)),
         }))
@@ -179,6 +323,9 @@ export const useVisitsStore = create<VisitsState>()(
           return
         }
 
+        // Get existing visit to check for notification
+        const existingVisit = get().visits.find((v) => v.id === id)
+
         const { data: updated, error } = await supabase
           .from('visits')
           .update({ status })
@@ -192,6 +339,16 @@ export const useVisitsStore = create<VisitsState>()(
         }
 
         const updatedVisit = updated as VisitWithClient
+
+        // Cancel notification if status is 'canceled'
+        if (status === 'canceled' && existingVisit?.notification_id) {
+          try {
+            await cancelVisitReminder(existingVisit.notification_id)
+          } catch (err) {
+            console.error('Failed to cancel visit reminder:', err)
+          }
+        }
+
         set((state) => ({
           visits: state.visits.map((v) => (v.id === id ? updatedVisit : v)),
         }))
@@ -199,6 +356,18 @@ export const useVisitsStore = create<VisitsState>()(
 
       deleteVisit: async (id: string) => {
         set({ error: null })
+
+        // Get existing visit to retrieve notification_id
+        const existingVisit = get().visits.find((v) => v.id === id)
+
+        // Cancel notification before deleting
+        if (existingVisit?.notification_id) {
+          try {
+            await cancelVisitReminder(existingVisit.notification_id)
+          } catch (err) {
+            console.error('Failed to cancel visit reminder:', err)
+          }
+        }
 
         const { error } = await supabase.from('visits').delete().eq('id', id)
 
