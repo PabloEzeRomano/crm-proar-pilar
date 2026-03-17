@@ -14,11 +14,14 @@
 import React, { useEffect, useState } from 'react'
 import { z } from 'zod'
 import Constants from 'expo-constants'
+import * as Notifications from 'expo-notifications'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -86,6 +89,9 @@ export default function SettingsScreen() {
   const [addEmailError, setAddEmailError] = useState<string | null>(null)
   const [sendingReport, setSendingReport] = useState(false)
   const [reportFeedback, setReportFeedback] = useState<{ ok: boolean; message: string } | null>(null)
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true)
+  const [testingNotification, setTestingNotification] = useState(false)
+  const [notificationFeedback, setNotificationFeedback] = useState<{ ok: boolean; message: string } | null>(null)
 
   // Refresh agenda + visits stores after a successful import
   useEffect(() => {
@@ -106,6 +112,22 @@ export default function SettingsScreen() {
     }
   }, [profile]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Load notifications enabled setting from AsyncStorage on mount
+  useEffect(() => {
+    async function loadNotificationsEnabled() {
+      try {
+        const value = await AsyncStorage.getItem('notifications-enabled')
+        // Default to true if not set
+        setNotificationsEnabled(value !== 'false')
+      } catch (error) {
+        console.error('Failed to load notifications setting:', error)
+        // Default to true on error
+        setNotificationsEnabled(true)
+      }
+    }
+    loadNotificationsEnabled()
+  }, [])
+
   // -------------------------------------------------------------------------
   // Handlers
   // -------------------------------------------------------------------------
@@ -113,6 +135,42 @@ export default function SettingsScreen() {
   function handleToggle(val: boolean) {
     setLocalConfig((c) => ({ ...c, enabled: val }))
     setIsDirty(true)
+  }
+
+  async function handleNotificationsToggle(val: boolean) {
+    setNotificationsEnabled(val)
+    try {
+      await AsyncStorage.setItem('notifications-enabled', val ? 'true' : 'false')
+    } catch (error) {
+      console.error('Failed to save notifications setting:', error)
+    }
+  }
+
+  async function handleTestNotification() {
+    // Only works on native platforms
+    if (Platform.OS === 'web' || !Notifications.scheduleNotificationAsync) {
+      setNotificationFeedback({ ok: false, message: 'No disponible en esta plataforma' })
+      return
+    }
+
+    setTestingNotification(true)
+    setNotificationFeedback(null)
+    try {
+      const notificationId = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Prueba de notificación',
+          body: 'Esta es una notificación de prueba para verificar que el sistema funciona.',
+        },
+        trigger: { type: 'date', date: new Date(Date.now() + 500) }, // Show in 500ms
+      } as any)
+      setNotificationFeedback({ ok: true, message: `Notificación enviada (ID: ${notificationId.slice(0, 8)}...)` })
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Error al enviar la notificación de prueba'
+      setNotificationFeedback({ ok: false, message })
+      console.error('Test notification error:', err)
+    } finally {
+      setTestingNotification(false)
+    }
   }
 
   function handleSenderChange(text: string) {
@@ -397,7 +455,65 @@ export default function SettingsScreen() {
         </View>
 
         {/* ================================================================
-            Section 2 — Importar datos
+            Section 2 — Notificaciones
+        ================================================================ */}
+        <Text style={styles.sectionHeader}>NOTIFICACIONES</Text>
+
+        <View style={styles.section}>
+          <View style={[styles.row, styles.rowNoBorder]}>
+            <View style={styles.rowContent}>
+              <Text style={styles.rowLabel}>Recordatorios de visitas</Text>
+              <Text style={styles.rowSubtitle}>Recibir notificaciones antes de las visitas</Text>
+            </View>
+            <Switch
+              value={notificationsEnabled}
+              onValueChange={handleNotificationsToggle}
+              trackColor={{ false: colors.border, true: colors.primaryLight }}
+              thumbColor={
+                notificationsEnabled ? colors.primary : colors.textDisabled
+              }
+            />
+          </View>
+
+          {/* Test notification button — dev only */}
+          {__DEV__ && (
+            <View style={[styles.row, styles.rowColumn, styles.rowBorderTop]}>
+              <Pressable
+                style={[styles.sendReportButton, testingNotification && styles.importButtonDisabled]}
+                onPress={handleTestNotification}
+                disabled={testingNotification}
+                accessibilityRole="button"
+                accessibilityLabel="Enviar notificación de prueba"
+                accessibilityState={{ disabled: testingNotification, busy: testingNotification }}
+              >
+                {testingNotification ? (
+                  <ActivityIndicator color={colors.textOnPrimary} size="small" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="bell-ring-outline" size={18} color={colors.textOnPrimary} />
+                    <Text style={styles.importButtonLabel}>Prueba de notificación</Text>
+                  </>
+                )}
+              </Pressable>
+
+              {notificationFeedback && (
+                <View style={[styles.importResult, !notificationFeedback.ok && styles.importResultError]}>
+                  <MaterialCommunityIcons
+                    name={notificationFeedback.ok ? 'check-circle' : 'alert-circle'}
+                    size={16}
+                    color={notificationFeedback.ok ? colors.success : colors.error}
+                  />
+                  <Text style={[styles.importResultText, !notificationFeedback.ok && styles.importResultErrorText]}>
+                    {notificationFeedback.message}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+
+        {/* ================================================================
+            Section 3 — Importar datos
         ================================================================ */}
         <Text style={styles.sectionHeader}>IMPORTAR DATOS</Text>
 
