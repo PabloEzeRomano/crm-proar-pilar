@@ -397,15 +397,27 @@
 
 ---
 
+## EP-030 — User Registration
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 30.1 | Create Zod validator for signup: `email`, `password`, `passwordConfirm`, `fullName` — password strength rules, email format, match confirm | state | `pending` |
+| 30.2 | Build Registration screen (`/(auth)/register.tsx`) with email, full name, password, confirm password inputs + sign-up button | frontend | `pending` |
+| 30.3 | Add `signUp(email, password, fullName): Promise<{user, error}>` action to `authStore` — calls `supabase.auth.signUp()` with email/password | state | `pending` |
+| 30.4 | Create Resend email template for verification email (React Email component) — branded with app logo/colors, clear call-to-action button | backend | `pending` |
+| 30.5 | After successful signup, trigger Resend verification email via Edge Function or direct client call with verification link + token | backend + state | `pending` |
+| 30.6 | Handle email confirmation: user clicks verification link → calls `supabase.auth.verifyOtp()` → auto-login + redirect to dashboard | frontend + state | `pending` |
+| 30.7 | Error handling: duplicate email, password mismatch, validation failures → show user-friendly error messages on registration form | frontend | `pending` |
+| 30.8 | Link Login screen to Registration: add "Crear cuenta" button/link below login form | frontend | `pending` |
+
+---
+
 ## Pending
 
 > All stories across all EPs that are not yet `done`.
 
 | EP | # | Story | Agent |
 |---|---|---|---|
-| EP-007 | 7.7 | Run import against dev Supabase and verify data | pm-tl |
-| EP-010 | 10.4 | Extract email name from auth email → populate sender_address/sender_name in email_config (multi-user ready) | backend + frontend + state |
-| EP-014 | 14.7 | Run migration 0010 and re-import with clean data | pm-tl |
 | EP-018 | 18.1 | Visit stats: this week/month count + completion rate | state |
 | EP-018 | 18.2 | Top clients by visit frequency | state |
 | EP-018 | 18.3 | Statistics UI on Today screen | frontend |
@@ -413,6 +425,7 @@
 | EP-021 | 21.1–21.3 | Inline add Rubro / Localidad | frontend + state + backend |
 | EP-022 | 22.1–22.2 | Proper Agenda navigation stack | frontend |
 | EP-023 | 23.1–23.6 | QA agent + Playwright E2E tests | pm-tl + scripts |
+| EP-030 | 30.1–30.8 | User registration with Resend email verification | frontend + state + backend |
 
 ---
 
@@ -442,3 +455,4 @@
 | 2026-03-16 | Notification content format: title `"Visita con {clientName}"`, body `"Quedan ~10 min. ¿Agendás la próxima visita?"` | Hardcoded in `/lib/notifications.ts` for simplicity; fires ~10 min before gap time ends so salesperson can schedule next visit while current one is active |
 | 2026-03-16 | Android notification channels + foreground handler required for notifications to display | expo-notifications only shows notifications in foreground with `setNotificationHandler()` + channel setup; without these, notifications silently succeed but never appear to user |
 | 2026-03-16 | Web version deferred to standalone Next.js app instead of React Native Web | RNW build complexity: conditional requires break Babel transpilation, metro.config stubs failed, async imports weren't processed at build time. Cleaner to separate concerns: mobile = Expo, web = Next.js, shared = API/Supabase |
+| 2026-03-17 | Use Resend for signup verification emails instead of Supabase's built-in | Already integrated with Resend for weekly-email. Resend allows beautiful React Email templates + better deliverability + higher rate limits. Verification email is a first impression; worth the polish. |
