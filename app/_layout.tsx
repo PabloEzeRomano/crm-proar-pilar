@@ -43,13 +43,14 @@ if (Platform.OS !== 'web') {
   })
 
   // Set default notification handler for foreground notifications
+  const notificationBehavior: Notifications.NotificationBehavior = {
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    } as any),
+    handleNotification: async () => notificationBehavior,
   })
 }
 
