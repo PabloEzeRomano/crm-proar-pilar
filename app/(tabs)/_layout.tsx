@@ -146,22 +146,21 @@ export default function TabsLayout() {
       />
 
       {/* ── Equipo (Team) — admin + web only ──────────────────────────────── */}
-      {isAdminOnWeb && (
-        <Tabs.Screen
-          name="team"
-          options={{
-            title: 'Equipo',
-            tabBarIcon: ({ focused, color }) => (
-              <TabIcon
-                activeIcon="account-multiple"
-                inactiveIcon="account-multiple-outline"
-                focused={focused}
-                color={color}
-              />
-            ),
-          }}
-        />
-      )}
+      <Tabs.Screen
+        name="team"
+        options={{
+          title: 'Equipo',
+          href: isAdminOnWeb ? undefined : null, // hide unless admin + web
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon
+              activeIcon="account-multiple"
+              inactiveIcon="account-multiple-outline"
+              focused={focused}
+              color={color}
+            />
+          ),
+        }}
+      />
 
       {/* Settings is accessible from the Today header; hide its tab entry */}
       <Tabs.Screen
