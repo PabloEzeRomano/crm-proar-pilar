@@ -1,16 +1,18 @@
 /**
  * app/(tabs)/_layout.tsx — Bottom tab bar layout
  *
- * Three tabs: Hoy (Today), Clientes (Clients), Visitas (Visits).
+ * Tabs: Hoy (Today), Clientes (Clients), Visitas (Visits), Equipo (Team - admin + web only).
  * Visual values come exclusively from constants/theme.ts and constants/brand.ts.
  * Icons: MaterialCommunityIcons from @expo/vector-icons (bundled with Expo).
  */
 
+import { Platform } from 'react-native'
 import { Tabs } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 
 import { brand } from '@/constants/brand'
 import { colors, fontSize, spacing } from '@/constants/theme'
+import { useAuthStore } from '@/stores/authStore'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -44,6 +46,9 @@ function TabIcon({ activeIcon, inactiveIcon, focused, color }: TabIconProps) {
 // ---------------------------------------------------------------------------
 
 export default function TabsLayout() {
+  const profile = useAuthStore((state) => state.profile)
+  const isAdminOnWeb = profile?.role === 'admin' && Platform.OS === 'web'
+
   return (
     <Tabs
       screenOptions={{
@@ -52,15 +57,13 @@ export default function TabsLayout() {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
           borderTopWidth: 1,
+          minHeight: 56,
         },
         tabBarActiveTintColor: brand.primaryColor,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarLabelStyle: {
           fontSize: fontSize.sm,
           marginBottom: spacing[1],
-        },
-        tabBarStyle: {
-          minHeight: 56,
         },
 
         // ── Screen header ─────────────────────────────────────────────
@@ -127,6 +130,24 @@ export default function TabsLayout() {
           ),
         }}
       />
+
+      {/* ── Equipo (Team) — admin + web only ──────────────────────────────── */}
+      {isAdminOnWeb && (
+        <Tabs.Screen
+          name="team"
+          options={{
+            title: 'Equipo',
+            tabBarIcon: ({ focused, color }) => (
+              <TabIcon
+                activeIcon="account-multiple"
+                inactiveIcon="account-multiple-outline"
+                focused={focused}
+                color={color}
+              />
+            ),
+          }}
+        />
+      )}
 
       {/* Settings is accessible from the Today header; hide its tab entry */}
       <Tabs.Screen
