@@ -27,12 +27,10 @@ import {
   View,
 } from 'react-native'
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from '@react-native-community/datetimepicker'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
+import DateTimeInput from '@/components/DateTimeInput'
 import { useVisitsStore } from '@/stores/visitsStore'
 import { useClientsStore } from '@/stores/clientsStore'
 import {
@@ -51,6 +49,8 @@ import dayjs from '@/lib/dayjs'
 
 const GAP_KEY = 'visit-gap-minutes'
 const DEFAULT_GAP = 60
+
+const MINUTA_TEMPLATE = 'Objetivo:\n\nResultado:\n\nPróximos pasos:\n'
 
 const GAP_OPTIONS = [
   { label: '30 min', value: 30 },
@@ -115,7 +115,7 @@ export default function VisitFormScreen() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [selectedDate, setSelectedDate] = useState<Date>(defaultDate)
   const [selectedTime, setSelectedTime] = useState<Date>(defaultTime)
-  const [notes, setNotes] = useState<string>('')
+  const [notes, setNotes] = useState<string>(MINUTA_TEMPLATE)
   const [status, setStatus] = useState<VisitStatus>('pending')
   const [gapMinutes, setGapMinutes] = useState<number>(DEFAULT_GAP)
 
@@ -276,30 +276,25 @@ export default function VisitFormScreen() {
     }
   }
 
-  function handleDateChange(_event: DateTimePickerEvent, date?: Date) {
+  function handleDateChange(date: Date) {
+    setSelectedDate(date)
+    applyDateDefaults(date)
     if (Platform.OS === 'android') {
-      setShowDatePicker(false)
-      if (date) {
-        setSelectedDate(date)
-        applyDateDefaults(date)
-        // On Android, show time picker after date is selected
-        setShowTimePicker(true)
-      }
-    } else {
-      if (date) {
-        setSelectedDate(date)
-        applyDateDefaults(date)
-      }
+      // On Android, show time picker after date is selected
+      setShowTimePicker(true)
     }
   }
 
-  function handleTimeChange(_event: DateTimePickerEvent, time?: Date) {
-    if (Platform.OS === 'android') {
-      setShowTimePicker(false)
-      if (time) setSelectedTime(time)
-    } else {
-      if (time) setSelectedTime(time)
-    }
+  function handleTimeChange(time: Date) {
+    setSelectedTime(time)
+  }
+
+  function handleDatePickerDismissAndroid() {
+    setShowDatePicker(false)
+  }
+
+  function handleTimePickerDismissAndroid() {
+    setShowTimePicker(false)
   }
 
   function handleClientSelect(client: Client) {
@@ -481,7 +476,7 @@ export default function VisitFormScreen() {
       <View style={styles.fieldGroup}>
         <FieldLabel label="Fecha" />
 
-        {Platform.OS === 'android' ? (
+        {Platform.OS === 'android' && !showDatePicker ? (
           <Pressable
             style={({ pressed }) => [
               styles.fieldDisplay,
@@ -501,25 +496,29 @@ export default function VisitFormScreen() {
             />
           </Pressable>
         ) : (
-          /* iOS: inline date picker */
-          <DateTimePicker
+          /* iOS and Web: inline date picker */
+          <DateTimeInput
             value={selectedDate}
             mode="date"
-            display="inline"
+            display={Platform.OS === 'android' ? 'calendar' : 'inline'}
             onChange={handleDateChange}
-            locale="es"
             accentColor={colors.primary}
-            style={styles.iosDatePicker}
+            locale="es"
+            isAndroidModal={Platform.OS === 'android' && showDatePicker}
+            onDismiss={handleDatePickerDismissAndroid}
+            containerStyle={Platform.OS === 'ios' ? styles.iosDatePicker : undefined}
           />
         )}
 
         {/* Android date picker modal */}
         {Platform.OS === 'android' && showDatePicker ? (
-          <DateTimePicker
+          <DateTimeInput
             value={selectedDate}
             mode="date"
             display="calendar"
             onChange={handleDateChange}
+            isAndroidModal={true}
+            onDismiss={handleDatePickerDismissAndroid}
           />
         ) : null}
       </View>
@@ -528,7 +527,7 @@ export default function VisitFormScreen() {
       <View style={styles.fieldGroup}>
         <FieldLabel label="Hora" />
 
-        {Platform.OS === 'android' ? (
+        {Platform.OS === 'android' && !showTimePicker ? (
           <Pressable
             style={({ pressed }) => [
               styles.fieldDisplay,
@@ -548,25 +547,29 @@ export default function VisitFormScreen() {
             />
           </Pressable>
         ) : (
-          /* iOS: inline time picker */
-          <DateTimePicker
+          /* iOS and Web: inline time picker */
+          <DateTimeInput
             value={selectedTime}
             mode="time"
-            display="spinner"
+            display={Platform.OS === 'android' ? 'clock' : 'spinner'}
             onChange={handleTimeChange}
-            locale="es"
             accentColor={colors.primary}
-            style={styles.iosTimePicker}
+            locale="es"
+            isAndroidModal={Platform.OS === 'android' && showTimePicker}
+            onDismiss={handleTimePickerDismissAndroid}
+            containerStyle={Platform.OS === 'ios' ? styles.iosTimePicker : undefined}
           />
         )}
 
         {/* Android time picker modal */}
         {Platform.OS === 'android' && showTimePicker ? (
-          <DateTimePicker
+          <DateTimeInput
             value={selectedTime}
             mode="time"
             display="clock"
             onChange={handleTimeChange}
+            isAndroidModal={true}
+            onDismiss={handleTimePickerDismissAndroid}
           />
         ) : null}
       </View>
