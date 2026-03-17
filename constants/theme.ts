@@ -16,6 +16,16 @@ import { brand } from './brand'
 export const MIN_TOUCH_TARGET = 48
 
 // ---------------------------------------------------------------------------
+// Responsive breakpoints
+// ---------------------------------------------------------------------------
+
+/** Breakpoint for wide screens (web only) */
+export const BREAKPOINT_WIDE = 768
+
+/** Max container width for web (mobile design on desktop) */
+export const MAX_CONTAINER_WIDTH = 480
+
+// ---------------------------------------------------------------------------
 // Colors
 // ---------------------------------------------------------------------------
 

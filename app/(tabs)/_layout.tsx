@@ -6,12 +6,12 @@
  * Icons: MaterialCommunityIcons from @expo/vector-icons (bundled with Expo).
  */
 
-import { Platform } from 'react-native'
+import { Platform, useWindowDimensions } from 'react-native'
 import { Tabs } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 
 import { brand } from '@/constants/brand'
-import { colors, fontSize, spacing } from '@/constants/theme'
+import { colors, fontSize, spacing, BREAKPOINT_WIDE, MAX_CONTAINER_WIDTH } from '@/constants/theme'
 import { useAuthStore } from '@/stores/authStore'
 
 // ---------------------------------------------------------------------------
@@ -48,39 +48,53 @@ function TabIcon({ activeIcon, inactiveIcon, focused, color }: TabIconProps) {
 export default function TabsLayout() {
   const profile = useAuthStore((state) => state.profile)
   const isAdminOnWeb = profile?.role === 'admin' && Platform.OS === 'web'
+  const { width } = useWindowDimensions()
+
+  // On web screens > 768px wide, constrain content to 480px and center it
+  const isWideScreen = Platform.OS === 'web' && width > BREAKPOINT_WIDE
+
+  // Screen options with responsive container styling
+  const screenOptions = {
+    // ── Tab bar ──────────────────────────────────────────────────
+    tabBarStyle: {
+      backgroundColor: colors.surface,
+      borderTopColor: colors.border,
+      borderTopWidth: 1,
+      minHeight: 56,
+    },
+    tabBarActiveTintColor: brand.primaryColor,
+    tabBarInactiveTintColor: colors.textSecondary,
+    tabBarLabelStyle: {
+      fontSize: fontSize.sm,
+      marginBottom: spacing[1],
+    },
+
+    // ── Screen header ─────────────────────────────────────────────
+    headerStyle: {
+      backgroundColor: colors.surface,
+    },
+    headerTitleAlign: 'center' as const,
+    headerShadowVisible: false,
+    headerTintColor: colors.primary,
+    headerTitleStyle: {
+      fontSize: fontSize.lg,
+      fontWeight: '600' as const, // fontWeight.semibold — must be a string literal for RN header
+      color: colors.textPrimary,
+    },
+    // headerBackButtonMenuEnabled: false,
+
+    // ── Responsive: constrain width on wide web screens ──────────
+    ...(isWideScreen && {
+      cardStyle: {
+        width: MAX_CONTAINER_WIDTH,
+        alignSelf: 'center',
+        marginHorizontal: 'auto' as const,
+      },
+    }),
+  }
 
   return (
-    <Tabs
-      screenOptions={{
-        // ── Tab bar ──────────────────────────────────────────────────
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-          borderTopWidth: 1,
-          minHeight: 56,
-        },
-        tabBarActiveTintColor: brand.primaryColor,
-        tabBarInactiveTintColor: colors.textSecondary,
-        tabBarLabelStyle: {
-          fontSize: fontSize.sm,
-          marginBottom: spacing[1],
-        },
-
-        // ── Screen header ─────────────────────────────────────────────
-        headerStyle: {
-          backgroundColor: colors.surface,
-        },
-        headerTitleAlign: 'center',
-        headerShadowVisible: false,
-        headerTintColor: colors.primary,
-        headerTitleStyle: {
-          fontSize: fontSize.lg,
-          fontWeight: '600', // fontWeight.semibold — must be a string literal for RN header
-          color: colors.textPrimary,
-        },
-        // headerBackButtonMenuEnabled: false,
-      }}
-    >
+    <Tabs screenOptions={screenOptions}>
       {/* ── Agenda (Today) ───────────────────────────────────────────── */}
       <Tabs.Screen
         name="index"
