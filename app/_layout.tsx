@@ -15,9 +15,10 @@
  */
 
 import { useCallback, useEffect } from 'react'
-import { ActivityIndicator, StyleSheet, View } from 'react-native'
+import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
 import { useFocusEffect } from '@react-navigation/native'
+import * as Notifications from 'expo-notifications'
 
 import { colors } from '@/constants/theme'
 import OnboardingTour from '@/components/OnboardingTour'
@@ -58,6 +59,77 @@ function useAuthGuard(): void {
 }
 
 // ---------------------------------------------------------------------------
+// Notification permission request hook
+// ---------------------------------------------------------------------------
+
+function useNotificationPermission(): void {
+  const loading = useAuthStore((s) => s.loading)
+  const user = useAuthStore((s) => s.user)
+
+  useEffect(() => {
+    // Only request permission after auth is complete
+    if (loading || !user) {
+      return
+    }
+
+    // Skip on web and check if API is available (not in Expo Go on Android)
+    if (Platform.OS === 'web' || !Notifications.requestPermissionsAsync) {
+      return
+    }
+
+    const requestPermission = async () => {
+      try {
+        const result = await Notifications.requestPermissionsAsync({
+          ios: { provideAppNotificationSettings: true },
+        })
+        console.log('Notification permission result:', result)
+      } catch (error) {
+        console.warn('Notification permission unavailable (might be Expo Go):', error)
+      }
+    }
+
+    requestPermission()
+  }, [loading, user])
+}
+
+// ---------------------------------------------------------------------------
+// Notification response listener hook
+// ---------------------------------------------------------------------------
+
+function useNotificationResponseListener(): void {
+  const router = useRouter()
+
+  useEffect(() => {
+    // Skip on web and if API is unavailable (not in Expo Go on Android)
+    if (Platform.OS === 'web' || !Notifications.addNotificationResponseReceivedListener) {
+      return
+    }
+
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      try {
+        // Extract visit ID from notification data if available
+        const visitId = response.notification.request.content.data?.visitId as string | undefined
+
+        if (visitId) {
+          // Navigate directly to the visit detail if visitId is available
+          router.push(`/(tabs)/visits/${visitId}`)
+        } else {
+          // Fallback: navigate to visits list and let user select
+          router.push('/(tabs)/visits')
+        }
+      } catch (error) {
+        console.error('Failed to handle notification response:', error)
+      }
+    })
+
+    return () => {
+      // Cleanup: remove the subscription
+      subscription.remove()
+    }
+  }, [router])
+}
+
+// ---------------------------------------------------------------------------
 // Root layout component
 // ---------------------------------------------------------------------------
 
@@ -87,6 +159,12 @@ export default function RootLayout() {
 
   // Run the guard on every render that depends on session / loading.
   useAuthGuard()
+
+  // Request notification permission after auth is complete
+  useNotificationPermission()
+
+  // Set up notification response listener (navigate on tap)
+  useNotificationResponseListener()
 
   if (loading) {
     return (
