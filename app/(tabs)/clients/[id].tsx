@@ -14,7 +14,7 @@
  */
 
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
-import React, { useEffect, useLayoutEffect } from 'react'
+import React, { useEffect, useLayoutEffect, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -25,6 +25,7 @@ import {
   Text,
   View,
 } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import { StatusBadge } from '@/components/ui/StatusBadge'
 
@@ -38,16 +39,35 @@ import {
 import { useVisits } from '@/hooks/useVisits'
 import dayjs from '@/lib/dayjs'
 import { useClientsStore } from '@/stores/clientsStore'
+import { useVisitsStore } from '@/stores/visitsStore'
+import { useTodayStore } from '@/stores/todayStore'
 import { VisitWithClient } from '@/types'
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function handleContactPhone(phone: string) {
+/** Format Argentina phone number for WhatsApp with pre-filled greeting */
+function formatArgentinaWhatsApp(phone: string, name: string): string {
+  const digits = phone.replace(/\D/g, '')
+  const normalized = digits.startsWith('54') ? digits : `54${digits}`
+  const greeting = encodeURIComponent(`Hola ${name}!`)
+  return `https://wa.me/${normalized}?text=${greeting}`
+}
+
+function handleContactPhone(phone: string, clientName?: string) {
+  const whatsappLabel = clientName ? `Hola ${clientName}!` : 'WhatsApp'
   Alert.alert(phone, undefined, [
     { text: 'Llamar', onPress: () => Linking.openURL(`tel:${phone}`) },
-    { text: 'WhatsApp', onPress: () => Linking.openURL(`https://wa.me/${phone.replace(/\D/g, '')}`) },
+    {
+      text: 'WhatsApp',
+      onPress: () => {
+        const url = clientName
+          ? formatArgentinaWhatsApp(phone, clientName)
+          : `https://wa.me/${phone.replace(/\D/g, '')}`
+        Linking.openURL(url)
+      },
+    },
     { text: 'Cancelar', style: 'cancel' },
   ])
 }
@@ -111,6 +131,62 @@ export default function ClientDetailScreen() {
       ),
     })
   }, [client, id, navigation, router])
+
+  // "Visitar hoy" button state
+  const [visitarHoyLoading, setVisitarHoyLoading] = useState(false)
+  const createVisit = useVisitsStore((state) => state.createVisit)
+  const todayVisits = useTodayStore((state) => state.visits)
+  const fetchTodayVisits = useTodayStore((state) => state.fetchTodayVisits)
+
+  // Find today's visit for this client (if it exists)
+  const todayVisit = todayVisits.find(
+    (v) =>
+      v.client_id === id &&
+      dayjs(v.scheduled_at).isSame(dayjs(), 'day'),
+  )
+
+  const handleVisitarHoy = async () => {
+    if (!id) return
+
+    setVisitarHoyLoading(true)
+    try {
+      // Read gap preference from AsyncStorage
+      const gapStr = await AsyncStorage.getItem('visit-gap-minutes')
+      const gap = gapStr ? Number(gapStr) : 60
+
+      // Compute smart time: latest visit in today's list + gap, fallback to 10:00
+      let smartTime = dayjs().hour(10).minute(0).second(0)
+      const todayList = todayVisits.filter((v) =>
+        dayjs(v.scheduled_at).isSame(dayjs(), 'day'),
+      )
+      if (todayList.length > 0) {
+        const latest = todayList.reduce((a, b) =>
+          a.scheduled_at > b.scheduled_at ? a : b,
+        )
+        smartTime = dayjs(latest.scheduled_at).add(gap, 'minute')
+      }
+
+      // Create visit
+      const newVisit = await createVisit({
+        client_id: id,
+        scheduled_at: smartTime.toISOString(),
+        status: 'pending',
+        notes: undefined,
+      })
+
+      if (newVisit) {
+        // Refresh today's visits and navigate
+        await fetchTodayVisits()
+        router.push(`/visits/${newVisit.id}`)
+      } else {
+        Alert.alert('Error', 'No se pudo crear la visita')
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Ocurrió un error al crear la visita')
+    } finally {
+      setVisitarHoyLoading(false)
+    }
+  }
 
   // -------------------------------------------------------------------------
   // Not found
@@ -203,7 +279,7 @@ export default function ClientDetailScreen() {
               ) : null}
               {contact.phone ? (
                 <Pressable
-                  onPress={() => handleContactPhone(contact.phone!)}
+                  onPress={() => handleContactPhone(contact.phone!, client.name)}
                   accessibilityRole="link"
                   accessibilityLabel={`Contactar ${contact.phone}`}
                   hitSlop={{ top: 8, bottom: 8, left: 0, right: 8 }}
@@ -270,6 +346,26 @@ export default function ClientDetailScreen() {
       {/* ── Sección: Historial de visitas ────────────────────────────── */}
       <View style={styles.section}>
         <SectionHeader title="Historial de visitas" />
+
+        {/* Visitar hoy / Ver visita de hoy button */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.newVisitButton,
+            pressed && styles.newVisitButtonPressed,
+          ]}
+          onPress={todayVisit ? () => router.push(`/visits/${todayVisit.id}`) : handleVisitarHoy}
+          disabled={visitarHoyLoading}
+          accessibilityRole="button"
+          accessibilityLabel={todayVisit ? 'Ver visita de hoy' : 'Visitar hoy'}
+        >
+          {visitarHoyLoading ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <Text style={styles.newVisitButtonText}>
+              {todayVisit ? 'Ver visita de hoy' : 'Visitar hoy'}
+            </Text>
+          )}
+        </Pressable>
 
         {/* Nueva visita button */}
         <Pressable

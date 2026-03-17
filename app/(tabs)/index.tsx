@@ -13,9 +13,11 @@
  *   - Today's date as subtitle in header
  */
 
-import React, { useCallback, useLayoutEffect, useMemo } from 'react'
+import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -26,7 +28,9 @@ import { useFocusEffect, useNavigation, useRouter } from 'expo-router'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 
 import { useToday } from '@/hooks/useToday'
+import { useTodayStore } from '@/stores/todayStore'
 import { TodaySpan } from '@/stores/todayStore'
+import { useAuthStore } from '@/stores/authStore'
 import {
   borderRadius,
   colors,
@@ -115,6 +119,9 @@ function formatMinutes(mins: number): string {
 export default function TodayScreen() {
   const router = useRouter()
   const navigation = useNavigation()
+  const [sortLoading, setSortLoading] = useState(false)
+  const profile = useAuthStore((state) => state.profile)
+  const isAdmin = profile?.role === 'admin'
 
   const {
     visits,
@@ -125,7 +132,27 @@ export default function TodayScreen() {
     isStale,
     lastFetched,
     fetchTodayVisits,
-  } = useToday()
+  } = useToday(isAdmin)
+
+  const sortedByDistance = useTodayStore((s) => s.sortedByDistance)
+  const sortByDistance = useTodayStore((s) => s.sortByDistance)
+  const resetDistanceSort = useTodayStore((s) => s.resetDistanceSort)
+
+  const handleToggleSort = async () => {
+    if (sortedByDistance) {
+      resetDistanceSort()
+      return
+    }
+
+    setSortLoading(true)
+    try {
+      await sortByDistance()
+    } catch (error) {
+      Alert.alert('Error', 'No se pudieron obtener coordenadas de ubicación')
+    } finally {
+      setSortLoading(false)
+    }
+  }
 
   // ── Auto-refresh while screen is focused ────────────────────────────────
   useFocusEffect(
@@ -315,6 +342,13 @@ export default function TodayScreen() {
     const subtitleParts: string[] = []
     if (visit.client?.industry) subtitleParts.push(visit.client.industry)
     if (visit.client?.city) subtitleParts.push(visit.client.city)
+    // Add owner indicator for admins
+    if (isAdmin && visit.owner) {
+      const ownerDisplay = visit.owner.full_name
+        ? visit.owner.full_name.split(' ')[0]
+        : visit.owner.email_config?.sender_name || 'Unknown'
+      subtitleParts.push(`por ${ownerDisplay}`)
+    }
     const subtitle = subtitleParts.join(' · ')
 
     const isCompleted = visit.status === 'completed'
@@ -444,11 +478,36 @@ export default function TodayScreen() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{sectionTitle}</Text>
           {visits.length > 0 && (
-            <View style={styles.countBadge}>
-              <Text style={styles.countBadgeText}>
-                {visits.length} {visits.length === 1 ? 'visita' : 'visitas'}
-              </Text>
-            </View>
+            <>
+              <View style={styles.countBadge}>
+                <Text style={styles.countBadgeText}>
+                  {visits.length} {visits.length === 1 ? 'visita' : 'visitas'}
+                </Text>
+              </View>
+              {/* Sort toggle button — only on native platforms (expo-location not available on web) */}
+              {Platform.OS !== 'web' && (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.sortButton,
+                    pressed && styles.sortButtonPressed,
+                  ]}
+                  onPress={handleToggleSort}
+                  disabled={sortLoading}
+                  accessibilityRole="button"
+                  accessibilityLabel={sortedByDistance ? 'Ordenar por hora' : 'Ordenar por distancia'}
+                >
+                  {sortLoading ? (
+                    <ActivityIndicator size="small" color={colors.textSecondary} />
+                  ) : (
+                    <MaterialCommunityIcons
+                      name={sortedByDistance ? 'clock-outline' : 'map-marker-distance'}
+                      size={20}
+                      color={colors.textSecondary}
+                    />
+                  )}
+                </Pressable>
+              )}
+            </>
           )}
         </View>
 
@@ -573,6 +632,16 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     fontWeight: fontWeight.semibold as '600',
     color: colors.primary,
+  },
+  sortButton: {
+    marginLeft: 'auto',
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sortButtonPressed: {
+    opacity: 0.7,
   },
 
   // ── Next appointment card — stories 6.5 + 6.6 ────────────────────────────

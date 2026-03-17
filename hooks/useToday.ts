@@ -3,14 +3,14 @@ import { useTodayStore } from '../stores/todayStore'
 import { VisitWithClient } from '../types'
 import dayjs from '../lib/dayjs'
 
-export function useToday() {
+export function useToday(showAll?: boolean) {
   const visits = useTodayStore((s) => s.visits)
   const span = useTodayStore((s) => s.span)
   const loading = useTodayStore((s) => s.loading)
   const error = useTodayStore((s) => s.error)
   const isStale = useTodayStore((s) => s.isStale)
   const lastFetched = useTodayStore((s) => s.lastFetched)
-  const fetchTodayVisits = useTodayStore((s) => s.fetchTodayVisits)
+  const fetchTodayVisitsRaw = useTodayStore((s) => s.fetchTodayVisits)
 
   // Next pending visit not yet completed (first by scheduled_at ASC)
   const nextVisit = useMemo<VisitWithClient | null>(() => {
@@ -41,6 +41,6 @@ export function useToday() {
     error,
     isStale,
     lastFetched,
-    fetchTodayVisits,
+    fetchTodayVisits: (span?: 'today' | 'week' | 'month') => fetchTodayVisitsRaw(span, showAll),
   }
 }

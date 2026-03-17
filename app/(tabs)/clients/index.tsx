@@ -19,6 +19,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 
 import { useClients } from '@/hooks/useClients'
 import { useLookupsStore } from '@/stores/lookupsStore'
+import dayjs from '@/lib/dayjs'
 import {
   borderRadius,
   colors,
@@ -37,17 +38,25 @@ export default function ClientsIndexScreen() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedRubros, setSelectedRubros] = useState<string[]>([])
   const [selectedLocalidades, setSelectedLocalidades] = useState<string[]>([])
+  const [selectedStaleDays, setSelectedStaleDays] = useState<number | null>(null)
   const [filterVisible, setFilterVisible] = useState(false)
 
   // Draft state inside the modal (applied only on "Aplicar")
   const [draftRubros, setDraftRubros] = useState<string[]>([])
   const [draftLocalidades, setDraftLocalidades] = useState<string[]>([])
+  const [draftStaleDays, setDraftStaleDays] = useState<number | null>(null)
 
-  const { clients, loading, error, fetchClients } = useClients(searchQuery, selectedRubros, selectedLocalidades)
+  const { clients, loading, error, fetchClients, ownerProfiles, isAdminMode } = useClients(
+    searchQuery,
+    selectedRubros,
+    selectedLocalidades,
+    selectedStaleDays,
+  )
   const rubros = useLookupsStore((s) => s.rubros)
   const localidades = useLookupsStore((s) => s.localidades)
 
-  const activeFilterCount = selectedRubros.length + selectedLocalidades.length
+  const activeFilterCount =
+    selectedRubros.length + selectedLocalidades.length + (selectedStaleDays ? 1 : 0)
 
   useEffect(() => {
     fetchClients()
@@ -59,18 +68,21 @@ export default function ClientsIndexScreen() {
     // Copy current selection into draft
     setDraftRubros([...selectedRubros])
     setDraftLocalidades([...selectedLocalidades])
+    setDraftStaleDays(selectedStaleDays)
     setFilterVisible(true)
   }
 
   function applyFilter() {
     setSelectedRubros(draftRubros)
     setSelectedLocalidades(draftLocalidades)
+    setSelectedStaleDays(draftStaleDays)
     setFilterVisible(false)
   }
 
   function clearFilter() {
     setDraftRubros([])
     setDraftLocalidades([])
+    setDraftStaleDays(null)
   }
 
   function toggleDraft(list: string[], value: string, setter: (v: string[]) => void) {
@@ -79,12 +91,36 @@ export default function ClientsIndexScreen() {
 
   // ── List helpers ─────────────────────────────────────────────────────────
 
+  function daysSince(iso: string | null | undefined): number | null {
+    if (!iso) return null
+    return dayjs().diff(dayjs(iso), 'day')
+  }
+
+  function getLastVisitedColor(days: number | null): string {
+    if (days === null) return colors.textDisabled
+    if (days < 30) return colors.statusCompleted
+    if (days <= 60) return colors.statusPending
+    return colors.error
+  }
+
+  function getLastVisitedLabel(days: number | null): string {
+    if (days === null) return 'Sin visitas'
+    return `Hace ${days}d`
+  }
+
   function handleRowPress(client: Client) {
     router.push(`/clients/${client.id}`)
   }
 
   function renderItem({ item }: { item: Client }) {
     const subtitle = [item.industry, item.city].filter(Boolean).join(' · ')
+    const days = daysSince(item.last_visited_at)
+    const badgeColor = getLastVisitedColor(days)
+    const badgeLabel = getLastVisitedLabel(days)
+
+    // Get owner name for admin mode
+    const ownerName = isAdminMode ? ownerProfiles[item.owner_user_id]?.full_name : null
+
     return (
       <Pressable
         style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
@@ -97,6 +133,21 @@ export default function ClientsIndexScreen() {
           {subtitle ? (
             <Text style={styles.rowSubtitle} numberOfLines={1}>{subtitle}</Text>
           ) : null}
+          {ownerName && (
+            <Text style={styles.ownerLabel} numberOfLines={1}>
+              por: {ownerName}
+            </Text>
+          )}
+          <View style={styles.badgeRow}>
+            <MaterialCommunityIcons
+              name="calendar-clock"
+              size={12}
+              color={badgeColor}
+            />
+            <Text style={[styles.badgeText, { color: badgeColor }]}>
+              {badgeLabel}
+            </Text>
+          </View>
         </View>
         <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
       </Pressable>
@@ -192,8 +243,24 @@ export default function ClientsIndexScreen() {
                 <MaterialCommunityIcons name="close" size={14} color={colors.primary} />
               </Pressable>
             ))}
+            {selectedStaleDays && (
+              <Pressable
+                style={styles.activeChip}
+                onPress={() => setSelectedStaleDays(null)}
+                accessibilityLabel={`Quitar filtro sin visita ${selectedStaleDays} días`}
+              >
+                <Text style={styles.activeChipText} numberOfLines={1}>
+                  Sin visita {selectedStaleDays}d
+                </Text>
+                <MaterialCommunityIcons name="close" size={14} color={colors.primary} />
+              </Pressable>
+            )}
             <Pressable
-              onPress={() => { setSelectedRubros([]); setSelectedLocalidades([]) }}
+              onPress={() => {
+                setSelectedRubros([])
+                setSelectedLocalidades([])
+                setSelectedStaleDays(null)
+              }}
               accessibilityLabel="Limpiar todos los filtros"
             >
               <Text style={styles.clearAllText}>Limpiar todo</Text>
@@ -301,6 +368,33 @@ export default function ClientsIndexScreen() {
                 })}
               </View>
             )}
+
+            {/* Sin visita section — radio-style selection */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>SIN VISITA</Text>
+              {[
+                { label: '30 días', value: 30 },
+                { label: '60 días', value: 60 },
+                { label: '90 días', value: 90 },
+              ].map(({ label, value }) => {
+                const checked = draftStaleDays === value
+                return (
+                  <Pressable
+                    key={value}
+                    style={({ pressed }) => [styles.checkRow, pressed && styles.checkRowPressed]}
+                    onPress={() => setDraftStaleDays(checked ? null : value)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: checked }}
+                    accessibilityLabel={label}
+                  >
+                    <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+                      {checked && <MaterialCommunityIcons name="check" size={14} color={colors.textOnPrimary} />}
+                    </View>
+                    <Text style={styles.checkLabel} numberOfLines={1}>{label}</Text>
+                  </Pressable>
+                )
+              })}
+            </View>
 
           </ScrollView>
 
@@ -473,6 +567,22 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.regular as '400',
     color: colors.textSecondary,
     marginTop: spacing[1],
+  },
+  ownerLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.regular as '400',
+    color: colors.textDisabled,
+    marginTop: spacing[1],
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    marginTop: spacing[1],
+  },
+  badgeText: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.medium as '500',
   },
   divider: {
     height: 1,

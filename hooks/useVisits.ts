@@ -3,7 +3,7 @@ import { VisitWithClient, VisitStatus } from '../types'
 import { useVisitsStore } from '../stores/visitsStore'
 import dayjs from '../lib/dayjs'
 
-export function useVisits(clientId?: string, statusFilter?: VisitStatus | 'all' | 'upcoming') {
+export function useVisits(clientId?: string, statusFilter?: VisitStatus | 'all' | 'upcoming', showAll?: boolean) {
   const visits = useVisitsStore((state) => state.visits)
   const hasMore = useVisitsStore((state) => state.hasMore)
   const loading = useVisitsStore((state) => state.loading)
@@ -41,8 +41,8 @@ export function useVisits(clientId?: string, statusFilter?: VisitStatus | 'all' 
     loading,
     loadingMore,
     error,
-    fetchVisits,
-    fetchMoreVisits,
+    fetchVisits: () => fetchVisits(showAll),
+    fetchMoreVisits: () => fetchMoreVisits(showAll),
     fetchVisitsByClient,
     createVisit,
     updateVisit,

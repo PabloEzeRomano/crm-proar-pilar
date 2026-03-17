@@ -216,8 +216,8 @@
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 16.1 | Show "last visited X days ago" badge on client card (color-coded: green <30d, amber 30-60d, red >60d) | frontend | `pending` |
-| 16.2 | Add "Sin visita en 30/60/90 días" filter option to client filter modal | frontend | `pending` |
+| 16.1 | Show "last visited X days ago" badge on client card (color-coded: green <30d, amber 30-60d, red >60d) | frontend | `done` |
+| 16.2 | Add "Sin visita en 30/60/90 días" filter option to client filter modal | frontend | `done` |
 | 16.3 | Add `fetchVisitsByClient` bypass for pagination so all client visits are loaded in detail screen | state | `done` |
 
 ---
@@ -226,9 +226,9 @@
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 17.1 | WhatsApp pre-filled greeting: add `?text=Hola [name]!` to `wa.me` URL; handle Argentina +549 prefix | frontend | `pending` |
-| 17.2 | Structured minuta template: pre-fill empty notes with "Objetivo / Resultado / Próximos pasos" | frontend | `pending` |
-| 17.3 | "Visitar hoy" one-tap button on client detail: creates visit at smart default time, skips if already exists | frontend + state | `pending` |
+| 17.1 | WhatsApp pre-filled greeting: add `?text=Hola [name]!` to `wa.me` URL; handle Argentina +549 prefix | frontend | `done` |
+| 17.2 | Structured minuta template: pre-fill empty notes with "Objetivo / Resultado / Próximos pasos" | frontend | `done` |
+| 17.3 | "Visitar hoy" one-tap button on client detail: creates visit at smart default time, skips if already exists | frontend + state | `done` |
 | 17.4 | Dev-only "Borrar clientes y visitas" button in Settings (guarded by `__DEV__`) | frontend | `done` |
 
 ---
@@ -257,11 +257,11 @@
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 20.1 | Request device location permission | frontend | `pending` |
-| 20.2 | Add `latitude` / `longitude` columns to `clients` (nullable) | backend | `pending` |
-| 20.3 | Geocode client address + city on save (Google Maps / OpenStreetMap API) | state | `pending` |
-| 20.4 | Sort today's agenda by distance from current location | frontend | `pending` |
-| 20.5 | "Optimize route" button on Today screen | frontend | `pending` |
+| 20.1 | Request device location permission | frontend | `done` |
+| 20.2 | Add `latitude` / `longitude` columns to `clients` (nullable) | backend | `done` |
+| 20.3 | Geocode client address + city on save (Nominatim / OpenStreetMap API) | state | `done` |
+| 20.4 | Sort today's agenda by distance from current location | frontend | `done` |
+| 20.5 | One-time backfill script to geocode all existing clients | scripts | `done` |
 
 ---
 
@@ -343,6 +343,56 @@
 
 ---
 
+## EP-027 — Roles & Permissions (USER / ADMIN / ROOT)
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 27.1 | Migration `0015_add_profile_role.sql`: add `role` column, protect from self-elevation (trigger blocks user changing own role), `auth.is_admin()` SECURITY DEFINER helper | backend | `pending` |
+| 27.2 | Migration `0016_admin_rls.sql`: drop + recreate SELECT/UPDATE/DELETE policies on `clients` and `visits` to add `OR auth.is_admin()` bypass | backend | `pending` |
+| 27.3 | Add `UserRole = 'user' \| 'admin' \| 'root'` type + `role: UserRole` to `Profile` interface | state | `pending` |
+| 27.4 | Admin clients view: when `profile.role === 'admin'`, clients list shows all users' clients with owner indicator (full_name or email label) | frontend | `pending` |
+| 27.5 | Admin visits view: same pattern — visits list and today screen show all users' visits when admin | frontend | `pending` |
+| 27.6 | Docs only: role promotion happens via Supabase dashboard SQL (`UPDATE profiles SET role = 'admin' WHERE id = '...'`) — no in-app UI needed for MVP | pm-tl | `done` |
+
+**Note on Role Promotion (27.6):**
+- Role promotion (user → admin) is **NOT** exposed in the app UI for MVP.
+- Only service-role authenticated requests can bypass the self-elevation guard (`auth.is_admin()` check on the trigger).
+- To promote a user to admin:
+  1. Go to [Supabase dashboard](https://supabase.com/dashboard)
+  2. Navigate to the project's **SQL Editor**
+  3. Run the query: `UPDATE profiles SET role = 'admin' WHERE id = '<user_id>';`
+  4. Find the user's ID in **Auth** → **Users** table (copy the UUID from the `id` column)
+- Demoting back to user: `UPDATE profiles SET role = 'user' WHERE id = '<user_id>';`
+- This is by design: only service-role (backend automation or dashboard admin) can change roles, preventing accidental or malicious self-elevation.
+
+---
+
+## EP-028 — Web Version
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 28.1 | Verify `yarn web` boots + document any runtime errors | pm-tl | `pending` |
+| 28.2 | Fix DateTimePicker on web: wrap in `Platform.select` — native uses existing pickers, web uses `<input type="date">` + `<input type="time">` via `TextInput` styled inputs | frontend | `pending` |
+| 28.3 | Responsive shell: on wide screens (`width > 768`), wrap tab content in a `maxWidth: 480` centered container so it doesn't stretch; no full redesign | ui-ux + frontend | `pending` |
+| 28.4 | Admin web dashboard tab: when `profile.role === 'admin'` on web, add an "Equipo" tab showing visits/clients across all users (reuses EP-027 data layer) | frontend | `pending` |
+| 28.5 | Guard `expo-location` `sortByDistance` on web: already partially working (Geolocation API), verify or add `Platform.OS !== 'web'` guard | frontend | `pending` |
+
+---
+
+## EP-029 — Push Notifications (Local Scheduled)
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 29.1 | Install `expo-notifications`, add plugin to `app.json` (iOS + Android 13 permissions, `POST_NOTIFICATIONS`) | pm-tl | `pending` |
+| 29.2 | Permission request after auth + notification response listener (tap → navigate to visit) in root layout | frontend | `pending` |
+| 29.3 | `lib/notifications.ts`: `scheduleVisitReminder(visit, clientName, gapMinutes): Promise<string \| null>` — computes fire time, calls `scheduleNotificationAsync`, returns notificationId. `cancelVisitReminder(notificationId)`. Guards `Platform.OS !== 'web'`. | state | `pending` |
+| 29.4 | Add `notification_id?: string` column to `visits` table (migration `0017`) so we can cancel/reschedule across app restarts | backend | `pending` |
+| 29.5 | Add `notification_id` to `Visit` type + wire `scheduleVisitReminder` into `visitsStore.createVisit` + `updateVisit` (future visits only); `cancelVisitReminder` in `updateStatus('canceled')` + `deleteVisit` | state | `pending` |
+| 29.6 | Notification content: title `"Visita con {clientName}"`, body `"Quedan ~10 min. ¿Agendás la próxima visita?"` — tap opens `/visits/form?clientId=X` | state | `done` |
+| 29.7 | Settings toggle: allow user to disable visit reminders (stored in AsyncStorage `notifications-enabled`); check in `scheduleVisitReminder` before scheduling | frontend | `pending` |
+
+---
+
 ## Pending
 
 > All stories across all EPs that are not yet `done`.
@@ -352,16 +402,10 @@
 | EP-007 | 7.7 | Run import against dev Supabase and verify data | pm-tl |
 | EP-010 | 10.4 | Extract email name from auth email → populate sender_address/sender_name in email_config (multi-user ready) | backend + frontend + state |
 | EP-014 | 14.7 | Run migration 0010 and re-import with clean data | pm-tl |
-| EP-016 | 16.1 | "Last visited" badge on client card (color-coded) | frontend |
-| EP-016 | 16.2 | "Sin visita en X días" filter in client filter modal | frontend |
-| EP-017 | 17.1 | WhatsApp pre-filled greeting (`?text=Hola [name]!`, +549 prefix) | frontend |
-| EP-017 | 17.2 | Structured minuta template pre-fill on empty visit notes | frontend |
-| EP-017 | 17.3 | "Visitar hoy" one-tap button on client detail | frontend + state |
 | EP-018 | 18.1 | Visit stats: this week/month count + completion rate | state |
 | EP-018 | 18.2 | Top clients by visit frequency | state |
 | EP-018 | 18.3 | Statistics UI on Today screen | frontend |
 | EP-019 | 19.1–19.3 | Onboarding tour v2 | frontend |
-| EP-020 | 20.1–20.5 | Agenda by distance | frontend + backend + state |
 | EP-021 | 21.1–21.3 | Inline add Rubro / Localidad | frontend + state + backend |
 | EP-022 | 22.1–22.2 | Proper Agenda navigation stack | frontend |
 | EP-023 | 23.1–23.6 | QA agent + Playwright E2E tests | pm-tl + scripts |
@@ -390,3 +434,5 @@
 | 2026-03-09 | Import uses `dayLastTimeMap` keyed by date to stagger visits by gap | Aligns import behavior with the form's smart default time logic (EP-013.2) |
 | 2026-03-09 | `visitsStore` paginates to 100; client detail used filtered store list | Added `fetchVisitsByClient` that fetches all visits for one client directly, bypassing pagination |
 | 2026-03-09 | EAS cloud builds do not read local `.env` | Set `EXPO_PUBLIC_*` vars as EAS secrets via `eas secret:create` or expo.dev dashboard |
+| 2026-03-16 | Role promotion is admin-only and dashboard-only, not exposed in app UI | MVP requirement: prevents accidental/malicious elevation; only service-role (backend) can change roles; users self-elevate guard blocks app-level changes |
+| 2026-03-16 | Notification content format: title `"Visita con {clientName}"`, body `"Quedan ~10 min. ¿Agendás la próxima visita?"` | Hardcoded in `/lib/notifications.ts` for simplicity; fires ~10 min before gap time ends so salesperson can schedule next visit while current one is active |

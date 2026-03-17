@@ -34,6 +34,7 @@ import {
 } from '@/constants/theme'
 import { VisitStatus, VisitWithClient } from '@/types'
 import { useVisits } from '@/hooks/useVisits'
+import { useAuthStore } from '@/stores/authStore'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 
 // ---------------------------------------------------------------------------
@@ -67,7 +68,9 @@ const FILTER_OPTIONS: FilterOption[] = [
 export default function VisitsIndexScreen() {
   const router = useRouter()
   const [activeFilter, setActiveFilter] = useState<VisitStatus | 'all' | 'upcoming'>('all')
-  const { visits, hasMore, loading, loadingMore, error, fetchVisits, fetchMoreVisits } = useVisits(undefined, activeFilter)
+  const profile = useAuthStore((state) => state.profile)
+  const isAdmin = profile?.role === 'admin'
+  const { visits, hasMore, loading, loadingMore, error, fetchVisits, fetchMoreVisits } = useVisits(undefined, activeFilter, isAdmin)
 
   useEffect(() => {
     fetchVisits()
@@ -107,6 +110,11 @@ export default function VisitsIndexScreen() {
     const clientName = item.client?.name ?? 'Cliente desconocido'
     const dateText = formatVisitDate(item.scheduled_at)
 
+    // Get owner display name: full_name if available, otherwise email local part
+    const ownerDisplay = item.owner?.full_name
+      ? item.owner.full_name.split(' ')[0] // First name only
+      : item.owner?.email_config?.sender_name || 'Unknown'
+
     return (
       <Pressable
         style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
@@ -127,9 +135,16 @@ export default function VisitsIndexScreen() {
           <Text style={styles.rowTitle} numberOfLines={1}>
             {clientName}
           </Text>
-          <Text style={styles.rowSubtitle} numberOfLines={1}>
-            {dateText}
-          </Text>
+          <View style={styles.subtitleRow}>
+            <Text style={[styles.rowSubtitle, styles.dateTextFlex]} numberOfLines={1}>
+              {dateText}
+            </Text>
+            {isAdmin && item.owner && (
+              <Text style={styles.ownerIndicator} numberOfLines={1}>
+                por {ownerDisplay}
+              </Text>
+            )}
+          </View>
         </View>
 
         {/* Status badge */}
@@ -302,11 +317,24 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold as '600',
     color: colors.textPrimary,
   },
+  subtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing[1],
+    gap: spacing[2],
+  },
   rowSubtitle: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.regular as '400',
     color: colors.textSecondary,
-    marginTop: spacing[1],
+  },
+  dateTextFlex: {
+    flex: 1,
+  },
+  ownerIndicator: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.regular as '400',
+    color: colors.textSecondary,
   },
   divider: {
     height: 1,

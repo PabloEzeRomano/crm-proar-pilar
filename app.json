@@ -17,8 +17,20 @@
         "enabled": false
       }
     },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icons": ["./assets/notification-icon.png"],
+          "color": "#ffffff"
+        }
+      ]
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Para ordenar las visitas del día por cercanía."
+      }
     },
     "android": {
       "package": "com.proar.crm",
@@ -28,7 +40,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["ACCESS_FINE_LOCATION", "POST_NOTIFICATIONS"]
     },
     "web": {
       "bundler": "metro",

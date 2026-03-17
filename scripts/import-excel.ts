@@ -262,7 +262,7 @@ function parseScheduledAt(val: unknown): string | null {
       ['YYYY-MM-DD HH:mm', true],
       ['YYYY-MM-DD', false],
     ] as [string, boolean][]) {
-      const parsed = dayjs.tz(s, fmt, 'America/Argentina/Buenos_Aires', true)
+      const parsed = dayjs(s, fmt).tz('America/Argentina/Buenos_Aires')
       if (parsed.isValid()) {
         d = parsed
         hasExplicitTime = hasTime
