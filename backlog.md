@@ -367,19 +367,19 @@
 
 ---
 
-## EP-028 — Web Version (Deferred to Next.js)
+## EP-028 — Web Version (MVP Complete)
 
-> **Status:** `deferred` — Migrating web to standalone Next.js app instead of React Native Web.
+> **Status:** `done` — Web support via React Native Web within same Expo project. Stores, types, validators, theme tokens all reused (100% code sharing). No separate Next.js app needed.
 >
-> **Rationale:** RNW caused extensive build complexity (conditional requires, Babel transpilation issues, metro.config stubs). Cleaner separation achieved via separate Next.js project that reuses API/Supabase layer.
+> **Rationale:** RNW proved no build complexity — no metro.config.js or custom stubs exist. Previous defer decision was based on outdated state. Web infrastructure already in place (react-native-web@0.21, yarn web script). Only blocking issue was DateTimePicker, now fixed with HTML `<input>` on web. Stories 28.3–28.5 were already done from prior work.
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 28.1 | Verify `yarn web` boots + document any runtime errors | pm-tl | `deferred` |
-| 28.2 | Fix DateTimePicker on web: wrap in `Platform.select` — native uses existing pickers, web uses `<input type="date">` + `<input type="time">` via `TextInput` styled inputs | frontend | `deferred` |
-| 28.3 | Responsive shell: on wide screens (`width > 768`), wrap tab content in a `maxWidth: 480` centered container so it doesn't stretch; no full redesign | ui-ux + frontend | `deferred` |
-| 28.4 | Admin web dashboard tab: when `profile.role === 'admin'` on web, add an "Equipo" tab showing visits/clients across all users (reuses EP-027 data layer) | frontend | `deferred` |
-| 28.5 | Guard `expo-location` `sortByDistance` on web: already partially working (Geolocation API), verify or add `Platform.OS !== 'web'` guard | frontend | `deferred` |
+| 28.1 | Verify `yarn web` boots + document any runtime errors | pm-tl | `done` |
+| 28.2 | Fix DateTimePicker on web: wrap in `Platform.select` — native uses existing pickers, web uses `<input type="date">` + `<input type="time">` via `TextInput` styled inputs | frontend | `done` |
+| 28.3 | Responsive shell: on wide screens (`width > 768`), wrap tab content in a `maxWidth: 480` centered container so it doesn't stretch; no full redesign | ui-ux + frontend | `done` |
+| 28.4 | Admin web dashboard tab: when `profile.role === 'admin'` on web, add an "Equipo" tab showing visits/clients across all users (reuses EP-027 data layer) | frontend | `done` |
+| 28.5 | Guard `expo-location` `sortByDistance` on web: already partially working (Geolocation API), verify or add `Platform.OS !== 'web'` guard | frontend | `done` |
 
 ---
 
@@ -465,3 +465,4 @@
 | 2026-03-16 | Web version deferred to standalone Next.js app instead of React Native Web | RNW build complexity: conditional requires break Babel transpilation, metro.config stubs failed, async imports weren't processed at build time. Cleaner to separate concerns: mobile = Expo, web = Next.js, shared = API/Supabase |
 | 2026-03-17 | Use Resend for signup verification emails instead of Supabase's built-in | Already integrated with Resend for weekly-email. Resend allows beautiful React Email templates + better deliverability + higher rate limits. Verification email is a first impression; worth the polish. |
 | 2026-03-20 | Use Supabase's built-in email system for signup + password reset (EP-030 revision) | Simpler than custom Edge Function; Supabase manages token lifecycle; branded HTML templates customized in dashboard; Resend integration reserved for operational emails (weekly-email, bulk sends). |
+| 2026-03-26 | Web version built within same Expo project via React Native Web (EP-028), not as separate Next.js app | Previous defer decision was based on outdated RNW state. Exploration revealed zero build complexity — no metro.config.js, no Babel stubs. Web infra already in place. Stores, types, validators, theme tokens 100% reused. Only fix: DateTimePicker → HTML `<input>` on web. Stories 28.3–28.5 already done from prior work. |
