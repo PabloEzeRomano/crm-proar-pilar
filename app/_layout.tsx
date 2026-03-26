@@ -14,19 +14,21 @@
  * do NOT trigger a spurious redirect away from deep tab screens.
  */
 
-import { useCallback, useEffect } from 'react'
-import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native'
-import { Stack, useRouter } from 'expo-router'
-import { useFocusEffect } from '@react-navigation/native'
-import * as Notifications from 'expo-notifications'
+import { useCallback, useEffect } from 'react';
+import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
+import * as Notifications from 'expo-notifications';
+import * as Linking from 'expo-linking';
 
-import { colors } from '@/constants/theme'
-import OnboardingTour from '@/components/OnboardingTour'
-import { useAuthStore } from '@/stores/authStore'
-import { useClientsStore } from '@/stores/clientsStore'
-import { useLookupsStore } from '@/stores/lookupsStore'
-import { useTodayStore } from '@/stores/todayStore'
-import { useVisitsStore } from '@/stores/visitsStore'
+import { colors } from '@/constants/theme';
+import OnboardingTour from '@/components/OnboardingTour';
+import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
+import { useClientsStore } from '@/stores/clientsStore';
+import { useLookupsStore } from '@/stores/lookupsStore';
+import { useTodayStore } from '@/stores/todayStore';
+import { useVisitsStore } from '@/stores/visitsStore';
 
 // ---------------------------------------------------------------------------
 // Notification setup (Android channel configuration)
@@ -41,7 +43,7 @@ if (Platform.OS !== 'web') {
     lightColor: colors.primary,
   }).catch(() => {
     // Channel may already exist, ignore error
-  })
+  });
 
   // Set default notification handler for foreground notifications
   const notificationBehavior: Notifications.NotificationBehavior = {
@@ -49,10 +51,10 @@ if (Platform.OS !== 'web') {
     shouldSetBadge: true,
     shouldShowBanner: true,
     shouldShowList: true,
-  }
+  };
   Notifications.setNotificationHandler({
     handleNotification: async () => notificationBehavior,
-  })
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -60,29 +62,147 @@ if (Platform.OS !== 'web') {
 // ---------------------------------------------------------------------------
 
 function useRefreshLookupsOnFocus(): void {
-  const refetchIfStale = useLookupsStore((s) => s.refetchIfStale)
+  const refetchIfStale = useLookupsStore((s) => s.refetchIfStale);
 
   useFocusEffect(
     useCallback(() => {
-      refetchIfStale()
-    }, [refetchIfStale])
-  )
+      refetchIfStale();
+    }, [refetchIfStale]),
+  );
+}
+
+function parseFragmentParams(url: string): Record<string, string> {
+  const fragmentIndex = url.indexOf('#');
+  console.log('[parseFragmentParams] URL:', url);
+  console.log('[parseFragmentParams] fragmentIndex:', fragmentIndex);
+
+  if (fragmentIndex === -1) return {};
+
+  const fragment = url.substring(fragmentIndex + 1);
+  console.log('[parseFragmentParams] fragment:', fragment);
+
+  const params: Record<string, string> = {};
+
+  fragment.split('&').forEach((param) => {
+    const [key, value] = param.split('=');
+    if (key) {
+      params[key] = value ? decodeURIComponent(value) : '';
+    }
+  });
+
+  console.log('[parseFragmentParams] parsed params:', params);
+  return params;
+}
+
+function useDeepLinkHandler(): void {
+  useEffect(() => {
+    Linking.getInitialURL().then((url) => {
+      if (url) handleUrl(url);
+    });
+
+    const sub = Linking.addEventListener('url', ({ url }) => handleUrl(url));
+    return () => sub.remove();
+  }, []);
+
+  async function handleUrl(url: string) {
+    console.log('[useDeepLinkHandler] Handling URL:', url);
+    const parsed = Linking.parse(url);
+    if (parsed.hostname !== 'auth') {
+      console.log('[useDeepLinkHandler] Not an auth link, ignoring');
+      return;
+    }
+
+    // Manually parse fragment since Linking.parse doesn't handle it
+    // Supabase sends params in fragment (#) for email verification
+    // See: https://supabase.com/docs/guides/auth/native-mobile-deep-linking
+    const fragmentParams = parseFragmentParams(url);
+    const params =
+      Object.keys(fragmentParams).length > 0
+        ? fragmentParams
+        : (parsed.queryParams ?? {});
+    console.log('[useDeepLinkHandler] Parsed params:', params);
+
+    // Error in callback (e.g., otp_expired)
+    if (params.error) {
+      console.error(
+        '[useDeepLinkHandler] Auth error:',
+        params.error_description || params.error,
+      );
+      const errDesc = !!params.error_description
+        ? Array.isArray(params.error_description)
+          ? params.error_description[0]
+          : params.error_description
+        : null;
+      const error =Array.isArray(params.error)
+          ? params.error[0]
+          : params.error;
+
+      useAuthStore.getState().setError(errDesc || error);
+      return;
+    }
+
+    // Handle direct token in fragment (implicit flow or email confirmation)
+    if (params.access_token && params.refresh_token) {
+      console.log(
+        '[useDeepLinkHandler] Setting session from token in fragment...',
+      );
+      const { error } = await supabase.auth.setSession({
+        access_token: params.access_token,
+        refresh_token: params.refresh_token,
+      });
+      if (error) {
+        console.error('[useDeepLinkHandler] setSession failed:', error.message);
+        useAuthStore.getState().setError(error.message);
+      } else {
+        console.log('[useDeepLinkHandler] Session set from token successfully');
+        // Check if session was actually set
+        const { data: session } = await supabase.auth.getSession();
+        console.log(
+          '[useDeepLinkHandler] Current session after setSession:',
+          session?.session ? 'EXISTS' : 'NOT SET',
+        );
+      }
+      return;
+    }
+
+    // PKCE flow: Supabase redirects with ?code=... or #code=...
+    if (params.code) {
+      console.log('[useDeepLinkHandler] Exchanging code for session...');
+      const code = Array.isArray(params.code) ? params.code[0] : params.code;
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (error) {
+        console.error('[useDeepLinkHandler] Exchange failed:', error.message);
+        useAuthStore.getState().setError(error.message);
+        // Stay on current screen; token expired or invalid
+      } else {
+        console.log('[useDeepLinkHandler] Exchange successful');
+      }
+      // On success: onAuthStateChange fires → guard handles routing
+      // PASSWORD_RECOVERY event → isPasswordRecovery: true → guard routes to reset-password
+    }
+  }
 }
 
 function useAuthGuard(): void {
-  const userId = useAuthStore((s) => s.session?.user?.id ?? null)
-  const loading = useAuthStore((s) => s.loading)
-  const router = useRouter()
+  const userId = useAuthStore((s) => s.session?.user?.id ?? null);
+  const loading = useAuthStore((s) => s.loading);
+  const isPasswordRecovery = useAuthStore((s) => s.isPasswordRecovery);
+  const router = useRouter();
 
   useEffect(() => {
-    if (loading) return
+    if (loading) return;
+
+    if (isPasswordRecovery) {
+      router.replace('/(auth)/reset-password');
+      return;
+    }
 
     if (!userId) {
-      router.replace('/(auth)/login')
+      router.replace('/(auth)/login');
     } else {
-      router.replace('/(tabs)/')
+      router.replace('/(tabs)/');
     }
-  }, [userId, loading])
+  }, [userId, loading, isPasswordRecovery]);
 }
 
 // ---------------------------------------------------------------------------
@@ -90,33 +210,36 @@ function useAuthGuard(): void {
 // ---------------------------------------------------------------------------
 
 function useNotificationPermission(): void {
-  const loading = useAuthStore((s) => s.loading)
-  const user = useAuthStore((s) => s.user)
+  const loading = useAuthStore((s) => s.loading);
+  const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
     // Only request permission after auth is complete
     if (loading || !user) {
-      return
+      return;
     }
 
     // Skip on web and check if API is available (not in Expo Go on Android)
     if (Platform.OS === 'web' || !Notifications.requestPermissionsAsync) {
-      return
+      return;
     }
 
     const requestPermission = async () => {
       try {
         const result = await Notifications.requestPermissionsAsync({
           ios: { provideAppNotificationSettings: true },
-        })
-        console.log('Notification permission result:', result)
+        });
+        console.log('Notification permission result:', result);
       } catch (error) {
-        console.warn('Notification permission unavailable (might be Expo Go):', error)
+        console.warn(
+          'Notification permission unavailable (might be Expo Go):',
+          error,
+        );
       }
-    }
+    };
 
-    requestPermission()
-  }, [loading, user])
+    requestPermission();
+  }, [loading, user]);
 }
 
 // ---------------------------------------------------------------------------
@@ -124,36 +247,42 @@ function useNotificationPermission(): void {
 // ---------------------------------------------------------------------------
 
 function useNotificationResponseListener(): void {
-  const router = useRouter()
+  const router = useRouter();
 
   useEffect(() => {
     // Skip on web and if API is unavailable (not in Expo Go on Android)
-    if (Platform.OS === 'web' || !Notifications.addNotificationResponseReceivedListener) {
-      return
+    if (
+      Platform.OS === 'web' ||
+      !Notifications.addNotificationResponseReceivedListener
+    ) {
+      return;
     }
 
-    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      try {
-        // Extract visit ID from notification data if available
-        const visitId = response.notification.request.content.data?.visitId as string | undefined
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        try {
+          // Extract visit ID from notification data if available
+          const visitId = response.notification.request.content.data
+            ?.visitId as string | undefined;
 
-        if (visitId) {
-          // Navigate directly to the visit detail if visitId is available
-          router.push(`/(tabs)/visits/${visitId}`)
-        } else {
-          // Fallback: navigate to visits list and let user select
-          router.push('/(tabs)/visits')
+          if (visitId) {
+            // Navigate directly to the visit detail if visitId is available
+            router.push(`/(tabs)/visits/${visitId}`);
+          } else {
+            // Fallback: navigate to visits list and let user select
+            router.push('/(tabs)/visits');
+          }
+        } catch (error) {
+          console.error('Failed to handle notification response:', error);
         }
-      } catch (error) {
-        console.error('Failed to handle notification response:', error)
-      }
-    })
+      },
+    );
 
     return () => {
       // Cleanup: remove the subscription
-      subscription.remove()
-    }
-  }, [router])
+      subscription.remove();
+    };
+  }, [router]);
 }
 
 // ---------------------------------------------------------------------------
@@ -161,44 +290,52 @@ function useNotificationResponseListener(): void {
 // ---------------------------------------------------------------------------
 
 export default function RootLayout() {
-  const initialize = useAuthStore((s) => s.initialize)
-  const loading = useAuthStore((s) => s.loading)
-  const userId = useAuthStore((s) => s.session?.user?.id ?? null)
-  const showTour = useAuthStore((s) => s.profile?.show_tour ?? false)
-  const fetchClients = useClientsStore((s) => s.fetchClients)
-  const fetchVisits = useVisitsStore((s) => s.fetchVisits)
-  const fetchTodayVisits = useTodayStore((s) => s.fetchTodayVisits)
-  const fetchLookups = useLookupsStore((s) => s.fetchLookups)
+  const initialize = useAuthStore((s) => s.initialize);
+  const loading = useAuthStore((s) => s.loading);
+  const userId = useAuthStore((s) => s.session?.user?.id ?? null);
+  const showTour = useAuthStore((s) => s.profile?.show_tour ?? false);
+  const fetchClients = useClientsStore((s) => s.fetchClients);
+  const fetchVisits = useVisitsStore((s) => s.fetchVisits);
+  const fetchTodayVisits = useTodayStore((s) => s.fetchTodayVisits);
+  const fetchLookups = useLookupsStore((s) => s.fetchLookups);
 
   // Initialize auth exactly once on mount.
   useEffect(() => {
-    initialize()
-  }, [])
+    initialize();
+  }, []);
 
   // Bootstrap all data in parallel once we have an authenticated user.
   useEffect(() => {
-    if (!userId) return
-    Promise.all([fetchClients(), fetchVisits(), fetchTodayVisits(), fetchLookups()])
-  }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (!userId) return;
+    Promise.all([
+      fetchClients(),
+      fetchVisits(),
+      fetchTodayVisits(),
+      fetchLookups(),
+    ]);
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Refresh lookups when app comes into focus
-  useRefreshLookupsOnFocus()
+  useRefreshLookupsOnFocus();
+
+  // Handle deep links for email verification and password reset
+  useDeepLinkHandler();
 
   // Run the guard on every render that depends on session / loading.
-  useAuthGuard()
+  useAuthGuard();
 
   // Request notification permission after auth is complete
-  useNotificationPermission()
+  useNotificationPermission();
 
   // Set up notification response listener (navigate on tap)
-  useNotificationResponseListener()
+  useNotificationResponseListener();
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
-    )
+    );
   }
 
   return (
@@ -209,7 +346,7 @@ export default function RootLayout() {
       </Stack>
       {showTour && userId && <OnboardingTour />}
     </>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -223,4 +360,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.background,
   },
-})
+});

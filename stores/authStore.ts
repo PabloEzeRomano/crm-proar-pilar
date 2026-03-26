@@ -1,45 +1,61 @@
-import { create } from 'zustand'
-import { Session, User } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
-import { Profile } from '../types'
+import { create } from 'zustand';
+import { Session, User } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
+import { Profile } from '../types';
+import { tr } from 'zod/locales';
 
 export interface AuthState {
-  session: Session | null
-  user: User | null
-  profile: Profile | null
-  loading: boolean
-  error: string | null
-  initialize: () => Promise<void>
-  signIn: (email: string, password: string) => Promise<void>
-  signOut: () => Promise<void>
-  clearError: () => void
-  updateEmailConfig: (config: import('../types').EmailConfig) => Promise<void>
-  completeTour: () => Promise<void>
-  resetTour: () => Promise<void>
-  invokeWeeklyEmail: () => Promise<void>
+  session: Session | null;
+  user: User | null;
+  profile: Profile | null;
+  loading: boolean;
+  error: string | null;
+  isPasswordRecovery: boolean;
+  initialize: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (
+    email: string,
+    password: string,
+    fullName: string,
+  ) => Promise<{ requiresVerification: boolean; error: string | null }>;
+  signOut: () => Promise<void>;
+  clearError: () => void;
+  setError: (message: string) => void;
+  requestPasswordReset: (email: string) => Promise<{ error: string | null }>;
+  updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
+  updateEmailConfig: (config: import('../types').EmailConfig) => Promise<void>;
+  completeTour: () => Promise<void>;
+  resetTour: () => Promise<void>;
+  invokeWeeklyEmail: () => Promise<void>;
 }
 
 // Module-level variable to hold the auth state change subscription so it
 // persists for the lifetime of the app without requiring cleanup from React.
-let authSubscription: ReturnType<
-  typeof supabase.auth.onAuthStateChange
->['data']['subscription'] | null = null
+let authSubscription:
+  | ReturnType<typeof supabase.auth.onAuthStateChange>['data']['subscription']
+  | null = null;
 
 // Module-level helper so it is not part of AuthState and avoids the
 // get()._fetchProfile() pattern which would require extending the interface.
 async function fetchProfile(
   userId: string,
-  set: (partial: Partial<AuthState>) => void,
+  // set: (partial: Partial<AuthState>) => void,
 ) {
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', userId)
-    .single()
+    .single();
+
+  console.log('[authStore] fetchProfile data:', data, 'error:', error);
 
   if (!error && data) {
-    set({ profile: data as Profile })
+    // set({ profile: data as Profile });
+    return data as Profile;
   }
+
+  // return error;
+  return null;
   // Silently ignore errors — the profile row may not exist yet on first
   // sign-up because the DB trigger that creates it runs asynchronously.
 }
@@ -50,108 +66,232 @@ export const useAuthStore = create<AuthState>()((set) => ({
   profile: null,
   loading: true,
   error: null,
+  isPasswordRecovery: false,
 
   initialize: async () => {
-    set({ loading: true })
+    set({ loading: true });
 
     // Restore any previously persisted session.
-    const { data: sessionData } = await supabase.auth.getSession()
-    const existingSession = sessionData.session
+    const { data: sessionData } = await supabase.auth.getSession();
+    const existingSession = sessionData.session;
 
     if (existingSession) {
-      set({ session: existingSession, user: existingSession.user })
-      await fetchProfile(existingSession.user.id, set)
+      set({ session: existingSession, user: existingSession.user });
+      const profile = await fetchProfile(existingSession.user.id);
+
+      if (profile) {
+        set({ profile });
+      }
     }
 
     // Tear down any previous subscription before registering a new one.
     if (authSubscription) {
-      authSubscription.unsubscribe()
+      authSubscription.unsubscribe();
     }
 
     const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(
+        '[authStore] onAuthStateChange event:',
+        event,
+        'session:',
+        session?.user?.id ?? 'NO_SESSION',
+      );
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
-        set({ session, user: session.user, loading: true })
-        await fetchProfile(session.user.id, set)
-        set({ loading: false })
-      } else if (event === 'SIGNED_OUT') {
-        set({ session: null, user: null, profile: null, loading: false })
-      } else if (event === 'TOKEN_REFRESHED' && session) {
-        set({ session })
-      }
-    })
+        console.log(
+          '[authStore] Setting session and user...',
+        );
+        // Set session and user immediately, unblock the UI
+        set({ session, user: session.user, loading: false });
 
-    authSubscription = data.subscription
+        // Fetch profile in the background without blocking
+        fetchProfile(session.user.id).then((profile) => {
+          if (profile) {
+            console.log('[authStore] Profile loaded from background fetch');
+            set({ profile });
+          }
+        }).catch((error) => {
+          console.error('[authStore] Error fetching profile:', error);
+        });
+      } else if (event === 'SIGNED_OUT') {
+        console.log('[authStore] Signed out');
+        set({
+          session: null,
+          user: null,
+          profile: null,
+          loading: false,
+          isPasswordRecovery: false,
+        });
+      } else if (event === 'TOKEN_REFRESHED' && session) {
+        console.log('[authStore] Token refreshed');
+        set({ session });
+      } else if (event === 'PASSWORD_RECOVERY' && session) {
+        console.log('[authStore] Password recovery');
+        set({
+          session,
+          user: session.user,
+          isPasswordRecovery: true,
+          loading: false,
+        });
+      }
+    });
+
+    authSubscription = data.subscription;
 
     // Set loading to false after initial session restore
-    set({ loading: false })
+    set({ loading: false });
   },
 
   signIn: async (email: string, password: string) => {
-    set({ loading: true, error: null })
+    set({ loading: true, error: null });
 
-    const { error }= await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
     if (error) {
-      set({ error: error.message, loading: false })
-      return
+      set({ error: error.message, loading: false });
+      return;
     }
 
     // On success, onAuthStateChange fires SIGNED_IN and handles setting
     // session / user / profile. Reset loading here so the UI unblocks
     // immediately while the listener runs asynchronously.
-    set({ loading: false })
+    set({ loading: false });
+  },
+
+  signUp: async (email, password, fullName) => {
+    set({ loading: true, error: null });
+
+    console.log('[signUp] Starting signup for:', email);
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: fullName },
+        emailRedirectTo: 'crm-proar://auth/callback',
+      },
+    });
+
+    if (error) {
+      const msg = error.message.includes('already registered')
+        ? 'Este email ya tiene una cuenta. ¿Querés ingresar?'
+        : error.message;
+      console.error('[signUp] Error:', error.message, error);
+      set({ error: msg, loading: false });
+      return { requiresVerification: false, error: msg };
+    }
+
+    console.log(
+      '[signUp] Success - verification email should be sent to:',
+      email,
+    );
+    set({ loading: false });
+    return { requiresVerification: true, error: null };
   },
 
   signOut: async () => {
-    await supabase.auth.signOut()
+    await supabase.auth.signOut();
     // onAuthStateChange fires SIGNED_OUT and clears session / user / profile.
+  },
+
+  requestPasswordReset: async (email) => {
+    console.log('[requestPasswordReset] Requesting reset for:', email);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'crm-proar://auth/callback',
+    });
+    if (error) {
+      console.error('[requestPasswordReset] Error:', error.message, error);
+    } else {
+      console.log(
+        '[requestPasswordReset] Success - reset email should be sent to:',
+        email,
+      );
+    }
+    return { error: error?.message ?? null };
+  },
+
+  updatePassword: async (newPassword) => {
+    console.log('[updatePassword] Updating password');
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      console.error('[updatePassword] Error:', error.message, error);
+      return { error: error?.message ?? null };
+    }
+    console.log('[updatePassword] Success - signing out');
+    set({ isPasswordRecovery: false });
+    await supabase.auth.signOut();
+    return { error: null };
   },
 
   clearError: () => set({ error: null }),
 
+  setError: (message: string) => set({ error: message }),
+
   completeTour: async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    await supabase.from('profiles').update({ show_tour: false }).eq('id', user.id)
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase
+      .from('profiles')
+      .update({ show_tour: false })
+      .eq('id', user.id);
     set((state) => ({
-      profile: state.profile ? { ...state.profile, show_tour: false } : state.profile,
-    }))
+      profile: state.profile
+        ? { ...state.profile, show_tour: false }
+        : state.profile,
+    }));
   },
 
   resetTour: async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    await supabase.from('profiles').update({ show_tour: true }).eq('id', user.id)
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase
+      .from('profiles')
+      .update({ show_tour: true })
+      .eq('id', user.id);
     set((state) => ({
-      profile: state.profile ? { ...state.profile, show_tour: true } : state.profile,
-    }))
+      profile: state.profile
+        ? { ...state.profile, show_tour: true }
+        : state.profile,
+    }));
   },
 
   updateEmailConfig: async (config) => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
 
     const { data, error } = await supabase
       .from('profiles')
       .update({ email_config: config })
       .eq('id', user.id)
       .select('*')
-      .single()
+      .single();
 
     if (!error && data) {
       set((state) => ({
-        profile: state.profile ? { ...state.profile, email_config: config } : (data as Profile),
-      }))
+        profile: state.profile
+          ? { ...state.profile, email_config: config }
+          : (data as Profile),
+      }));
     }
   },
 
   invokeWeeklyEmail: async () => {
-    set({ error: null })
+    set({ error: null });
 
-    const { error } = await supabase.functions.invoke('weekly-email')
+    const { error } = await supabase.functions.invoke('weekly-email');
 
     if (error) {
-      set({ error: typeof error === 'string' ? error : 'Error sending weekly email' })
+      set({
+        error: typeof error === 'string' ? error : 'Error sending weekly email',
+      });
     }
   },
-}))
+}));

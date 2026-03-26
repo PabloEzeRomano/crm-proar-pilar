@@ -21,6 +21,8 @@ import {
   View,
 } from 'react-native'
 import { z } from 'zod'
+import { useRouter } from 'expo-router'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 
 import { useAuthStore } from '@/stores/authStore'
 import { brand } from '@/constants/brand'
@@ -50,6 +52,7 @@ type FieldErrors = Partial<Record<keyof LoginSchema, string>>
 // ---------------------------------------------------------------------------
 
 export default function LoginScreen() {
+  const router = useRouter()
   const signIn = useAuthStore((s) => s.signIn)
   const loading = useAuthStore((s) => s.loading)
   const authError = useAuthStore((s) => s.error)
@@ -62,6 +65,7 @@ export default function LoginScreen() {
   // Focus state for styled borders
   const [emailFocused, setEmailFocused] = useState(false)
   const [passwordFocused, setPasswordFocused] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   // ------------------------------------------------------------------
   // Handlers
@@ -161,21 +165,35 @@ export default function LoginScreen() {
           {/* Password field */}
           <View style={styles.fieldWrapper}>
             <Text style={styles.label}>Contraseña</Text>
-            <TextInput
-              style={[styles.input, { borderColor: passwordBorderColor }]}
-              value={password}
-              onChangeText={handlePasswordChange}
-              onFocus={() => setPasswordFocused(true)}
-              onBlur={() => setPasswordFocused(false)}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="current-password"
-              textContentType="password"
-              placeholder="••••••"
-              placeholderTextColor={colors.textDisabled}
-              editable={!loading}
-            />
+            <View style={styles.passwordFieldContainer}>
+              <TextInput
+                style={[styles.input, styles.passwordInput, { borderColor: passwordBorderColor }]}
+                value={password}
+                onChangeText={handlePasswordChange}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="current-password"
+                textContentType="password"
+                placeholder="••••••"
+                placeholderTextColor={colors.textDisabled}
+                editable={!loading}
+              />
+              <Pressable
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.passwordToggle}
+                accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                accessibilityRole="button"
+              >
+                <MaterialCommunityIcons
+                  name={showPassword ? 'eye-off' : 'eye'}
+                  size={24}
+                  color={colors.textSecondary}
+                />
+              </Pressable>
+            </View>
             {fieldErrors.password ? (
               <Text style={styles.fieldError}>{fieldErrors.password}</Text>
             ) : null}
@@ -201,6 +219,26 @@ export default function LoginScreen() {
           {authError ? (
             <Text style={styles.authError}>{authError}</Text>
           ) : null}
+
+          {/* Password recovery link */}
+          <Pressable
+            onPress={() => router.push('/(auth)/forgot-password')}
+            style={styles.textLink}
+            accessibilityRole="link"
+            accessibilityLabel="Olvidaste tu contraseña"
+          >
+            <Text style={styles.textLinkLabel}>¿Olvidaste tu contraseña?</Text>
+          </Pressable>
+
+          {/* Sign up link */}
+          <Pressable
+            onPress={() => router.push('/(auth)/register')}
+            style={styles.textLink}
+            accessibilityRole="link"
+            accessibilityLabel="Crear cuenta"
+          >
+            <Text style={styles.textLinkLabel}>¿No tenés cuenta? Crear cuenta</Text>
+          </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -271,6 +309,26 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
 
+  passwordFieldContainer: {
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  passwordInput: {
+    flex: 1,
+    paddingRight: 48,
+  },
+
+  passwordToggle: {
+    position: 'absolute',
+    right: spacing[3],
+    padding: spacing[2],
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
   fieldError: {
     fontSize: fontSize.sm,
     color: colors.error,
@@ -303,5 +361,18 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.error,
     textAlign: 'center',
+  },
+
+  // ── Text links ────────────────────────────────────────────────────────────
+
+  textLink: {
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  textLinkLabel: {
+    fontSize: fontSize.sm,
+    color: colors.primary,
   },
 })

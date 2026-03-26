@@ -397,18 +397,27 @@
 
 ---
 
-## EP-030 — User Registration
+## EP-030 — User Registration + Password Recovery
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 30.1 | Create Zod validator for signup: `email`, `password`, `passwordConfirm`, `fullName` — password strength rules, email format, match confirm | state | `pending` |
-| 30.2 | Build Registration screen (`/(auth)/register.tsx`) with email, full name, password, confirm password inputs + sign-up button | frontend | `pending` |
-| 30.3 | Add `signUp(email, password, fullName): Promise<{user, error}>` action to `authStore` — calls `supabase.auth.signUp()` with email/password | state | `pending` |
-| 30.4 | Create Resend email template for verification email (React Email component) — branded with app logo/colors, clear call-to-action button | backend | `pending` |
-| 30.5 | After successful signup, trigger Resend verification email via Edge Function or direct client call with verification link + token | backend + state | `pending` |
-| 30.6 | Handle email confirmation: user clicks verification link → calls `supabase.auth.verifyOtp()` → auto-login + redirect to dashboard | frontend + state | `pending` |
-| 30.7 | Error handling: duplicate email, password mismatch, validation failures → show user-friendly error messages on registration form | frontend | `pending` |
-| 30.8 | Link Login screen to Registration: add "Crear cuenta" button/link below login form | frontend | `pending` |
+| 30.1 | Create Zod validator for signup: `email`, `password`, `passwordConfirm`, `fullName` — password strength rules, email format, match confirm | state | `done` |
+| 30.2 | Build Registration screen (`/(auth)/register.tsx`) with email, full name, password, confirm password inputs + sign-up button | frontend | `done` |
+| 30.3 | Add `signUp(email, password, fullName)` action to `authStore` — calls `supabase.auth.signUp()` with email/password + full_name metadata | state | `done` |
+| 30.4 | Provide branded HTML for Supabase email templates: "Confirm signup" + "Reset password" — use theme colors, clear CTA | backend | `reviewing` |
+| 30.5 | Configure Supabase dashboard: auth redirect URL, email templates. Supabase sends verification emails natively | backend | `reviewing` |
+| 30.6 | Handle email verification deep link: `crm-proar://auth/callback?code=...` → `exchangeCodeForSession()` → auto-login | frontend + state | `done` |
+| 30.7 | Error handling: duplicate email, password mismatch, validation failures → show user-friendly messages | frontend | `done` |
+| 30.8 | Link Login screen to Registration: add "Crear cuenta" button/link below login form | frontend | `done` |
+| 30.9 | Build Forgot Password screen (`/(auth)/forgot-password.tsx`): email input + "Enviar link" button | frontend | `done` |
+| 30.10 | Add `requestPasswordReset(email)` action to `authStore` — calls `supabase.auth.resetPasswordForEmail()` | state | `done` |
+| 30.11 | Build Reset Password screen (`/(auth)/reset-password.tsx`): new password + confirm + save button | frontend | `done` |
+| 30.12 | Add `updatePassword(newPassword)` action to `authStore` — updates user password + signs out | state | `done` |
+| 30.13 | Add `isPasswordRecovery` state + `PASSWORD_RECOVERY` event handler in `authStore` | state | `done` |
+| 30.14 | Update root layout: add `useDeepLinkHandler()` + `useAuthGuard()` check for `isPasswordRecovery` | frontend + state | `done` |
+| 30.15 | Link forgot password in login screen ("Olvidaste tu contraseña?") | frontend | `done` |
+
+> **Summary:** Registration + email verification + password recovery complete. Uses Supabase's built-in email system (no custom Edge Function). Branded HTML templates pasted into Supabase dashboard.
 
 ---
 
@@ -425,7 +434,6 @@
 | EP-021 | 21.1–21.3 | Inline add Rubro / Localidad | frontend + state + backend |
 | EP-022 | 22.1–22.2 | Proper Agenda navigation stack | frontend |
 | EP-023 | 23.1–23.6 | QA agent + Playwright E2E tests | pm-tl + scripts |
-| EP-030 | 30.1–30.8 | User registration with Resend email verification | frontend + state + backend |
 
 ---
 
@@ -456,3 +464,4 @@
 | 2026-03-16 | Android notification channels + foreground handler required for notifications to display | expo-notifications only shows notifications in foreground with `setNotificationHandler()` + channel setup; without these, notifications silently succeed but never appear to user |
 | 2026-03-16 | Web version deferred to standalone Next.js app instead of React Native Web | RNW build complexity: conditional requires break Babel transpilation, metro.config stubs failed, async imports weren't processed at build time. Cleaner to separate concerns: mobile = Expo, web = Next.js, shared = API/Supabase |
 | 2026-03-17 | Use Resend for signup verification emails instead of Supabase's built-in | Already integrated with Resend for weekly-email. Resend allows beautiful React Email templates + better deliverability + higher rate limits. Verification email is a first impression; worth the polish. |
+| 2026-03-20 | Use Supabase's built-in email system for signup + password reset (EP-030 revision) | Simpler than custom Edge Function; Supabase manages token lifecycle; branded HTML templates customized in dashboard; Resend integration reserved for operational emails (weekly-email, bulk sends). |
