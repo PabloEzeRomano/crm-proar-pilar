@@ -73,14 +73,9 @@ function useRefreshLookupsOnFocus(): void {
 
 function parseFragmentParams(url: string): Record<string, string> {
   const fragmentIndex = url.indexOf('#');
-  console.log('[parseFragmentParams] URL:', url);
-  console.log('[parseFragmentParams] fragmentIndex:', fragmentIndex);
-
   if (fragmentIndex === -1) return {};
 
   const fragment = url.substring(fragmentIndex + 1);
-  console.log('[parseFragmentParams] fragment:', fragment);
-
   const params: Record<string, string> = {};
 
   fragment.split('&').forEach((param) => {
@@ -90,7 +85,6 @@ function parseFragmentParams(url: string): Record<string, string> {
     }
   });
 
-  console.log('[parseFragmentParams] parsed params:', params);
   return params;
 }
 
@@ -105,77 +99,48 @@ function useDeepLinkHandler(): void {
   }, []);
 
   async function handleUrl(url: string) {
-    console.log('[useDeepLinkHandler] Handling URL:', url);
     const parsed = Linking.parse(url);
-    if (parsed.hostname !== 'auth') {
-      console.log('[useDeepLinkHandler] Not an auth link, ignoring');
-      return;
-    }
+    if (parsed.hostname !== 'auth') return;
 
-    // Manually parse fragment since Linking.parse doesn't handle it
-    // Supabase sends params in fragment (#) for email verification
+    // Manually parse fragment since Linking.parse doesn't handle it.
+    // Supabase sends params in fragment (#) for email verification.
     // See: https://supabase.com/docs/guides/auth/native-mobile-deep-linking
     const fragmentParams = parseFragmentParams(url);
     const params =
       Object.keys(fragmentParams).length > 0
         ? fragmentParams
         : (parsed.queryParams ?? {});
-    console.log('[useDeepLinkHandler] Parsed params:', params);
 
     // Error in callback (e.g., otp_expired)
     if (params.error) {
-      console.error(
-        '[useDeepLinkHandler] Auth error:',
-        params.error_description || params.error,
-      );
       const errDesc = !!params.error_description
         ? Array.isArray(params.error_description)
           ? params.error_description[0]
           : params.error_description
         : null;
-      const error =Array.isArray(params.error)
-          ? params.error[0]
-          : params.error;
-
+      const error = Array.isArray(params.error) ? params.error[0] : params.error;
       useAuthStore.getState().setError(errDesc || error);
       return;
     }
 
     // Handle direct token in fragment (implicit flow or email confirmation)
     if (params.access_token && params.refresh_token) {
-      console.log(
-        '[useDeepLinkHandler] Setting session from token in fragment...',
-      );
       const { error } = await supabase.auth.setSession({
         access_token: params.access_token,
         refresh_token: params.refresh_token,
       });
       if (error) {
-        console.error('[useDeepLinkHandler] setSession failed:', error.message);
         useAuthStore.getState().setError(error.message);
-      } else {
-        console.log('[useDeepLinkHandler] Session set from token successfully');
-        // Check if session was actually set
-        const { data: session } = await supabase.auth.getSession();
-        console.log(
-          '[useDeepLinkHandler] Current session after setSession:',
-          session?.session ? 'EXISTS' : 'NOT SET',
-        );
       }
       return;
     }
 
     // PKCE flow: Supabase redirects with ?code=... or #code=...
     if (params.code) {
-      console.log('[useDeepLinkHandler] Exchanging code for session...');
       const code = Array.isArray(params.code) ? params.code[0] : params.code;
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (error) {
-        console.error('[useDeepLinkHandler] Exchange failed:', error.message);
         useAuthStore.getState().setError(error.message);
-        // Stay on current screen; token expired or invalid
-      } else {
-        console.log('[useDeepLinkHandler] Exchange successful');
       }
       // On success: onAuthStateChange fires → guard handles routing
       // PASSWORD_RECOVERY event → isPasswordRecovery: true → guard routes to reset-password
@@ -226,10 +191,9 @@ function useNotificationPermission(): void {
 
     const requestPermission = async () => {
       try {
-        const result = await Notifications.requestPermissionsAsync({
+        await Notifications.requestPermissionsAsync({
           ios: { provideAppNotificationSettings: true },
         });
-        console.log('Notification permission result:', result);
       } catch (error) {
         console.warn(
           'Notification permission unavailable (might be Expo Go):',

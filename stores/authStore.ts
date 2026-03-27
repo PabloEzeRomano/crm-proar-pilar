@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
-import { tr } from 'zod/locales';
 
 export interface AuthState {
   session: Session | null;
@@ -47,8 +46,6 @@ async function fetchProfile(
     .eq('id', userId)
     .single();
 
-  console.log('[authStore] fetchProfile data:', data, 'error:', error);
-
   if (!error && data) {
     // set({ profile: data as Profile });
     return data as Profile;
@@ -90,30 +87,17 @@ export const useAuthStore = create<AuthState>()((set) => ({
     }
 
     const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(
-        '[authStore] onAuthStateChange event:',
-        event,
-        'session:',
-        session?.user?.id ?? 'NO_SESSION',
-      );
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
-        console.log(
-          '[authStore] Setting session and user...',
-        );
         // Set session and user immediately, unblock the UI
         set({ session, user: session.user, loading: false });
 
         // Fetch profile in the background without blocking
         fetchProfile(session.user.id).then((profile) => {
-          if (profile) {
-            console.log('[authStore] Profile loaded from background fetch');
-            set({ profile });
-          }
-        }).catch((error) => {
-          console.error('[authStore] Error fetching profile:', error);
+          if (profile) set({ profile });
+        }).catch(() => {
+          // Profile may not exist yet on first sign-up (DB trigger is async)
         });
       } else if (event === 'SIGNED_OUT') {
-        console.log('[authStore] Signed out');
         set({
           session: null,
           user: null,
@@ -122,10 +106,8 @@ export const useAuthStore = create<AuthState>()((set) => ({
           isPasswordRecovery: false,
         });
       } else if (event === 'TOKEN_REFRESHED' && session) {
-        console.log('[authStore] Token refreshed');
         set({ session });
       } else if (event === 'PASSWORD_RECOVERY' && session) {
-        console.log('[authStore] Password recovery');
         set({
           session,
           user: session.user,
@@ -163,8 +145,6 @@ export const useAuthStore = create<AuthState>()((set) => ({
   signUp: async (email, password, fullName) => {
     set({ loading: true, error: null });
 
-    console.log('[signUp] Starting signup for:', email);
-
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -178,15 +158,10 @@ export const useAuthStore = create<AuthState>()((set) => ({
       const msg = error.message.includes('already registered')
         ? 'Este email ya tiene una cuenta. ¿Querés ingresar?'
         : error.message;
-      console.error('[signUp] Error:', error.message, error);
       set({ error: msg, loading: false });
       return { requiresVerification: false, error: msg };
     }
 
-    console.log(
-      '[signUp] Success - verification email should be sent to:',
-      email,
-    );
     set({ loading: false });
     return { requiresVerification: true, error: null };
   },
@@ -197,29 +172,15 @@ export const useAuthStore = create<AuthState>()((set) => ({
   },
 
   requestPasswordReset: async (email) => {
-    console.log('[requestPasswordReset] Requesting reset for:', email);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: 'crm-proar://auth/callback',
     });
-    if (error) {
-      console.error('[requestPasswordReset] Error:', error.message, error);
-    } else {
-      console.log(
-        '[requestPasswordReset] Success - reset email should be sent to:',
-        email,
-      );
-    }
     return { error: error?.message ?? null };
   },
 
   updatePassword: async (newPassword) => {
-    console.log('[updatePassword] Updating password');
     const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) {
-      console.error('[updatePassword] Error:', error.message, error);
-      return { error: error?.message ?? null };
-    }
-    console.log('[updatePassword] Success - signing out');
+    if (error) return { error: error.message };
     set({ isPasswordRecovery: false });
     await supabase.auth.signOut();
     return { error: null };

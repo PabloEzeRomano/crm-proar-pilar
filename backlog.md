@@ -404,8 +404,8 @@
 | 30.1 | Create Zod validator for signup: `email`, `password`, `passwordConfirm`, `fullName` — password strength rules, email format, match confirm | state | `done` |
 | 30.2 | Build Registration screen (`/(auth)/register.tsx`) with email, full name, password, confirm password inputs + sign-up button | frontend | `done` |
 | 30.3 | Add `signUp(email, password, fullName)` action to `authStore` — calls `supabase.auth.signUp()` with email/password + full_name metadata | state | `done` |
-| 30.4 | Provide branded HTML for Supabase email templates: "Confirm signup" + "Reset password" — use theme colors, clear CTA | backend | `reviewing` |
-| 30.5 | Configure Supabase dashboard: auth redirect URL, email templates. Supabase sends verification emails natively | backend | `reviewing` |
+| 30.4 | Provide branded HTML for Supabase email templates: "Confirm signup" + "Reset password" — use theme colors, clear CTA | backend | `done` |
+| 30.5 | Configure Supabase dashboard: auth redirect URL, email templates. Supabase sends verification emails natively | backend | `done` |
 | 30.6 | Handle email verification deep link: `crm-proar://auth/callback?code=...` → `exchangeCodeForSession()` → auto-login | frontend + state | `done` |
 | 30.7 | Error handling: duplicate email, password mismatch, validation failures → show user-friendly messages | frontend | `done` |
 | 30.8 | Link Login screen to Registration: add "Crear cuenta" button/link below login form | frontend | `done` |
