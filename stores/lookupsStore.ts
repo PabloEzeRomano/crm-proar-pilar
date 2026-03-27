@@ -19,6 +19,7 @@ interface LookupsState {
   lastFetchedAt: number | null
   fetchLookups: () => Promise<void>
   refetchIfStale: (staleAfterMs?: number) => Promise<void>
+  addLookup: (type: 'rubro' | 'localidad', value: string) => Promise<string | null>
 }
 
 export const useLookupsStore = create<LookupsState>()(
@@ -62,6 +63,27 @@ export const useLookupsStore = create<LookupsState>()(
         if (!lastFetchedAt || Date.now() - lastFetchedAt > staleAfterMs) {
           await get().fetchLookups()
         }
+      },
+
+      addLookup: async (type, value) => {
+        const normalized = value.trim()
+        if (!normalized) return null
+
+        // Check for existing value (case-insensitive) before inserting
+        const existing = get()[type === 'rubro' ? 'rubros' : 'localidades'].find(
+          (v) => v.toLowerCase() === normalized.toLowerCase(),
+        )
+        if (existing) return existing
+
+        const { error } = await supabase
+          .from('lookup_values')
+          .insert({ type, value: normalized })
+
+        if (error) return null
+
+        // Refresh lists so the new value appears
+        await get().fetchLookups()
+        return normalized
       },
     }),
     {

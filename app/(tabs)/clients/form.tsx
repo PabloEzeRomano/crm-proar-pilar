@@ -9,10 +9,9 @@
  * - All Supabase access goes through useClients hook (store)
  */
 
-import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
-  FlatList,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -138,6 +137,16 @@ export default function ClientFormScreen() {
 
   const rubros = useLookupsStore((s) => s.rubros)
   const localidades = useLookupsStore((s) => s.localidades)
+  const addLookup = useLookupsStore((s) => s.addLookup)
+
+  const [addingRubro, setAddingRubro] = useState(false)
+  const [addingLocalidad, setAddingLocalidad] = useState(false)
+  const [newRubroText, setNewRubroText] = useState('')
+  const [newLocalidadText, setNewLocalidadText] = useState('')
+  const [addingLoading, setAddingLoading] = useState(false)
+
+  const newRubroRef = useRef<TextInput>(null)
+  const newLocalidadRef = useRef<TextInput>(null)
 
   const { createClient, updateClient, loading } = useClients()
 
@@ -174,6 +183,36 @@ export default function ClientFormScreen() {
   }
 
   // -------------------------------------------------------------------------
+  // Inline add lookup helpers
+  // -------------------------------------------------------------------------
+
+  async function handleAddRubro() {
+    if (!newRubroText.trim()) return
+    setAddingLoading(true)
+    const inserted = await addLookup('rubro', newRubroText)
+    setAddingLoading(false)
+    if (inserted) {
+      setField('industry', inserted)
+      setShowRubroPicker(false)
+    }
+    setAddingRubro(false)
+    setNewRubroText('')
+  }
+
+  async function handleAddLocalidad() {
+    if (!newLocalidadText.trim()) return
+    setAddingLoading(true)
+    const inserted = await addLookup('localidad', newLocalidadText)
+    setAddingLoading(false)
+    if (inserted) {
+      setField('city', inserted)
+      setShowLocalidadPicker(false)
+    }
+    setAddingLocalidad(false)
+    setNewLocalidadText('')
+  }
+
+  // -------------------------------------------------------------------------
   // Submit
   // -------------------------------------------------------------------------
 
@@ -199,7 +238,7 @@ export default function ClientFormScreen() {
       }
     }
 
-    router.back()
+    router.dismiss()
   }, [form, contacts, isEditMode, clientId, createClient, updateClient, router]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // -------------------------------------------------------------------------
@@ -217,7 +256,7 @@ export default function ClientFormScreen() {
       title: isEditMode ? 'Editar cliente' : 'Nuevo cliente',
       headerLeft: () => (
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => router.dismiss()}
           style={styles.headerButton}
           accessibilityRole="button"
           accessibilityLabel="Cancelar"
@@ -352,33 +391,77 @@ export default function ClientFormScreen() {
           </Pressable>
           {showRubroPicker && (
             <View style={styles.pickerList}>
-              {form.industry ? (
-                <Pressable
-                  style={styles.pickerRow}
-                  onPress={() => { setField('industry', ''); setShowRubroPicker(false) }}
-                >
-                  <Text style={styles.pickerRowClear}>Sin rubro</Text>
-                </Pressable>
-              ) : null}
-              <FlatList
-                data={rubros}
-                keyExtractor={(item) => item}
-                scrollEnabled={false}
-                renderItem={({ item }) => (
+              <ScrollView style={styles.pickerScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                {form.industry ? (
+                  <>
+                    <Pressable
+                      style={styles.pickerRow}
+                      onPress={() => { setField('industry', ''); setShowRubroPicker(false) }}
+                    >
+                      <Text style={styles.pickerRowClear}>Sin rubro</Text>
+                    </Pressable>
+                    <View style={styles.pickerDivider} />
+                  </>
+                ) : null}
+                {rubros.map((item, i) => (
+                  <View key={item}>
+                    <Pressable
+                      style={({ pressed }) => [styles.pickerRow, pressed && styles.pickerRowPressed]}
+                      onPress={() => { setField('industry', item); setShowRubroPicker(false) }}
+                    >
+                      <Text style={[styles.pickerRowText, form.industry === item && styles.pickerRowActive]}>
+                        {item}
+                      </Text>
+                      {form.industry === item && (
+                        <MaterialCommunityIcons name="check" size={16} color={colors.primary} />
+                      )}
+                    </Pressable>
+                    {i < rubros.length - 1 && <View style={styles.pickerDivider} />}
+                  </View>
+                ))}
+              </ScrollView>
+              <View style={styles.pickerDivider} />
+              {addingRubro ? (
+                <View style={styles.pickerAddRow}>
+                  <TextInput
+                    ref={newRubroRef}
+                    style={styles.pickerAddInput}
+                    value={newRubroText}
+                    onChangeText={setNewRubroText}
+                    placeholder="Nuevo rubro…"
+                    placeholderTextColor={colors.textDisabled}
+                    autoCapitalize="words"
+                    returnKeyType="done"
+                    onSubmitEditing={handleAddRubro}
+                    autoFocus
+                  />
                   <Pressable
-                    style={({ pressed }) => [styles.pickerRow, pressed && styles.pickerRowPressed]}
-                    onPress={() => { setField('industry', item); setShowRubroPicker(false) }}
+                    style={[styles.pickerAddConfirm, (!newRubroText.trim() || addingLoading) && styles.pickerAddConfirmDisabled]}
+                    onPress={handleAddRubro}
+                    disabled={!newRubroText.trim() || addingLoading}
                   >
-                    <Text style={[styles.pickerRowText, form.industry === item && styles.pickerRowActive]}>
-                      {item}
-                    </Text>
-                    {form.industry === item && (
-                      <MaterialCommunityIcons name="check" size={16} color={colors.primary} />
-                    )}
+                    {addingLoading
+                      ? <ActivityIndicator size="small" color={colors.background} />
+                      : <MaterialCommunityIcons name="check" size={16} color={colors.background} />
+                    }
                   </Pressable>
-                )}
-                ItemSeparatorComponent={() => <View style={styles.pickerDivider} />}
-              />
+                  <Pressable
+                    style={styles.pickerAddCancel}
+                    onPress={() => { setAddingRubro(false); setNewRubroText('') }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <MaterialCommunityIcons name="close" size={16} color={colors.textSecondary} />
+                  </Pressable>
+                </View>
+              ) : (
+                <Pressable
+                  style={({ pressed }) => [styles.pickerRow, pressed && styles.pickerRowPressed]}
+                  onPress={() => { setAddingRubro(true); setNewRubroText('') }}
+                >
+                  <MaterialCommunityIcons name="plus" size={16} color={colors.primary} style={styles.pickerAddIcon} />
+                  <Text style={styles.pickerAddText}>Agregar nuevo…</Text>
+                </Pressable>
+              )}
             </View>
           )}
           {errors.industry ? (
@@ -425,33 +508,77 @@ export default function ClientFormScreen() {
           </Pressable>
           {showLocalidadPicker && (
             <View style={styles.pickerList}>
-              {form.city ? (
-                <Pressable
-                  style={styles.pickerRow}
-                  onPress={() => { setField('city', ''); setShowLocalidadPicker(false) }}
-                >
-                  <Text style={styles.pickerRowClear}>Sin localidad</Text>
-                </Pressable>
-              ) : null}
-              <FlatList
-                data={localidades}
-                keyExtractor={(item) => item}
-                scrollEnabled={false}
-                renderItem={({ item }) => (
+              <ScrollView style={styles.pickerScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                {form.city ? (
+                  <>
+                    <Pressable
+                      style={styles.pickerRow}
+                      onPress={() => { setField('city', ''); setShowLocalidadPicker(false) }}
+                    >
+                      <Text style={styles.pickerRowClear}>Sin localidad</Text>
+                    </Pressable>
+                    <View style={styles.pickerDivider} />
+                  </>
+                ) : null}
+                {localidades.map((item, i) => (
+                  <View key={item}>
+                    <Pressable
+                      style={({ pressed }) => [styles.pickerRow, pressed && styles.pickerRowPressed]}
+                      onPress={() => { setField('city', item); setShowLocalidadPicker(false) }}
+                    >
+                      <Text style={[styles.pickerRowText, form.city === item && styles.pickerRowActive]}>
+                        {item}
+                      </Text>
+                      {form.city === item && (
+                        <MaterialCommunityIcons name="check" size={16} color={colors.primary} />
+                      )}
+                    </Pressable>
+                    {i < localidades.length - 1 && <View style={styles.pickerDivider} />}
+                  </View>
+                ))}
+              </ScrollView>
+              <View style={styles.pickerDivider} />
+              {addingLocalidad ? (
+                <View style={styles.pickerAddRow}>
+                  <TextInput
+                    ref={newLocalidadRef}
+                    style={styles.pickerAddInput}
+                    value={newLocalidadText}
+                    onChangeText={setNewLocalidadText}
+                    placeholder="Nueva localidad…"
+                    placeholderTextColor={colors.textDisabled}
+                    autoCapitalize="words"
+                    returnKeyType="done"
+                    onSubmitEditing={handleAddLocalidad}
+                    autoFocus
+                  />
                   <Pressable
-                    style={({ pressed }) => [styles.pickerRow, pressed && styles.pickerRowPressed]}
-                    onPress={() => { setField('city', item); setShowLocalidadPicker(false) }}
+                    style={[styles.pickerAddConfirm, (!newLocalidadText.trim() || addingLoading) && styles.pickerAddConfirmDisabled]}
+                    onPress={handleAddLocalidad}
+                    disabled={!newLocalidadText.trim() || addingLoading}
                   >
-                    <Text style={[styles.pickerRowText, form.city === item && styles.pickerRowActive]}>
-                      {item}
-                    </Text>
-                    {form.city === item && (
-                      <MaterialCommunityIcons name="check" size={16} color={colors.primary} />
-                    )}
+                    {addingLoading
+                      ? <ActivityIndicator size="small" color={colors.background} />
+                      : <MaterialCommunityIcons name="check" size={16} color={colors.background} />
+                    }
                   </Pressable>
-                )}
-                ItemSeparatorComponent={() => <View style={styles.pickerDivider} />}
-              />
+                  <Pressable
+                    style={styles.pickerAddCancel}
+                    onPress={() => { setAddingLocalidad(false); setNewLocalidadText('') }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <MaterialCommunityIcons name="close" size={16} color={colors.textSecondary} />
+                  </Pressable>
+                </View>
+              ) : (
+                <Pressable
+                  style={({ pressed }) => [styles.pickerRow, pressed && styles.pickerRowPressed]}
+                  onPress={() => { setAddingLocalidad(true); setNewLocalidadText('') }}
+                >
+                  <MaterialCommunityIcons name="plus" size={16} color={colors.primary} style={styles.pickerAddIcon} />
+                  <Text style={styles.pickerAddText}>Agregar nueva…</Text>
+                </Pressable>
+              )}
             </View>
           )}
           {errors.city ? (
@@ -658,7 +785,9 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     overflow: 'hidden',
     backgroundColor: colors.surface,
-    maxHeight: 240,
+  },
+  pickerScroll: {
+    maxHeight: 200,
   },
   pickerRow: {
     flexDirection: 'row',
@@ -742,5 +871,52 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: fontWeight.medium as '500',
     color: colors.primary,
+  },
+
+  // Inline "Agregar nuevo…" picker row
+  pickerAddText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.primary,
+    flex: 1,
+  },
+  pickerAddIcon: {
+    marginRight: spacing[2],
+  },
+  pickerAddRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    minHeight: 48,
+    gap: spacing[2],
+  },
+  pickerAddInput: {
+    flex: 1,
+    height: 36,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing[2],
+    fontSize: fontSize.sm,
+    color: colors.textPrimary,
+    backgroundColor: colors.background,
+  },
+  pickerAddConfirm: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pickerAddConfirmDisabled: {
+    opacity: 0.4,
+  },
+  pickerAddCancel: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 })

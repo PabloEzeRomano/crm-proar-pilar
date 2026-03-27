@@ -269,9 +269,9 @@
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 21.1 | Add "Agregar nuevo…" option at bottom of Rubro and Localidad pickers in client form | frontend | `pending` |
-| 21.2 | On select: insert new value into `lookup_values` table + refresh lookupsStore | state | `pending` |
-| 21.3 | Deduplicate on insert (case-insensitive) | backend | `pending` |
+| 21.1 | Add "Agregar nuevo…" option at bottom of Rubro and Localidad pickers in client form | frontend | `done` |
+| 21.2 | On select: insert new value into `lookup_values` table + refresh lookupsStore | state | `done` |
+| 21.3 | Deduplicate on insert (case-insensitive) | backend | `done` |
 
 ---
 
@@ -431,7 +431,6 @@
 | EP-018 | 18.2 | Top clients by visit frequency | state |
 | EP-018 | 18.3 | Statistics UI on Today screen | frontend |
 | EP-019 | 19.1–19.3 | Onboarding tour v2 | frontend |
-| EP-021 | 21.1–21.3 | Inline add Rubro / Localidad | frontend + state + backend |
 | EP-022 | 22.1–22.2 | Proper Agenda navigation stack | frontend |
 | EP-023 | 23.1–23.6 | QA agent + Playwright E2E tests | pm-tl + scripts |
 
