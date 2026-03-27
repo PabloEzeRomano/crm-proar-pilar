@@ -28,9 +28,11 @@ import { useFocusEffect, useNavigation, useRouter } from 'expo-router'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 
 import { useToday } from '@/hooks/useToday'
+import { useVisitStats } from '@/hooks/useVisitStats'
 import { useTodayStore } from '@/stores/todayStore'
 import { TodaySpan } from '@/stores/todayStore'
 import { useAuthStore } from '@/stores/authStore'
+import { StatsModal } from '@/components/today/StatsCard'
 import {
   borderRadius,
   colors,
@@ -120,6 +122,7 @@ export default function TodayScreen() {
   const router = useRouter()
   const navigation = useNavigation()
   const [sortLoading, setSortLoading] = useState(false)
+  const [statsVisible, setStatsVisible] = useState(false)
   const profile = useAuthStore((state) => state.profile)
   const isAdmin = profile?.role === 'admin'
 
@@ -133,6 +136,8 @@ export default function TodayScreen() {
     lastFetched,
     fetchTodayVisits,
   } = useToday(isAdmin)
+
+  const stats = useVisitStats()
 
   const sortedByDistance = useTodayStore((s) => s.sortedByDistance)
   const sortByDistance = useTodayStore((s) => s.sortByDistance)
@@ -179,14 +184,24 @@ export default function TodayScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <Pressable
-          onPress={() => router.push('/(tabs)/settings')}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={styles.headerGear}
-          accessibilityLabel="Configuración"
-        >
-          <Ionicons name="settings-outline" size={22} color={colors.primary} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            onPress={() => setStatsVisible(true)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={styles.headerIconBtn}
+            accessibilityLabel="Estadísticas"
+          >
+            <MaterialCommunityIcons name="chart-bar" size={22} color={colors.primary} />
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/(tabs)/settings')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={styles.headerIconBtn}
+            accessibilityLabel="Configuración"
+          >
+            <Ionicons name="settings-outline" size={22} color={colors.primary} />
+          </Pressable>
+        </View>
       ),
       headerTitle: () => (
         <View style={styles.headerTitleContainer}>
@@ -428,6 +443,12 @@ export default function TodayScreen() {
   // ── Root render ──────────────────────────────────────────────────────────
 
   return (
+    <>
+    <StatsModal
+      visible={statsVisible}
+      onClose={() => setStatsVisible(false)}
+      stats={stats}
+    />
     <ScrollView
       style={styles.scrollView}
       contentContainerStyle={styles.scrollContent}
@@ -521,6 +542,7 @@ export default function TodayScreen() {
         )}
       </View>
     </ScrollView>
+    </>
   )
 }
 
@@ -539,8 +561,13 @@ const styles = StyleSheet.create({
   },
 
   // ── Header ────────────────────────────────────────────────────────────────
-  headerGear: {
-    marginRight: spacing[4],
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: spacing[2],
+    gap: spacing[1],
+  },
+  headerIconBtn: {
     minWidth: 48,
     minHeight: 48,
     justifyContent: 'center',

@@ -237,9 +237,9 @@
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 18.1 | Visits this week / month count, completion rate — computed from `visitsStore` | state | `pending` |
-| 18.2 | Top clients by visit frequency | state | `pending` |
-| 18.3 | Statistics UI — collapsible card on Today screen or dedicated section | frontend | `pending` |
+| 18.1 | Visits this week / month count, completion rate — computed from `visitsStore` | state | `done` |
+| 18.2 | Top clients by visit frequency | state | `done` |
+| 18.3 | Statistics UI — bottom-sheet modal opened from chart icon in Today screen header | frontend | `done` |
 
 ---
 
@@ -427,9 +427,6 @@
 
 | EP | # | Story | Agent |
 |---|---|---|---|
-| EP-018 | 18.1 | Visit stats: this week/month count + completion rate | state |
-| EP-018 | 18.2 | Top clients by visit frequency | state |
-| EP-018 | 18.3 | Statistics UI on Today screen | frontend |
 | EP-019 | 19.1–19.3 | Onboarding tour v2 | frontend |
 | EP-022 | 22.1–22.2 | Proper Agenda navigation stack | frontend |
 | EP-023 | 23.1–23.6 | QA agent + Playwright E2E tests | pm-tl + scripts |
