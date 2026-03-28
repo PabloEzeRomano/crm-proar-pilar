@@ -97,9 +97,10 @@ export default function TabsLayout() {
     <Tabs screenOptions={screenOptions}>
       {/* ── Agenda (Today) ───────────────────────────────────────────── */}
       <Tabs.Screen
-        name="index"
+        name="agenda"
         options={{
           title: 'Agenda',
+          headerShown: false, // nested Stack in agenda/_layout.tsx owns the header
           tabBarIcon: ({ focused, color }) => (
             <TabIcon
               activeIcon="home"

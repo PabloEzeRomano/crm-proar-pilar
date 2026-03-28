@@ -257,12 +257,12 @@ export default function TodayScreen() {
   // ── Helpers ─────────────────────────────────────────────────────────────
 
   function handleVisitPress(visit: VisitWithClient) {
-    router.push(`/visits/${visit.id}?from=agenda`)
+    router.push(`/(tabs)/agenda/visits/${visit.id}`)
   }
 
   function handleNextCardPress() {
     if (nextVisit) {
-      router.push(`/visits/${nextVisit.id}`)
+      router.push(`/(tabs)/agenda/visits/${nextVisit.id}`)
     }
   }
 
@@ -349,9 +349,8 @@ export default function TodayScreen() {
 
   function renderVisitRow(visit: VisitWithClient) {
     const scheduledDayjs = dayjs(visit.scheduled_at)
-    const timeText = span === 'today'
-      ? scheduledDayjs.format('HH:mm')
-      : scheduledDayjs.format('ddd D · HH:mm')
+    const dateLabel = span !== 'today' ? scheduledDayjs.format('ddd D') : null
+    const timeLabel = scheduledDayjs.format('HH:mm')
     const clientName = visit.client?.name ?? 'Cliente desconocido'
 
     const subtitleParts: string[] = []
@@ -387,10 +386,13 @@ export default function TodayScreen() {
         accessibilityRole="button"
         accessibilityLabel={`Ver visita a ${clientName}`}
       >
-        {/* Left: time column */}
+        {/* Left: date + time column */}
         <View style={styles.visitRowTime}>
+          {dateLabel ? (
+            <Text style={styles.visitDateText}>{dateLabel}</Text>
+          ) : null}
           <Text style={[styles.visitTimeText, { color: timeColor }]}>
-            {timeText}
+            {timeLabel}
           </Text>
         </View>
 
@@ -749,9 +751,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   visitRowTime: {
-    width: 52,
+    width: 50,
     alignItems: 'flex-start',
     flexShrink: 0,
+  },
+  visitDateText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textSecondary,
   },
   visitTimeText: {
     fontSize: fontSize.lg,

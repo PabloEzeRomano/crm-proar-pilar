@@ -279,8 +279,8 @@
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 22.1 | Give Agenda its own nested Stack so visit detail opens within the Agenda stack | frontend | `pending` |
-| 22.2 | Remove `from=agenda` query param workaround once stack context is correct | frontend | `pending` |
+| 22.1 | Give Agenda its own nested Stack so visit detail opens within the Agenda stack | frontend | `done` |
+| 22.2 | Remove `from=agenda` query param workaround once stack context is correct | frontend | `done` |
 
 ---
 
@@ -428,7 +428,6 @@
 | EP | # | Story | Agent |
 |---|---|---|---|
 | EP-019 | 19.1–19.3 | Onboarding tour v2 | frontend |
-| EP-022 | 22.1–22.2 | Proper Agenda navigation stack | frontend |
 | EP-023 | 23.1–23.6 | QA agent + Playwright E2E tests | pm-tl + scripts |
 
 ---
