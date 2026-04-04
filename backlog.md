@@ -421,6 +421,43 @@
 
 ---
 
+## EP-031 — Gestiones / Management Actions
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 31.1 | Migration `0019_add_visit_type.sql`: `type TEXT NOT NULL DEFAULT 'visit'` + CHECK constraint | backend | `done` |
+| 31.2 | `VisitType` type + `type` on `Visit` interface + `visitTypeSchema` in validators + store carries `type` | state | `done` |
+| 31.3 | Type selector pills in visit form (before date field); default `'visit'`; labels in Spanish | frontend | `done` |
+| 31.4 | Type badge in visit list row + Estado/Tipo side-by-side in detail screen | frontend | `done` |
+
+---
+
+## EP-032 — Address Autocomplete (Nominatim)
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 32.1 | Verify "Abrir en Maps" on client detail — confirmed working (address + city → Google Maps) | frontend | `done` |
+| 32.2 | Magnifier button next to Domicilio field opens search modal; Nominatim query with 500ms debounce; select populates address, city, lat/lon | frontend + state | `done` |
+
+---
+
+## EP-033 — Client List Filters and Sorting
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 33.1 | Sort button in client list header; 5 sort options (name A–Z/Z–A, last visited recent/oldest, stale-first); persisted in AsyncStorage `clients-sort-order` | frontend + state | `done` |
+| 33.2 | Filter by visit type in filter modal; dismissible chip in active filters bar | frontend + state | `done` |
+
+---
+
+## EP-034 — UI: Smaller Filter Pills
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 34.1 | Reduce `paddingVertical` on filter pills to `spacing[1]` (4px); add `hitSlop` to maintain 48px touch target; removed fixed `height: 48` from visit filter pills + client active chips | frontend + ui-ux | `done` |
+
+---
+
 ## Pending
 
 > All stories across all EPs that are not yet `done`.

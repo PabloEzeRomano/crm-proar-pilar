@@ -16,8 +16,9 @@
  */
 
 import { create } from 'zustand';
+import { Platform } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import { File as FSFile } from 'expo-file-system';
+import { readAsStringAsync } from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as XLSX from 'xlsx';
 import dayjs from '@/lib/dayjs'
@@ -304,12 +305,25 @@ export const useImportStore = create<ImportState>()((set) => ({
       // Excel: read as binary → XLSX.read(bytes, { type: 'array' })
       //        header at row 4 (range: 3), sheets 'Etapa 1' + 'Etapa 2'
 
-      const fsFile = new FSFile(fileUri);
       let workbook: XLSX.WorkBook;
       const allRows: RawRow[] = [];
 
+      // Read file as ArrayBuffer — on native use expo-file-system (base64 → buffer),
+      // on web use fetch (blob: URI).
+      async function readFileAsArrayBuffer(uri: string): Promise<ArrayBuffer> {
+        if (Platform.OS !== 'web') {
+          const b64 = await readAsStringAsync(uri, { encoding: 'base64' });
+          const binary = atob(b64);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          return bytes.buffer;
+        }
+        return fetch(uri).then((r) => r.arrayBuffer());
+      }
+
       if (isCsv) {
-        const text = await fsFile.text();
+        const buffer = await readFileAsArrayBuffer(fileUri);
+        const text = new TextDecoder().decode(buffer);
         workbook = XLSX.read(text, { type: 'string', cellDates: true });
 
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -326,7 +340,7 @@ export const useImportStore = create<ImportState>()((set) => ({
           }
         }
       } else {
-        const buffer = await fsFile.arrayBuffer();
+        const buffer = await readFileAsArrayBuffer(fileUri);
         const bytes = new Uint8Array(buffer);
         workbook = XLSX.read(bytes, { type: 'array', cellDates: true });
 
@@ -379,7 +393,8 @@ export const useImportStore = create<ImportState>()((set) => ({
       const { data: existingClients, error: clientsErr } = await supabase
         .from('clients')
         .select('id, name, address')
-        .eq('owner_user_id', userId);
+        .eq('owner_user_id', userId)
+        .range(0, 9999);
 
       if (clientsErr)
         throw new Error(`Error cargando clientes: ${clientsErr.message}`);
@@ -442,7 +457,9 @@ export const useImportStore = create<ImportState>()((set) => ({
         let clientId = clientMap.get(key);
 
         if (!clientId) {
-          // Will be inserted in batch; generate temp ID for visit references
+          // Register sentinel so subsequent rows with the same client reuse this slot
+          const tempId = `__temp_${clientsToInsert.length}`;
+          clientMap.set(key, tempId);
           clientsToInsert.push({
             owner_user_id: userId,
             name,
@@ -456,10 +473,10 @@ export const useImportStore = create<ImportState>()((set) => ({
             ),
             notes: null,
           });
-          rowToClientMap.set(i, `__temp_${i}`); // Placeholder for batch insert
+          rowToClientMap.set(i, tempId);
         } else {
           rowToClientMap.set(i, clientId);
-          result.clientsSkipped++;
+          if (!clientId.startsWith('__temp_')) result.clientsSkipped++;
         }
       }
 
@@ -477,18 +494,17 @@ export const useImportStore = create<ImportState>()((set) => ({
           continue;
         }
 
-        // Map temp IDs to real IDs and update clientMap
+        // Map temp IDs to real IDs and update clientMap + rowToClientMap
         for (let j = 0; j < batch.length; j++) {
           const realId = insertedClients[j]?.id;
           if (realId) {
             const client = batch[j];
             const key = clientKey(client.name, client.address);
+            const tempId = `__temp_${i + j}`;
             clientMap.set(key, realId);
-            // Update rowToClientMap for corresponding rows
-            for (const [rowIdx, tempId] of rowToClientMap) {
-              if (tempId === `__temp_${i + j}`) {
-                rowToClientMap.set(rowIdx, realId);
-              }
+            // Replace all temp references in rowToClientMap with the real ID
+            for (const [rowIdx, tid] of rowToClientMap) {
+              if (tid === tempId) rowToClientMap.set(rowIdx, realId);
             }
             result.clientsCreated++;
           }
@@ -516,7 +532,7 @@ export const useImportStore = create<ImportState>()((set) => ({
         const assignedTime = lastTime
           ? lastTime.add(gap, 'minute')
           : dayjs(dateOnly).hour(10).minute(0).second(0).millisecond(0);
-        const scheduledAt = assignedTime.utc().toISOString();
+        const scheduledAt = assignedTime.toDate().toISOString();
         dayLastTimeMap.set(dateOnly, assignedTime);
 
         const isPast = dayjs(dateOnly).isBefore(dayjs().startOf('day'));

@@ -47,6 +47,7 @@ yarn-error.*
 
 # claude
 .claude
+/memory/*
 
 # Playwright
 /test-results/
