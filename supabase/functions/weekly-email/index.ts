@@ -252,7 +252,7 @@ function generateHtml(
           <!-- Greeting -->
           <tr>
             <td style="background:#FFFFFF;padding:20px 32px 8px;">
-              <p style="margin:0;font-size:15px;color:#374151;">${greeting}, aquí está tu resumen de visitas de la semana pasada.</p>
+              <p style="margin:0;font-size:15px;color:#374151;">${greeting}, acá está tu resumen de visitas de la semana pasada.</p>
             </td>
           </tr>
 
@@ -366,7 +366,8 @@ Deno.serve(async (_req) => {
     const { data: profiles, error: profilesErr } = await supabase
       .from('profiles')
       .select('id, full_name, email_config')
-      .not('email_config', 'is', null)\n      .filter('email_config->>enabled', 'eq', 'true')
+      .not('email_config', 'is', null)
+      .filter('email_config->>enabled', 'eq', 'true')
 
     if (profilesErr) throw profilesErr
 
@@ -390,7 +391,8 @@ Deno.serve(async (_req) => {
         .from('visits')
         .select('id, scheduled_at, status, notes, client:clients(id, name, address, city)')
         .eq('owner_user_id', profile.id)
-        \.neq('status', 'canceled')\n        .gte('scheduled_at', from)
+        .neq('status', 'canceled')
+        .gte('scheduled_at', from)
         .lte('scheduled_at', to)
         .order('scheduled_at')
 

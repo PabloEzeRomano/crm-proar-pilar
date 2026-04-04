@@ -247,8 +247,8 @@
 
 | # | Story | Agent | Status |
 |---|---|---|---|
-| 19.1 | Point tour steps at actual UI elements (tooltips/highlights, not just modals) | frontend | `pending` |
-| 19.2 | Add import Excel/CSV step to tour flow | frontend | `pending` |
+| 19.1 | Point tour steps at actual UI elements (tooltips/highlights, not just modals) | frontend | `done` |
+| 19.2 | Add import Excel/CSV step to tour flow | frontend | `done` |
 | 19.3 | Add contact-tap demo step (show Llamar / WhatsApp) | frontend | `pending` |
 
 ---
@@ -427,7 +427,7 @@
 
 | EP | # | Story | Agent |
 |---|---|---|---|
-| EP-019 | 19.1–19.3 | Onboarding tour v2 | frontend |
+| EP-019 | 19.3 | Contact-tap demo step (show Llamar / WhatsApp) | frontend |
 | EP-023 | 23.1–23.6 | QA agent + Playwright E2E tests | pm-tl + scripts |
 
 ---
