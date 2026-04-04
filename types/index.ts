@@ -1,5 +1,7 @@
 export type VisitStatus = 'pending' | 'completed' | 'canceled'
 
+export type VisitType = 'sale' | 'visit' | 'call' | 'quote'
+
 export type UserRole = 'user' | 'admin' | 'root'
 
 export interface EmailConfig {
@@ -66,6 +68,7 @@ export interface Visit {
   client_id: string
   scheduled_at: string
   status: VisitStatus
+  type: VisitType
   notes: string | null
   notification_id?: string | null
   created_at: string

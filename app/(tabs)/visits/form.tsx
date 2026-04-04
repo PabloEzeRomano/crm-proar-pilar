@@ -14,7 +14,7 @@
  *   - Header: Cancel (left) + Guardar (right, disabled when invalid)
  */
 
-import React, { useEffect, useLayoutEffect, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 import {
   ActivityIndicator,
   FlatList,
@@ -40,7 +40,7 @@ import {
   fontWeight,
   spacing,
 } from '@/constants/theme'
-import { Client, VisitStatus } from '@/types'
+import { Client, VisitStatus, VisitType } from '@/types'
 import dayjs from '@/lib/dayjs'
 
 // ---------------------------------------------------------------------------
@@ -51,6 +51,13 @@ const GAP_KEY = 'visit-gap-minutes'
 const DEFAULT_GAP = 60
 
 const MINUTA_TEMPLATE = 'Objetivo:\n\nResultado:\n\nPróximos pasos:\n'
+
+const VISIT_TYPE_OPTIONS: { value: VisitType; label: string; icon: string }[] = [
+  { value: 'visit', label: 'Visita', icon: 'briefcase-outline' },
+  { value: 'call', label: 'Llamada', icon: 'phone-outline' },
+  { value: 'sale', label: 'Venta', icon: 'cash-register' },
+  { value: 'quote', label: 'Cotización', icon: 'file-document-outline' },
+]
 
 const GAP_OPTIONS = [
   { label: '30 min', value: 30 },
@@ -90,6 +97,14 @@ export default function VisitFormScreen() {
   const router = useRouter()
   const navigation = useNavigation()
 
+  const closeForm = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack()
+    } else {
+      router.replace('/(tabs)/visits')
+    }
+  }, [navigation, router])
+
   const isEditMode = Boolean(visitId)
 
   // Store access
@@ -117,6 +132,7 @@ export default function VisitFormScreen() {
   const [selectedTime, setSelectedTime] = useState<Date>(defaultTime)
   const [notes, setNotes] = useState<string>(MINUTA_TEMPLATE)
   const [status, setStatus] = useState<VisitStatus>('pending')
+  const [visitType, setVisitType] = useState<VisitType>('visit')
   const [gapMinutes, setGapMinutes] = useState<number>(DEFAULT_GAP)
 
   // Date/time picker visibility (Android needs explicit show/hide)
@@ -164,6 +180,7 @@ export default function VisitFormScreen() {
       setSelectedTime(scheduledDate)
       setNotes(existingVisit.notes ?? '')
       setStatus(existingVisit.status)
+      setVisitType(existingVisit.type ?? 'visit')
 
       const visitClient = clients.find((c) => c.id === existingVisit.client_id)
       if (visitClient) setSelectedClient(visitClient)
@@ -190,7 +207,7 @@ export default function VisitFormScreen() {
       title: isEditMode ? 'Editar visita' : 'Nueva visita',
       headerLeft: () => (
         <Pressable
-          onPress={() => router.back()}
+          onPress={closeForm}
           style={styles.headerButton}
           accessibilityRole="button"
           accessibilityLabel="Cancelar"
@@ -217,7 +234,7 @@ export default function VisitFormScreen() {
         </Pressable>
       ),
     })
-  }, [isValid, saving, selectedClient, selectedDate, selectedTime, notes, status, navigation]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isValid, saving, selectedClient, selectedDate, selectedTime, notes, status, navigation, closeForm]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // -------------------------------------------------------------------------
   // Handlers
@@ -234,6 +251,7 @@ export default function VisitFormScreen() {
         scheduled_at: isoString,
         notes: notes || undefined,
         status,
+        type: visitType,
       })
     } else {
       if (!selectedClient) {
@@ -245,14 +263,15 @@ export default function VisitFormScreen() {
         scheduled_at: isoString,
         notes: notes || undefined,
         status,
+        type: visitType,
       })
     }
 
     setSaving(false)
     
-    // Only navigate back if save was successful
+    // Only dismiss if save was successful
     if (!error) {
-      router.back()
+      closeForm()
     }
   }
 
@@ -470,6 +489,35 @@ export default function VisitFormScreen() {
             </Pressable>
           </View>
         ) : null}
+      </View>
+
+      {/* ── Tipo de gestión ─────────────────────────────────────────────── */}
+      <View style={styles.fieldGroup}>
+        <FieldLabel label="Tipo de gestión" />
+        <View style={styles.typeRow}>
+          {VISIT_TYPE_OPTIONS.map(({ value, label, icon }) => {
+            const active = visitType === value
+            return (
+              <Pressable
+                key={value}
+                style={[styles.typeOption, active && styles.typeOptionActive]}
+                onPress={() => setVisitType(value)}
+                accessibilityRole="radio"
+                accessibilityLabel={label}
+                accessibilityState={{ checked: active }}
+              >
+                <MaterialCommunityIcons
+                  name={icon as 'briefcase-outline'}
+                  size={18}
+                  color={active ? colors.primary : colors.textSecondary}
+                />
+                <Text style={[styles.typeOptionLabel, active && styles.typeOptionLabelActive]}>
+                  {label}
+                </Text>
+              </Pressable>
+            )
+          })}
+        </View>
       </View>
 
       {/* ── Fecha ────────────────────────────────────────────────────────── */}
@@ -829,6 +877,36 @@ const styles = StyleSheet.create({
   iosTimePicker: {
     height: 120,
     alignSelf: 'stretch',
+  },
+
+  // Type picker
+  typeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing[2],
+  },
+  typeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    height: 48,
+    paddingHorizontal: spacing[3],
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.background,
+  },
+  typeOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  typeOptionLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textSecondary,
+  },
+  typeOptionLabelActive: {
+    color: colors.primary,
   },
 
   // Gap picker

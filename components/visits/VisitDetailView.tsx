@@ -24,6 +24,7 @@ import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { VisitType } from '@/types'
 
 import { useVisitsStore } from '@/stores/visitsStore'
 import {
@@ -154,6 +155,14 @@ export default function VisitDetailView() {
 
   const formattedDate = dayjs(visit.scheduled_at).format('dddd D [de] MMMM · HH:mm')
 
+  const TYPE_LABEL: Record<VisitType, string> = {
+    visit: 'Visita',
+    call: 'Llamada',
+    sale: 'Venta',
+    quote: 'Cotización / Propuesta',
+  }
+  const typeLabel = TYPE_LABEL[visit.type ?? 'visit']
+
   // -------------------------------------------------------------------------
   // Root render
   // -------------------------------------------------------------------------
@@ -192,10 +201,20 @@ export default function VisitDetailView() {
 
       <View style={styles.divider} />
 
-      {/* ── Sección: Estado ────────────────────────────────────────────── */}
+      {/* ── Sección: Estado y Tipo ─────────────────────────────────────── */}
       <View style={styles.section}>
-        <SectionLabel title="Estado" />
-        <StatusBadge status={visit.status} />
+        <View style={styles.statusTypeRow}>
+          <View style={styles.statusTypeItem}>
+            <SectionLabel title="Estado" />
+            <StatusBadge status={visit.status} />
+          </View>
+          <View style={styles.statusTypeItem}>
+            <SectionLabel title="Tipo" />
+            <View style={styles.typeBadge}>
+              <Text style={styles.typeBadgeText}>{typeLabel}</Text>
+            </View>
+          </View>
+        </View>
       </View>
 
       <View style={styles.divider} />
@@ -356,6 +375,29 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: fontWeight.medium as '500',
     color: colors.primary,
+  },
+
+  // Status + type row
+  statusTypeRow: {
+    flexDirection: 'row',
+    gap: spacing[4],
+  },
+  statusTypeItem: {
+    gap: spacing[2],
+  },
+  typeBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+  },
+  typeBadgeText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textPrimary,
   },
 
   // Date

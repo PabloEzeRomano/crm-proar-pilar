@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import dayjs from '../lib/dayjs'
 import { supabase } from '../lib/supabase'
 import { scheduleVisitReminder, cancelVisitReminder } from '../lib/notifications'
-import { Visit, VisitWithClient, VisitStatus } from '../types'
+import { Visit, VisitWithClient, VisitStatus, VisitType } from '../types'
 import { CreateVisitInput, UpdateVisitInput, updateStatusSchema } from '../validators/visit'
 
 const PAGE_SIZE = 100

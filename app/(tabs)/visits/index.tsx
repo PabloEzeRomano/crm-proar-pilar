@@ -33,7 +33,7 @@ import {
   fontWeight,
   spacing,
 } from '@/constants/theme'
-import { VisitStatus, VisitWithClient } from '@/types'
+import { VisitStatus, VisitType, VisitWithClient } from '@/types'
 import { useVisits } from '@/hooks/useVisits'
 import { useAuthStore } from '@/stores/authStore'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -46,6 +46,13 @@ const STATUS_STRIP_COLOR: Record<VisitStatus, string> = {
   pending: colors.statusPending,
   completed: colors.statusCompleted,
   canceled: colors.statusCanceled,
+}
+
+const VISIT_TYPE_LABEL: Record<VisitType, string> = {
+  visit: 'Visita',
+  call: 'Llamada',
+  sale: 'Venta',
+  quote: 'Cotización',
 }
 
 // ---------------------------------------------------------------------------
@@ -99,6 +106,7 @@ export default function VisitsIndexScreen() {
         accessibilityRole="button"
         accessibilityLabel={`Filtrar por ${label}`}
         accessibilityState={{ selected: isActive }}
+        hitSlop={{ top: 10, bottom: 10, left: 0, right: 0 }}
       >
         <Text style={[styles.pillText, isActive ? styles.pillTextActive : styles.pillTextInactive]}>
           {label}
@@ -140,6 +148,11 @@ export default function VisitsIndexScreen() {
             <Text style={[styles.rowSubtitle, styles.dateTextFlex]} numberOfLines={1}>
               {dateText}
             </Text>
+            <View style={styles.typeBadge}>
+              <Text style={styles.typeBadgeText}>
+                {VISIT_TYPE_LABEL[item.type ?? 'visit']}
+              </Text>
+            </View>
             {isAdmin && item.owner && (
               <Text style={styles.ownerIndicator} numberOfLines={1}>
                 por {ownerDisplay}
@@ -284,7 +297,7 @@ const styles = StyleSheet.create({
     gap: spacing[2],
   },
   pill: {
-    height: 48,
+    paddingVertical: spacing[1],
     paddingHorizontal: spacing[4],
     borderRadius: borderRadius.full,
     justifyContent: 'center',
@@ -347,6 +360,19 @@ const styles = StyleSheet.create({
   },
   dateTextFlex: {
     flex: 1,
+  },
+  typeBadge: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing[2],
+    paddingVertical: 2,
+  },
+  typeBadgeText: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textSecondary,
   },
   ownerIndicator: {
     fontSize: fontSize.xs,
