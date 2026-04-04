@@ -2,6 +2,7 @@
  * app/(tabs)/settings.tsx — Settings screen
  *
  * Story 8.6 — EP-008
+ * EP-019: Added rn-tourguide chapter "settings" (2 steps)
  *
  * Sections:
  *  1. Resumen semanal — toggle + sender email + recipients
@@ -11,9 +12,10 @@
  * All data read/written through useAuthStore. No direct Supabase calls.
  */
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { z } from 'zod'
 import Constants from 'expo-constants'
+import { useRouter } from 'expo-router'
 import * as Notifications from 'expo-notifications'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
@@ -30,6 +32,7 @@ import {
   TextInput,
   View,
 } from 'react-native'
+import TourStep from '@/components/tour/TourStep'
 
 import { brand } from '@/constants/brand'
 import {
@@ -45,6 +48,7 @@ import { useClientsStore } from '@/stores/clientsStore'
 import { useImportStore } from '@/stores/importStore'
 import { useTodayStore } from '@/stores/todayStore'
 import { useVisitsStore } from '@/stores/visitsStore'
+import { useTourStore } from '@/stores/tourStore'
 
 // ---------------------------------------------------------------------------
 // Email validation schema
@@ -56,8 +60,13 @@ const emailSchema = z.string().email()
 // Component
 // ---------------------------------------------------------------------------
 
-export default function SettingsScreen() {
+function SettingsScreenContent() {
   const insets = useSafeAreaInsets()
+
+  const router = useRouter()
+
+  const startTour = useTourStore((s) => s.startTour)
+  const currentTourIndex = useTourStore((s) => s.currentIndex)
 
   const user = useAuthStore((s) => s.user)
   const profile = useAuthStore((s) => s.profile)
@@ -93,6 +102,13 @@ export default function SettingsScreen() {
   const [testingNotification, setTestingNotification] = useState(false)
   const [notificationFeedback, setNotificationFeedback] = useState<{ ok: boolean; message: string } | null>(null)
 
+  // Restart tour: persist DB flag, navigate to agenda
+  function handleRestartTour() {
+    resetTour()        // persist show_tour=true to DB
+    startTour()        // currentIndex = 0
+    router.replace('/(tabs)/agenda')
+  }
+
   // Refresh agenda + visits stores after a successful import
   useEffect(() => {
     if (importResult) {
@@ -111,6 +127,23 @@ export default function SettingsScreen() {
       })
     }
   }, [profile]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Native-only: scroll the settings page to the active tour step section.
+  // On web, TourStep handles scrollIntoView via the DOM — doing it here too
+  // would race. On native there is no DOM, so we must scroll explicitly.
+  const scrollRef = useRef<import('react-native').ScrollView>(null)
+  const importSectionY = useRef(0)
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return
+    if (currentTourIndex === 8) {
+      // Step 9 — email toggle is near the top; reset to top
+      scrollRef.current?.scrollTo({ y: 0, animated: false })
+    } else if (currentTourIndex === 9) {
+      // Step 10 — import section; scroll to captured y offset
+      scrollRef.current?.scrollTo({ y: importSectionY.current, animated: false })
+    }
+  }, [currentTourIndex])
 
   // Load notifications enabled setting from AsyncStorage on mount
   useEffect(() => {
@@ -205,7 +238,7 @@ export default function SettingsScreen() {
 
   async function handleSave() {
     setSaving(true)
-    
+
     // Validate sender email if provided
     if (localConfig.sender) {
       const result = emailSchema.safeParse(localConfig.sender)
@@ -216,7 +249,7 @@ export default function SettingsScreen() {
         return
       }
     }
-    
+
     await updateEmailConfig({
       enabled: localConfig.enabled,
       sender: localConfig.sender || null,
@@ -287,6 +320,7 @@ export default function SettingsScreen() {
   return (
     <View style={styles.flex}>
       <ScrollView
+        ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
@@ -300,21 +334,28 @@ export default function SettingsScreen() {
         <Text style={styles.sectionHeader}>RESUMEN SEMANAL</Text>
 
         <View style={styles.section}>
-          {/* Toggle row */}
-          <View style={[styles.row, styles.rowNoBorder]}>
-            <View style={styles.rowContent}>
-              <Text style={styles.rowLabel}>Enviar resumen semanal</Text>
-              <Text style={styles.rowSubtitle}>Cada lunes por la mañana</Text>
+          {/* ── Tour step 9: Email toggle row ── */}
+          <TourStep
+            order={9}
+            text="Activá el resumen semanal para recibir un email cada lunes con tus visitas de la semana. Configurá el destinatario y el email de respuesta."
+            borderRadius={borderRadius.md}
+            routePath="/(tabs)/settings"
+          >
+            <View style={[styles.row, styles.rowNoBorder]}>
+              <View style={styles.rowContent}>
+                <Text style={styles.rowLabel}>Enviar resumen semanal</Text>
+                <Text style={styles.rowSubtitle}>Cada lunes por la mañana</Text>
+              </View>
+              <Switch
+                value={localConfig.enabled}
+                onValueChange={handleToggle}
+                trackColor={{ false: colors.border, true: colors.primaryLight }}
+                thumbColor={
+                  localConfig.enabled ? colors.primary : colors.textDisabled
+                }
+              />
             </View>
-            <Switch
-              value={localConfig.enabled}
-              onValueChange={handleToggle}
-              trackColor={{ false: colors.border, true: colors.primaryLight }}
-              thumbColor={
-                localConfig.enabled ? colors.primary : colors.textDisabled
-              }
-            />
-          </View>
+          </TourStep>
 
           {/* Send now button — dev only */}
           {__DEV__ && (
@@ -515,41 +556,51 @@ export default function SettingsScreen() {
         {/* ================================================================
             Section 3 — Importar datos
         ================================================================ */}
-        <Text style={styles.sectionHeader}>IMPORTAR DATOS</Text>
+        <Text
+          style={styles.sectionHeader}
+          onLayout={(e) => { importSectionY.current = e.nativeEvent.layout.y }}
+        >IMPORTAR DATOS</Text>
 
         <View style={styles.section}>
-          <View style={[styles.row, styles.rowColumn, styles.rowNoBorder]}>
-            <View style={styles.rowContent}>
-              <Text style={styles.rowLabel}>Importar desde Excel</Text>
-              <Text style={styles.rowSubtitle}>
-                Seleccioná el archivo .xlsx para importar clientes y visitas
-              </Text>
-            </View>
+          {/* ── Tour step 10: Import button ── */}
+          <TourStep
+            order={10}
+            text="Importá todos tus clientes y visitas desde un archivo Excel (.xlsx). El sistema elimina clientes duplicados y crea las visitas automáticamente."
+            borderRadius={borderRadius.md}
+            routePath="/(tabs)/settings"
+          >
+            <View style={[styles.row, styles.rowColumn, styles.rowNoBorder]}>
+              <View style={styles.rowContent}>
+                <Text style={styles.rowLabel}>Importar desde Excel</Text>
+                <Text style={styles.rowSubtitle}>
+                  Seleccioná el archivo .xlsx para importar clientes y visitas
+                </Text>
+              </View>
 
-            <Pressable
-              style={[styles.importButton, importing && styles.importButtonDisabled]}
-              onPress={() => {
-                clearImportResult()
-                runImport()
-              }}
-              disabled={importing}
-              accessibilityRole="button"
-              accessibilityLabel="Seleccionar archivo Excel"
-              accessibilityState={{ disabled: importing, busy: importing }}
-            >
-              {importing ? (
-                <ActivityIndicator color={colors.textOnPrimary} size="small" />
-              ) : (
-                <>
-                  <MaterialCommunityIcons
-                    name="file-excel"
-                    size={18}
-                    color={colors.textOnPrimary}
-                  />
-                  <Text style={styles.importButtonLabel}>Seleccionar archivo</Text>
-                </>
-              )}
-            </Pressable>
+              <Pressable
+                style={[styles.importButton, importing && styles.importButtonDisabled]}
+                onPress={() => {
+                  clearImportResult()
+                  runImport()
+                }}
+                disabled={importing}
+                accessibilityRole="button"
+                accessibilityLabel="Seleccionar archivo Excel"
+                accessibilityState={{ disabled: importing, busy: importing }}
+              >
+                {importing ? (
+                  <ActivityIndicator color={colors.textOnPrimary} size="small" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons
+                      name="file-excel"
+                      size={18}
+                      color={colors.textOnPrimary}
+                    />
+                    <Text style={styles.importButtonLabel}>Seleccionar archivo</Text>
+                  </>
+                )}
+              </Pressable>
 
             {/* Result banner */}
             {importResult && (
@@ -584,7 +635,8 @@ export default function SettingsScreen() {
                 </Text>
               </View>
             )}
-          </View>
+            </View>
+          </TourStep>
         </View>
 
         {/* ================================================================
@@ -605,7 +657,7 @@ export default function SettingsScreen() {
           <View style={[styles.row, styles.rowBorderTop]}>
             <Pressable
               style={styles.rowContent}
-              onPress={resetTour}
+              onPress={handleRestartTour}
               accessibilityRole="button"
               accessibilityLabel="Ver tour de nuevo"
             >
@@ -688,6 +740,8 @@ export default function SettingsScreen() {
     </View>
   )
 }
+
+export default SettingsScreenContent
 
 // ---------------------------------------------------------------------------
 // Styles

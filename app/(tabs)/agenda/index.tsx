@@ -1,7 +1,8 @@
 /**
- * app/(tabs)/index.tsx — Today Dashboard
+ * app/(tabs)/agenda/index.tsx — Today Dashboard
  *
  * Stories 6.4, 6.5, 6.6, 6.7 — EP-006
+ * EP-019: Added rn-tourguide chapter "agenda" (3 steps)
  *
  * Features:
  *   - 6.4: Today's visit list (Agenda de hoy) with time, client name, industry/city, StatusBadge
@@ -13,7 +14,7 @@
  *   - Today's date as subtitle in header
  */
 
-import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -26,6 +27,7 @@ import {
 } from 'react-native'
 import { useFocusEffect, useNavigation, useRouter } from 'expo-router'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
+import TourStep from '@/components/tour/TourStep'
 
 import { useToday } from '@/hooks/useToday'
 import { useVisitStats } from '@/hooks/useVisitStats'
@@ -115,10 +117,10 @@ function formatMinutes(mins: number): string {
 }
 
 // ---------------------------------------------------------------------------
-// Component
+// Inner screen component (needs to be inside TourGuideProvider)
 // ---------------------------------------------------------------------------
 
-export default function TodayScreen() {
+function TodayScreenContent() {
   const router = useRouter()
   const navigation = useNavigation()
   const [sortLoading, setSortLoading] = useState(false)
@@ -446,107 +448,130 @@ export default function TodayScreen() {
 
   return (
     <>
-    <StatsModal
-      visible={statsVisible}
-      onClose={() => setStatsVisible(false)}
-      stats={stats}
-    />
-    <ScrollView
-      style={styles.scrollView}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Offline banner — story 6.7 */}
-      {isStale && (
-        <View style={styles.offlineBanner}>
-          <MaterialCommunityIcons
-            name="wifi-off"
-            size={16}
-            color={colors.textSecondary}
-          />
-          <Text style={styles.offlineBannerText}>
-            {`Mostrando datos guardados${lastFetchedLabel}`}
-          </Text>
-        </View>
-      )}
-
-      {/* Span selector pills */}
-      <View style={styles.spanRow}>
-        {(['today', 'week', 'month'] as TodaySpan[]).map((s) => {
-          const label = s === 'today' ? 'Hoy' : s === 'week' ? 'Esta semana' : 'Este mes'
-          const active = span === s
-          return (
-            <Pressable
-              key={s}
-              style={[styles.spanPill, active && styles.spanPillActive]}
-              onPress={() => fetchTodayVisits(s)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: active }}
-              accessibilityLabel={label}
-            >
-              <Text style={[styles.spanPillText, active && styles.spanPillTextActive]}>
-                {label}
-              </Text>
-            </Pressable>
-          )
-        })}
-      </View>
-
-      {/* Next appointment card — stories 6.5 + 6.6 */}
-      <View style={styles.section}>{renderNextCard()}</View>
-
-      {/* Visit list */}
-      <View style={styles.section}>
-        {/* Section header */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{sectionTitle}</Text>
-          {visits.length > 0 && (
-            <>
-              <View style={styles.countBadge}>
-                <Text style={styles.countBadgeText}>
-                  {visits.length} {visits.length === 1 ? 'visita' : 'visitas'}
-                </Text>
-              </View>
-              {/* Sort toggle button — only on native platforms (expo-location not available on web) */}
-              {Platform.OS !== 'web' && (
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.sortButton,
-                    pressed && styles.sortButtonPressed,
-                  ]}
-                  onPress={handleToggleSort}
-                  disabled={sortLoading}
-                  accessibilityRole="button"
-                  accessibilityLabel={sortedByDistance ? 'Ordenar por hora' : 'Ordenar por distancia'}
-                >
-                  {sortLoading ? (
-                    <ActivityIndicator size="small" color={colors.textSecondary} />
-                  ) : (
-                    <MaterialCommunityIcons
-                      name={sortedByDistance ? 'clock-outline' : 'map-marker-distance'}
-                      size={20}
-                      color={colors.textSecondary}
-                    />
-                  )}
-                </Pressable>
-              )}
-            </>
-          )}
-        </View>
-
-        {/* Visit rows or empty state */}
-        {visits.length === 0 ? (
-          renderEmptyState()
-        ) : (
-          <View style={styles.visitList}>
-            {visits.map((visit) => renderVisitRow(visit))}
+      <StatsModal
+        visible={statsVisible}
+        onClose={() => setStatsVisible(false)}
+        stats={stats}
+      />
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Offline banner — story 6.7 */}
+        {isStale && (
+          <View style={styles.offlineBanner}>
+            <MaterialCommunityIcons
+              name="wifi-off"
+              size={16}
+              color={colors.textSecondary}
+            />
+            <Text style={styles.offlineBannerText}>
+              {`Mostrando datos guardados${lastFetchedLabel}`}
+            </Text>
           </View>
         )}
-      </View>
-    </ScrollView>
+
+        {/* ── Tour step 1: Span selector pills ── */}
+        <TourStep
+          order={1}
+          text="Filtrá tu agenda por Hoy, Esta semana o Este mes. El contador de abajo se actualiza en tiempo real."
+          borderRadius={borderRadius.full}
+          routePath="/(tabs)/agenda"
+        >
+          <View style={styles.spanRow}>
+            {(['today', 'week', 'month'] as TodaySpan[]).map((s) => {
+              const label = s === 'today' ? 'Hoy' : s === 'week' ? 'Esta semana' : 'Este mes'
+              const active = span === s
+              return (
+                <Pressable
+                  key={s}
+                  style={[styles.spanPill, active && styles.spanPillActive]}
+                  onPress={() => fetchTodayVisits(s)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={label}
+                >
+                  <Text style={[styles.spanPillText, active && styles.spanPillTextActive]}>
+                    {label}
+                  </Text>
+                </Pressable>
+              )
+            })}
+          </View>
+        </TourStep>
+
+        {/* ── Tour step 2: Next appointment card ── */}
+        <TourStep
+          order={2}
+          text="Tu próxima visita pendiente aparece acá. Muestra el cliente, la hora y el tiempo restante. Tocá para ver los detalles y agregar notas."
+          borderRadius={borderRadius.lg}
+          routePath="/(tabs)/agenda"
+        >
+          <View style={styles.section}>{renderNextCard()}</View>
+        </TourStep>
+
+        {/* Visit list */}
+        <View style={styles.section}>
+          {/* ── Tour step 3: Visit list section header ── */}
+          <TourStep
+            order={3}
+            text="Acá está tu agenda completa. Tocá cualquier visita para ver los detalles, cambiar el estado o escribir la minuta de la reunión."
+            borderRadius={borderRadius.md}
+            routePath="/(tabs)/agenda"
+          >
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>{sectionTitle}</Text>
+              {visits.length > 0 && (
+                <>
+                  <View style={styles.countBadge}>
+                    <Text style={styles.countBadgeText}>
+                      {visits.length} {visits.length === 1 ? 'visita' : 'visitas'}
+                    </Text>
+                  </View>
+                  {/* Sort toggle button — only on native platforms (expo-location not available on web) */}
+                  {Platform.OS !== 'web' && (
+                    <Pressable
+                      style={({ pressed }) => [
+                        styles.sortButton,
+                        pressed && styles.sortButtonPressed,
+                      ]}
+                      onPress={handleToggleSort}
+                      disabled={sortLoading}
+                      accessibilityRole="button"
+                      accessibilityLabel={sortedByDistance ? 'Ordenar por hora' : 'Ordenar por distancia'}
+                    >
+                      {sortLoading ? (
+                        <ActivityIndicator size="small" color={colors.textSecondary} />
+                      ) : (
+                        <MaterialCommunityIcons
+                          name={sortedByDistance ? 'clock-outline' : 'map-marker-distance'}
+                          size={20}
+                          color={colors.textSecondary}
+                        />
+                      )}
+                    </Pressable>
+                  )}
+                </>
+              )}
+            </View>
+          </TourStep>
+
+          {/* Visit rows or empty state */}
+          {visits.length === 0 ? (
+            renderEmptyState()
+          ) : (
+            <View style={styles.visitList}>
+              {visits.map((visit) => renderVisitRow(visit))}
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </>
   )
 }
+
+export default TodayScreenContent
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -595,6 +620,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: spacing[4],
     paddingTop: spacing[3],
+    paddingBottom: spacing[3],
     gap: spacing[2],
   },
   spanPill: {

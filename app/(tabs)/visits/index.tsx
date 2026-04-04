@@ -23,6 +23,7 @@ import {
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
+import TourStep from '@/components/tour/TourStep'
 
 import dayjs from '@/lib/dayjs'
 import {
@@ -186,16 +187,23 @@ export default function VisitsIndexScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Filter pills */}
-      <View style={styles.filterWrapper}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterScroll}
-        >
-          {FILTER_OPTIONS.map(renderFilterPill)}
-        </ScrollView>
-      </View>
+      {/* Filter pills — Tour step 7 */}
+      <TourStep
+        order={7}
+        text="Filtrá tus visitas por estado: Pendientes, Completadas o Canceladas. 'Próximas' muestra solo las visitas de hoy en adelante."
+        borderRadius={borderRadius.full}
+        routePath="/(tabs)/visits"
+      >
+        <View style={styles.filterWrapper}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterScroll}
+          >
+            {FILTER_OPTIONS.map(renderFilterPill)}
+          </ScrollView>
+        </View>
+      </TourStep>
 
       {/* Loading state */}
       {loading && visits.length === 0 ? (
@@ -224,15 +232,24 @@ export default function VisitsIndexScreen() {
         />
       )}
 
-      {/* FAB */}
-      <Pressable
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-        onPress={handleFabPress}
-        accessibilityRole="button"
-        accessibilityLabel="Agregar visita"
-      >
-        <MaterialCommunityIcons name="plus" size={28} color={colors.textOnPrimary} />
-      </Pressable>
+      {/* FAB — Tour step 8 */}
+      <View style={styles.fabContainer}>
+        <TourStep
+          order={8}
+          text="Tocá + para agendar una nueva visita. Elegí el cliente, la fecha y hora."
+          borderRadius={borderRadius.full}
+          routePath="/(tabs)/visits"
+        >
+          <Pressable
+            style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+            onPress={handleFabPress}
+            accessibilityRole="button"
+            accessibilityLabel="Agregar visita"
+          >
+            <MaterialCommunityIcons name="plus" size={28} color={colors.textOnPrimary} />
+          </Pressable>
+        </TourStep>
+      </View>
     </View>
   )
 }
@@ -371,10 +388,12 @@ const styles = StyleSheet.create({
   },
 
   // FAB
-  fab: {
+  fabContainer: {
     position: 'absolute',
     bottom: spacing[6],
     right: spacing[6],
+  },
+  fab: {
     width: 56,
     height: 56,
     borderRadius: borderRadius.full,

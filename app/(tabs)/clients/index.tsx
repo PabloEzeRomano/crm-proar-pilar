@@ -1,5 +1,7 @@
 /**
  * app/(tabs)/clients/index.tsx — Clients list with search + multiselect filter
+ *
+ * EP-019: Added rn-tourguide chapter "clients" (3 steps)
  */
 
 import React, { useEffect, useState } from 'react'
@@ -7,6 +9,7 @@ import {
   ActivityIndicator,
   FlatList,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,6 +19,7 @@ import {
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
+import TourStep from '@/components/tour/TourStep'
 
 import { useClients } from '@/hooks/useClients'
 import { useLookupsStore } from '@/stores/lookupsStore'
@@ -30,10 +34,10 @@ import {
 import { Client } from '@/types'
 
 // ---------------------------------------------------------------------------
-// Component
+// Inner screen component (needs to be inside TourGuideProvider)
 // ---------------------------------------------------------------------------
 
-export default function ClientsIndexScreen() {
+function ClientsScreenContent() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedRubros, setSelectedRubros] = useState<string[]>([])
@@ -181,40 +185,56 @@ export default function ClientsIndexScreen() {
   return (
     <View style={styles.container}>
 
-      {/* Search bar + filter button */}
+      {/* ── Tour steps 4 (search bar) + 5 (filter button) ── */}
       <View style={styles.searchWrapper}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={18} color={colors.textSecondary} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Buscar cliente..."
-            placeholderTextColor={colors.textDisabled}
-            clearButtonMode="while-editing"
-            autoCorrect={false}
-            autoCapitalize="none"
-            returnKeyType="search"
-          />
+        <View style={styles.searchBarZone}>
+          <TourStep
+            order={4}
+            text="Buscá cualquier cliente por nombre, rubro, ciudad o teléfono de contacto. La búsqueda es instantánea."
+            borderRadius={borderRadius.lg}
+            routePath="/(tabs)/clients"
+            wrapperStyle={{ flex: 1 }}
+          >
+            <View style={styles.searchBar}>
+              <Ionicons name="search" size={18} color={colors.textSecondary} style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Buscar cliente..."
+                placeholderTextColor={colors.textDisabled}
+                clearButtonMode="while-editing"
+                autoCorrect={false}
+                autoCapitalize="none"
+                returnKeyType="search"
+              />
+            </View>
+          </TourStep>
         </View>
 
-        <Pressable
-          style={[styles.filterButton, activeFilterCount > 0 && styles.filterButtonActive]}
-          onPress={openFilter}
-          accessibilityRole="button"
-          accessibilityLabel={`Filtros${activeFilterCount > 0 ? `, ${activeFilterCount} activos` : ''}`}
+        <TourStep
+          order={5}
+          text="Filtrá tu cartera por rubro, localidad o clientes sin visita reciente (30, 60 o 90 días). Podés combinar varios filtros."
+          routePath="/(tabs)/clients"
         >
-          <MaterialCommunityIcons
-            name="tune-variant"
-            size={20}
-            color={activeFilterCount > 0 ? colors.textOnPrimary : colors.textSecondary}
-          />
-          {activeFilterCount > 0 && (
-            <View style={styles.filterBadge}>
-              <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
-            </View>
-          )}
-        </Pressable>
+          <Pressable
+            style={[styles.filterButton, activeFilterCount > 0 && styles.filterButtonActive]}
+            onPress={openFilter}
+            accessibilityRole="button"
+            accessibilityLabel={`Filtros${activeFilterCount > 0 ? `, ${activeFilterCount} activos` : ''}`}
+          >
+            <MaterialCommunityIcons
+              name="tune-variant"
+              size={20}
+              color={activeFilterCount > 0 ? colors.textOnPrimary : colors.textSecondary}
+            />
+            {activeFilterCount > 0 && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+              </View>
+            )}
+          </Pressable>
+        </TourStep>
       </View>
 
       {/* Active filter chips summary */}
@@ -285,15 +305,28 @@ export default function ClientsIndexScreen() {
         />
       )}
 
-      {/* FAB */}
-      <Pressable
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-        onPress={() => router.push('/clients/form')}
-        accessibilityRole="button"
-        accessibilityLabel="Agregar cliente"
-      >
-        <Ionicons name="add" size={28} color={colors.textOnPrimary} />
-      </Pressable>
+      {/* ── Tour step 6: FAB ── */}
+      {/* Outer View holds position:absolute so TourStep's wrapper has real
+          56×56 dimensions. Without this the child Pressable's absolute
+          positioning gives TourStep a 0×0 size and measureInWindow returns
+          nothing (no spotlight rendered). */}
+      <View style={styles.fabContainer}>
+        <TourStep
+          order={6}
+          text="Tocá el botón + para agregar un nuevo cliente. También podés importar todos tus clientes desde un archivo Excel en Configuración."
+          routePath="/(tabs)/clients"
+          borderRadius={borderRadius.full}
+        >
+          <Pressable
+            style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+            onPress={() => router.push('/clients/form')}
+            accessibilityRole="button"
+            accessibilityLabel="Agregar cliente"
+          >
+            <Ionicons name="add" size={28} color={colors.textOnPrimary} />
+          </Pressable>
+        </TourStep>
+      </View>
 
       {/* Filter modal */}
       <Modal
@@ -427,6 +460,8 @@ export default function ClientsIndexScreen() {
   )
 }
 
+export default ClientsScreenContent
+
 // ---------------------------------------------------------------------------
 // Styles
 // ---------------------------------------------------------------------------
@@ -449,6 +484,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     gap: spacing[2],
+  },
+  searchBarZone: {
+    flex: 1,
   },
   searchBar: {
     flex: 1,
@@ -617,10 +655,12 @@ const styles = StyleSheet.create({
 
   // ── FAB ────────────────────────────────────────────────────────────────────
 
-  fab: {
+  fabContainer: {
     position: 'absolute',
     bottom: spacing[6],
     right: spacing[6],
+  },
+  fab: {
     width: 56,
     height: 56,
     borderRadius: borderRadius.full,

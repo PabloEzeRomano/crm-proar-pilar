@@ -14,7 +14,7 @@
  * do NOT trigger a spurious redirect away from deep tab screens.
  */
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -22,13 +22,14 @@ import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
 
 import { colors } from '@/constants/theme';
-import OnboardingTour from '@/components/OnboardingTour';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { useClientsStore } from '@/stores/clientsStore';
 import { useLookupsStore } from '@/stores/lookupsStore';
 import { useTodayStore } from '@/stores/todayStore';
 import { useVisitsStore } from '@/stores/visitsStore';
+import { useTourStore } from '@/stores/tourStore';
+import TourOverlay from '@/components/tour/TourOverlay';
 
 // ---------------------------------------------------------------------------
 // Notification setup (Android channel configuration)
@@ -125,9 +126,11 @@ function useDeepLinkHandler(): void {
 
     // Handle direct token in fragment (implicit flow or email confirmation)
     if (params.access_token && params.refresh_token) {
+      const accessToken = Array.isArray(params.access_token) ? params.access_token[0] : params.access_token
+      const refreshToken = Array.isArray(params.refresh_token) ? params.refresh_token[0] : params.refresh_token
       const { error } = await supabase.auth.setSession({
-        access_token: params.access_token,
-        refresh_token: params.refresh_token,
+        access_token: accessToken,
+        refresh_token: refreshToken,
       });
       if (error) {
         useAuthStore.getState().setError(error.message);
@@ -262,6 +265,8 @@ export default function RootLayout() {
   const fetchVisits = useVisitsStore((s) => s.fetchVisits);
   const fetchTodayVisits = useTodayStore((s) => s.fetchTodayVisits);
   const fetchLookups = useLookupsStore((s) => s.fetchLookups);
+  const startTour = useTourStore((s) => s.startTour);
+  const router = useRouter();
 
   // Initialize auth exactly once on mount.
   useEffect(() => {
@@ -278,6 +283,23 @@ export default function RootLayout() {
       fetchLookups(),
     ]);
   }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Start the interactive tour when show_tour = true (first login or "Ver tour de nuevo").
+  // Navigate to Agenda so chapter "agenda" starts on the visible screen.
+  // Guard: only fire when showTour transitions to true — avoids re-navigating when
+  // resetTour() (called from handleRestartTour) later resolves and updates Zustand.
+  const tourStartedRef = useRef(false);
+  useEffect(() => {
+    if (!showTour) {
+      tourStartedRef.current = false;
+      return;
+    }
+    if (!userId || loading) return;
+    if (tourStartedRef.current) return;
+    tourStartedRef.current = true;
+    startTour();
+    router.replace('/(tabs)/agenda');
+  }, [showTour, userId, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Refresh lookups when app comes into focus
   useRefreshLookupsOnFocus();
@@ -308,7 +330,7 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
       </Stack>
-      {showTour && userId && <OnboardingTour />}
+      <TourOverlay />
     </>
   );
 }
