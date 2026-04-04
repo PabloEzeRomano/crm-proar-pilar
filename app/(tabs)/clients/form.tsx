@@ -12,7 +12,9 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
+  FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -65,10 +67,33 @@ const EMPTY_FORM: FormFields = {
 }
 
 // ---------------------------------------------------------------------------
+// Nominatim types
+// ---------------------------------------------------------------------------
+
+interface NominatimResult {
+  display_name: string
+  lat: string
+  lon: string
+  address: {
+    road?: string
+    house_number?: string
+    city?: string
+    town?: string
+    village?: string
+    suburb?: string
+    county?: string
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formToInput(form: FormFields, contactList: ContactInfo[]): CreateClientInput {
+function formToInput(
+  form: FormFields,
+  contactList: ContactInfo[],
+  coords?: { lat: number; lon: number } | null,
+): CreateClientInput {
   return {
     name: form.name,
     industry: form.industry || undefined,
@@ -82,6 +107,8 @@ function formToInput(form: FormFields, contactList: ContactInfo[]): CreateClient
         email: c.email?.trim() || undefined,
       }))
       .filter((c) => c.name || c.phone || c.email),
+    latitude: coords?.lat ?? undefined,
+    longitude: coords?.lon ?? undefined,
   }
 }
 
@@ -135,6 +162,18 @@ export default function ClientFormScreen() {
   const [showRubroPicker, setShowRubroPicker] = useState(false)
   const [showLocalidadPicker, setShowLocalidadPicker] = useState(false)
 
+  // Address autocomplete
+  const [showAddressSearch, setShowAddressSearch] = useState(false)
+  const [addressQuery, setAddressQuery] = useState('')
+  const [addressResults, setAddressResults] = useState<NominatimResult[]>([])
+  const [addressSearching, setAddressSearching] = useState(false)
+  const [addressCoords, setAddressCoords] = useState<{ lat: number; lon: number } | null>(
+    existingClient?.latitude && existingClient?.longitude
+      ? { lat: existingClient.latitude, lon: existingClient.longitude }
+      : null,
+  )
+  const addressDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const rubros = useLookupsStore((s) => s.rubros)
   const localidades = useLookupsStore((s) => s.localidades)
   const addLookup = useLookupsStore((s) => s.addLookup)
@@ -173,13 +212,54 @@ export default function ClientFormScreen() {
 
   function validate(): boolean {
     const schema = isEditMode ? updateClientSchema : createClientSchema
-    const result = schema.safeParse(formToInput(form, contacts))
+    const result = schema.safeParse(formToInput(form, contacts, addressCoords))
     if (!result.success) {
       setErrors(extractZodErrors(result.error))
       return false
     }
     setErrors({})
     return true
+  }
+
+  // -------------------------------------------------------------------------
+  // Address autocomplete — Nominatim
+  // -------------------------------------------------------------------------
+
+  useEffect(() => {
+    if (!showAddressSearch) return
+    if (addressDebounceRef.current) clearTimeout(addressDebounceRef.current)
+    const q = addressQuery.trim()
+    if (q.length < 3) {
+      setAddressResults([])
+      return
+    }
+    addressDebounceRef.current = setTimeout(async () => {
+      setAddressSearching(true)
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=5`
+        const res = await fetch(url, {
+          headers: { 'User-Agent': 'crm-proar-pilar' },
+        })
+        const json: NominatimResult[] = await res.json()
+        setAddressResults(json)
+      } catch {
+        setAddressResults([])
+      } finally {
+        setAddressSearching(false)
+      }
+    }, 500)
+  }, [addressQuery, showAddressSearch]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleAddressSelect(result: NominatimResult) {
+    const { road, house_number, city, town, village } = result.address
+    const streetLine = [road, house_number].filter(Boolean).join(' ')
+    const cityLine = city || town || village || ''
+    setField('address', streetLine)
+    setField('city', cityLine)
+    setAddressCoords({ lat: parseFloat(result.lat), lon: parseFloat(result.lon) })
+    setShowAddressSearch(false)
+    setAddressQuery('')
+    setAddressResults([])
   }
 
   // -------------------------------------------------------------------------
@@ -220,7 +300,7 @@ export default function ClientFormScreen() {
     if (!validate()) return
     setSubmitError(null)
 
-    const input = formToInput(form, contacts)
+    const input = formToInput(form, contacts, addressCoords)
 
     if (isEditMode && clientId) {
       await updateClient(clientId, input)
@@ -239,7 +319,7 @@ export default function ClientFormScreen() {
     }
 
     router.dismiss()
-  }, [form, contacts, isEditMode, clientId, createClient, updateClient, router]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [form, contacts, addressCoords, isEditMode, clientId, createClient, updateClient, router]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // -------------------------------------------------------------------------
   // Is form valid for submit button state
@@ -472,21 +552,126 @@ export default function ClientFormScreen() {
         {/* ── Domicilio ─────────────────────────────────────────────── */}
         <View style={styles.fieldWrapper}>
           <Text style={styles.label}>Domicilio</Text>
-          <TextInput
-            style={getInputStyle('address')}
-            value={form.address}
-            onChangeText={(text) => setField('address', text)}
-            onFocus={() => setFocusedField('address')}
-            onBlur={() => setFocusedField(null)}
-            placeholder="Av. Ejemplo 1234"
-            placeholderTextColor={colors.textDisabled}
-            autoCapitalize="words"
-            returnKeyType="next"
-          />
+          <View style={styles.addressRow}>
+            <TextInput
+              style={[getInputStyle('address'), styles.addressInput]}
+              value={form.address}
+              onChangeText={(text) => {
+                setField('address', text)
+                setAddressCoords(null) // reset coords when manually edited
+              }}
+              onFocus={() => setFocusedField('address')}
+              onBlur={() => setFocusedField(null)}
+              placeholder="Av. Ejemplo 1234"
+              placeholderTextColor={colors.textDisabled}
+              autoCapitalize="words"
+              returnKeyType="next"
+            />
+            <Pressable
+              style={({ pressed }) => [
+                styles.addressSearchBtn,
+                pressed && styles.addressSearchBtnPressed,
+              ]}
+              onPress={() => {
+                setAddressQuery(form.address)
+                setShowAddressSearch(true)
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Buscar dirección"
+              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+            >
+              <MaterialCommunityIcons name="magnify" size={22} color={colors.primary} />
+            </Pressable>
+          </View>
           {errors.address ? (
             <Text style={styles.fieldError}>{errors.address}</Text>
           ) : null}
         </View>
+
+        {/* ── Address search modal ──────────────────────────────────── */}
+        <Modal
+          visible={showAddressSearch}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowAddressSearch(false)}
+        >
+          <View style={styles.searchModal}>
+            {/* Modal header */}
+            <View style={styles.searchModalHeader}>
+              <Text style={styles.searchModalTitle}>Buscar dirección</Text>
+              <Pressable
+                onPress={() => {
+                  setShowAddressSearch(false)
+                  setAddressQuery('')
+                  setAddressResults([])
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel="Cerrar búsqueda"
+              >
+                <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
+              </Pressable>
+            </View>
+
+            {/* Search input */}
+            <View style={styles.searchInputRow}>
+              <MaterialCommunityIcons name="magnify" size={20} color={colors.textSecondary} />
+              <TextInput
+                style={styles.searchInput}
+                value={addressQuery}
+                onChangeText={setAddressQuery}
+                placeholder="Buscar dirección…"
+                placeholderTextColor={colors.textDisabled}
+                autoFocus
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="search"
+                clearButtonMode="while-editing"
+              />
+              {addressSearching ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : null}
+            </View>
+
+            {/* Results */}
+            <FlatList
+              data={addressResults}
+              keyExtractor={(item, index) => `${item.lat}-${item.lon}-${index}`}
+              renderItem={({ item }) => (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.searchResultRow,
+                    pressed && styles.searchResultRowPressed,
+                  ]}
+                  onPress={() => handleAddressSelect(item)}
+                  accessibilityRole="button"
+                  accessibilityLabel={item.display_name}
+                >
+                  <MaterialCommunityIcons
+                    name="map-marker-outline"
+                    size={18}
+                    color={colors.textSecondary}
+                    style={styles.searchResultIcon}
+                  />
+                  <Text style={styles.searchResultText} numberOfLines={2}>
+                    {item.display_name}
+                  </Text>
+                </Pressable>
+              )}
+              ItemSeparatorComponent={() => <View style={styles.searchDivider} />}
+              ListEmptyComponent={
+                !addressSearching && addressQuery.trim().length >= 3
+                  ? () => (
+                      <View style={styles.searchEmpty}>
+                        <Text style={styles.searchEmptyText}>Sin resultados</Text>
+                      </View>
+                    )
+                  : null
+              }
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.searchResultsList}
+            />
+          </View>
+        </Modal>
 
         {/* ── Localidad ─────────────────────────────────────────────── */}
         <View style={styles.fieldWrapper}>
@@ -871,6 +1056,103 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: fontWeight.medium as '500',
     color: colors.primary,
+  },
+
+  // Address search
+  addressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  addressInput: {
+    flex: 1,
+  },
+  addressSearchBtn: {
+    width: 48,
+    height: 48,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addressSearchBtnPressed: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  searchModal: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  searchModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[5],
+    paddingBottom: spacing[3],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  searchModalTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textPrimary,
+  },
+  searchInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  searchInput: {
+    flex: 1,
+    height: 48,
+    fontSize: fontSize.base,
+    color: colors.textPrimary,
+  },
+  searchResultsList: {
+    paddingBottom: spacing[8],
+  },
+  searchResultRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    minHeight: 56,
+    backgroundColor: colors.surface,
+  },
+  searchResultRowPressed: {
+    backgroundColor: colors.background,
+  },
+  searchResultIcon: {
+    marginTop: 2,
+    marginRight: spacing[2],
+  },
+  searchResultText: {
+    flex: 1,
+    fontSize: fontSize.sm,
+    color: colors.textPrimary,
+    lineHeight: fontSize.sm * 1.5,
+  },
+  searchDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginLeft: spacing[4],
+  },
+  searchEmpty: {
+    padding: spacing[6],
+    alignItems: 'center',
+  },
+  searchEmptyText: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
   },
 
   // Inline "Agregar nuevo…" picker row
