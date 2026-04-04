@@ -82,6 +82,8 @@ function SettingsScreenContent() {
 
   const fetchTodayVisits = useTodayStore((s) => s.fetchTodayVisits)
   const fetchVisits = useVisitsStore((s) => s.fetchVisits)
+  const deleteAllVisits = useVisitsStore((s) => s.deleteAllUserVisits)
+  const deleteAllClients = useClientsStore((s) => s.deleteAllUserClients)
 
   // -------------------------------------------------------------------------
   // Local state
@@ -279,28 +281,30 @@ function SettingsScreenContent() {
   }
 
   async function handleDevReset() {
-    Alert.alert(
-      'Borrar todos los datos',
-      'Esto eliminará TODOS los clientes y visitas del usuario. ¿Continuar?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Borrar todo',
-          style: 'destructive',
-          onPress: async () => {
-            const deleteAllVisits = useVisitsStore((state) => state.deleteAllUserVisits)
-            const deleteAllClients = useClientsStore((state) => state.deleteAllUserClients)
-            await deleteAllVisits()
-            await deleteAllClients()
-            fetchVisits()
-            fetchTodayVisits()
-          },
-        },
-      ],
-    )
+    const confirmed = Platform.OS === 'web'
+      ? window.confirm('Esto eliminará TODOS los clientes y visitas del usuario. ¿Continuar?')
+      : await new Promise<boolean>((resolve) =>
+          Alert.alert(
+            'Borrar todos los datos',
+            'Esto eliminará TODOS los clientes y visitas del usuario. ¿Continuar?',
+            [
+              { text: 'Cancelar', style: 'cancel', onPress: () => resolve(false) },
+              { text: 'Borrar todo', style: 'destructive', onPress: () => resolve(true) },
+            ],
+          )
+        )
+    if (!confirmed) return
+    await deleteAllVisits()
+    await deleteAllClients()
+    fetchVisits()
+    fetchTodayVisits()
   }
 
   function handleSignOut() {
+    if (Platform.OS === 'web') {
+      if (window.confirm('¿Estás seguro que querés cerrar sesión?')) signOut()
+      return
+    }
     Alert.alert(
       'Cerrar sesión',
       '¿Estás seguro que querés cerrar sesión?',
