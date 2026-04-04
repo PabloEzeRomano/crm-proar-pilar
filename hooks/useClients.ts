@@ -2,15 +2,25 @@ import { useMemo, useState, useEffect } from 'react'
 import dayjs from '../lib/dayjs'
 import { supabase } from '../lib/supabase'
 import { useClientsStore } from '../stores/clientsStore'
+import { useVisitsStore } from '../stores/visitsStore'
 import { useAuthStore } from '../stores/authStore'
-import { Client, Profile } from '../types'
+import { Client, Profile, VisitType } from '../types'
 import { CreateClientInput, UpdateClientInput } from '../validators/client'
+
+export type ClientSortOrder =
+  | 'name-asc'
+  | 'name-desc'
+  | 'last-visited-recent'
+  | 'last-visited-oldest'
+  | 'stale-first'
 
 export function useClients(
   searchQuery?: string,
   rubroFilter?: string[],
   localidadFilter?: string[],
   staleDays?: number | null,
+  sortOrder?: ClientSortOrder,
+  visitTypeFilter?: VisitType | null,
 ) {
   const clients = useClientsStore((state) => state.clients)
   const loading = useClientsStore((state) => state.loading)
@@ -20,6 +30,7 @@ export function useClients(
   const updateClient = useClientsStore((state) => state.updateClient)
   const deleteClient = useClientsStore((state) => state.deleteClient)
   const profile = useAuthStore((state) => state.profile)
+  const allVisits = useVisitsStore((state) => state.visits)
 
   // Owner profiles map for admin view
   const [ownerProfiles, setOwnerProfiles] = useState<Record<string, Profile | null>>({})
@@ -89,8 +100,55 @@ export function useClients(
       )
     }
 
-    return result
-  }, [clients, searchQuery, rubroFilter, localidadFilter, staleDays])
+    // Filter by visit type: keep only clients with at least one visit of that type
+    if (visitTypeFilter) {
+      const clientIdsWithType = new Set(
+        allVisits
+          .filter((v) => (v.type ?? 'visit') === visitTypeFilter)
+          .map((v) => v.client_id),
+      )
+      result = result.filter((c) => clientIdsWithType.has(c.id))
+    }
+
+    // Sort
+    const sorted = [...result]
+    switch (sortOrder) {
+      case 'name-asc':
+        sorted.sort((a, b) => a.name.localeCompare(b.name, 'es'))
+        break
+      case 'name-desc':
+        sorted.sort((a, b) => b.name.localeCompare(a.name, 'es'))
+        break
+      case 'last-visited-recent':
+        sorted.sort((a, b) => {
+          const aTime = a.last_visited_at ? new Date(a.last_visited_at).getTime() : 0
+          const bTime = b.last_visited_at ? new Date(b.last_visited_at).getTime() : 0
+          return bTime - aTime
+        })
+        break
+      case 'last-visited-oldest':
+        sorted.sort((a, b) => {
+          const aTime = a.last_visited_at ? new Date(a.last_visited_at).getTime() : 0
+          const bTime = b.last_visited_at ? new Date(b.last_visited_at).getTime() : 0
+          return aTime - bTime
+        })
+        break
+      case 'stale-first':
+        sorted.sort((a, b) => {
+          // null/undefined last_visited_at = never visited = highest priority
+          const aDays = a.last_visited_at ? dayjs().diff(dayjs(a.last_visited_at), 'day') : Infinity
+          const bDays = b.last_visited_at ? dayjs().diff(dayjs(b.last_visited_at), 'day') : Infinity
+          return bDays - aDays
+        })
+        break
+      default:
+        // default: name A-Z
+        sorted.sort((a, b) => a.name.localeCompare(b.name, 'es'))
+        break
+    }
+
+    return sorted
+  }, [clients, searchQuery, rubroFilter, localidadFilter, staleDays, sortOrder, visitTypeFilter, allVisits])
 
   return {
     clients: filteredClients,
