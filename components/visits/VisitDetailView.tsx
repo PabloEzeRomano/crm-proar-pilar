@@ -20,7 +20,7 @@ import {
   TextInput,
   View,
 } from 'react-native'
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
+import { useLocalSearchParams, useNavigation, usePathname, useRouter } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -50,6 +50,10 @@ export default function VisitDetailView() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const navigation = useNavigation()
+  const pathname = usePathname()
+  const editFormPath = pathname.startsWith('/agenda')
+    ? `/agenda/visits/form?visitId=${id}`
+    : `/visits/form?visitId=${id}`
 
   const visit = useVisitsStore((state) => state.visits.find((v) => v.id === id))
   const error = useVisitsStore((state) => state.error)
@@ -80,7 +84,8 @@ export default function VisitDetailView() {
     navigation.setOptions({
       headerRight: () => (
         <Pressable
-          onPress={() => router.push(`/visits/form?visitId=${id}`)}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          onPress={() => router.push(editFormPath as any)}
           style={styles.headerButton}
           accessibilityRole="button"
           accessibilityLabel="Editar visita"

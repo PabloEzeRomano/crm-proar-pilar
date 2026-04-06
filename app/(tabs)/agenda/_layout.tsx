@@ -30,6 +30,7 @@ export default function AgendaLayout() {
     <Stack screenOptions={headerOptions}>
       <Stack.Screen name="index" options={{ title: 'Agenda' }} />
       <Stack.Screen name="visits/[id]" options={{ title: 'Visita' }} />
+      <Stack.Screen name="visits/form" options={{ presentation: 'modal', title: 'Editar visita' }} />
     </Stack>
   )
 }
