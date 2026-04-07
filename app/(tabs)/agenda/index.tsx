@@ -30,7 +30,6 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import TourStep from '@/components/tour/TourStep'
 
 import { useToday } from '@/hooks/useToday'
-import { useVisitStats } from '@/hooks/useVisitStats'
 import { useTodayStore } from '@/stores/todayStore'
 import { TodaySpan } from '@/stores/todayStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -138,8 +137,6 @@ function TodayScreenContent() {
     lastFetched,
     fetchTodayVisits,
   } = useToday(isAdmin)
-
-  const stats = useVisitStats()
 
   const sortedByDistance = useTodayStore((s) => s.sortedByDistance)
   const sortByDistance = useTodayStore((s) => s.sortByDistance)
@@ -451,7 +448,6 @@ function TodayScreenContent() {
       <StatsModal
         visible={statsVisible}
         onClose={() => setStatsVisible(false)}
-        stats={stats}
       />
       <ScrollView
         style={styles.scrollView}

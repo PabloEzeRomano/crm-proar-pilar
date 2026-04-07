@@ -1,5 +1,5 @@
 /**
- * StatsModal — EP-018 (story 18.3)
+ * StatsModal — EP-018 (story 18.3) + EP-039
  *
  * Bottom-sheet-style modal with visit statistics.
  * Triggered by the chart icon in the Today screen header.
@@ -7,18 +7,20 @@
  * Shows:
  *   - Week and month visit counts + completion rates (18.1)
  *   - Top clients by visit frequency (18.2)
+ *   - EP-039: "Completed only" toggle + date range filter
  */
 
-import React from 'react'
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import React, { useState } from 'react'
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { borderRadius, colors, fontSize, fontWeight, shadows, spacing } from '@/constants/theme'
-import { VisitStats } from '@/hooks/useVisitStats'
+import { useVisitStats } from '@/hooks/useVisitStats'
+import DateTimeInput from '@/components/DateTimeInput'
+import dayjs from '@/lib/dayjs'
 
 interface StatsModalProps {
   visible: boolean
   onClose: () => void
-  stats: VisitStats
 }
 
 // ---------------------------------------------------------------------------
@@ -143,8 +145,14 @@ const pcStyles = StyleSheet.create({
 // Main modal
 // ---------------------------------------------------------------------------
 
-export function StatsModal({ visible, onClose, stats }: StatsModalProps) {
-  const hasData = stats.week.total > 0 || stats.month.total > 0
+export function StatsModal({ visible, onClose }: StatsModalProps) {
+  // Default range: first day of current month → today
+  const [completedOnly, setCompletedOnly] = useState(true)
+  const [dateFrom, setDateFrom] = useState<Date>(() => dayjs().startOf('month').toDate())
+  const [dateTo, setDateTo] = useState<Date>(() => dayjs().toDate())
+
+  const stats = useVisitStats({ completedOnly, dateFrom, dateTo })
+  const hasData = stats.week.total > 0 || stats.month.total > 0 || stats.topClients.length > 0
 
   return (
     <Modal
@@ -183,6 +191,46 @@ export function StatsModal({ visible, onClose, stats }: StatsModalProps) {
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
+          {/* ── Filters ─────────────────────────────────────────────── */}
+          <View style={styles.filtersSection}>
+            {/* Completed only toggle */}
+            <View style={styles.toggleRow}>
+              <Text style={styles.toggleLabel}>Solo completadas</Text>
+              <Switch
+                value={completedOnly}
+                onValueChange={setCompletedOnly}
+                trackColor={{ false: colors.border, true: colors.primaryLight }}
+                thumbColor={completedOnly ? colors.primary : colors.textDisabled}
+              />
+            </View>
+
+            {/* Date range */}
+            <View style={styles.dateRangeRow}>
+              <View style={styles.datePickerGroup}>
+                <Text style={styles.datePickerLabel}>Desde</Text>
+                <DateTimeInput
+                  value={dateFrom}
+                  mode="date"
+                  display={Platform.OS === 'android' ? 'calendar' : 'inline'}
+                  onChange={setDateFrom}
+                  accentColor={colors.primary}
+                  locale="es"
+                />
+              </View>
+              <View style={styles.datePickerGroup}>
+                <Text style={styles.datePickerLabel}>Hasta</Text>
+                <DateTimeInput
+                  value={dateTo}
+                  mode="date"
+                  display={Platform.OS === 'android' ? 'calendar' : 'inline'}
+                  onChange={setDateTo}
+                  accentColor={colors.primary}
+                  locale="es"
+                />
+              </View>
+            </View>
+          </View>
+
           {hasData ? (
             <>
               {/* Period cards */}
@@ -225,7 +273,7 @@ export function StatsModal({ visible, onClose, stats }: StatsModalProps) {
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyEmoji}>📊</Text>
               <Text style={styles.emptyText}>
-                No hay datos de visitas cargadas aún.{'\n'}Las estadísticas aparecerán automáticamente.
+                No hay datos para el período seleccionado.{'\n'}Ajustá los filtros o el rango de fechas.
               </Text>
             </View>
           )}
@@ -249,7 +297,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: borderRadius.xl,
     borderTopRightRadius: borderRadius.xl,
     paddingBottom: spacing[8],
-    maxHeight: '75%',
+    maxHeight: '85%',
     ...shadows.subtle,
   },
   handle: {
@@ -292,6 +340,41 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing[4],
     gap: spacing[5],
+  },
+
+  // Filters section
+  filtersSection: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    padding: spacing[3],
+    gap: spacing[3],
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  toggleLabel: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textPrimary,
+  },
+  dateRangeRow: {
+    flexDirection: 'row',
+    gap: spacing[3],
+  },
+  datePickerGroup: {
+    flex: 1,
+    gap: spacing[1],
+  },
+  datePickerLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
 
   // Period cards

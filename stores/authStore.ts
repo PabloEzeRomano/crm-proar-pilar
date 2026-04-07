@@ -25,7 +25,7 @@ export interface AuthState {
   updateEmailConfig: (config: import('../types').EmailConfig) => Promise<void>;
   completeTour: () => Promise<void>;
   resetTour: () => Promise<void>;
-  invokeWeeklyEmail: () => Promise<void>;
+  invokeWeeklyEmail: (recipientsOverride?: string[]) => Promise<void>;
 }
 
 // Module-level variable to hold the auth state change subscription so it
@@ -244,10 +244,12 @@ export const useAuthStore = create<AuthState>()((set) => ({
     }
   },
 
-  invokeWeeklyEmail: async () => {
+  invokeWeeklyEmail: async (recipientsOverride?: string[]) => {
     set({ error: null });
 
-    const { error } = await supabase.functions.invoke('weekly-email');
+    const { error } = await supabase.functions.invoke('weekly-email', {
+      body: recipientsOverride ? { recipients: recipientsOverride } : undefined,
+    });
 
     if (error) {
       set({

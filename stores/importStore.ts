@@ -541,7 +541,7 @@ export const useImportStore = create<ImportState>()((set) => ({
           client_id: clientId,
           scheduled_at: scheduledAt,
           status: isPast ? 'completed' : 'pending',
-          notes: str(row['Minuta de la Reunião']),
+          notes: str(row['Minuta de la Reunión']),
         });
         visitSet.add(visitKey);
       }
