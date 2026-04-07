@@ -11,17 +11,19 @@
  *   - FAB (+) to navigate to create form
  */
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useState } from 'react'
 import {
   ActivityIndicator,
   FlatList,
+  Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native'
-import { useRouter } from 'expo-router'
+import { useNavigation, useRouter } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import TourStep from '@/components/tour/TourStep'
 
@@ -37,6 +39,7 @@ import { VisitStatus, VisitType, VisitWithClient } from '@/types'
 import { useVisits } from '@/hooks/useVisits'
 import { useAuthStore } from '@/stores/authStore'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import DateTimeInput from '@/components/DateTimeInput'
 
 // ---------------------------------------------------------------------------
 // Status configuration
@@ -75,14 +78,61 @@ const FILTER_OPTIONS: FilterOption[] = [
 
 export default function VisitsIndexScreen() {
   const router = useRouter()
+  const navigation = useNavigation()
   const [activeFilter, setActiveFilter] = useState<VisitStatus | 'all' | 'upcoming'>('all')
+  const [showDateFilter, setShowDateFilter] = useState(false)
+  const [dateFrom, setDateFrom] = useState<Date | null>(null)
+  const [dateTo, setDateTo] = useState<Date | null>(null)
+  const [pendingFrom, setPendingFrom] = useState<Date>(new Date())
+  const [pendingTo, setPendingTo] = useState<Date>(new Date())
+  const [showFromPicker, setShowFromPicker] = useState(false)
+  const [showToPicker, setShowToPicker] = useState(false)
+
   const profile = useAuthStore((state) => state.profile)
   const isAdmin = profile?.role === 'admin'
-  const { visits, hasMore, loading, loadingMore, error, fetchVisits, fetchMoreVisits } = useVisits(undefined, activeFilter, isAdmin)
+  const { visits: rawVisits, hasMore, loading, loadingMore, error, fetchVisits, fetchMoreVisits } = useVisits(undefined, activeFilter, isAdmin)
+
+  // Apply date range filter client-side
+  const visits = rawVisits.filter((v) => {
+    if (!dateFrom && !dateTo) return true
+    const scheduled = dayjs(v.scheduled_at)
+    if (dateFrom && scheduled.isBefore(dayjs(dateFrom).startOf('day'))) return false
+    if (dateTo && scheduled.isAfter(dayjs(dateTo).endOf('day'))) return false
+    return true
+  })
+
+  const dateRangeActive = Boolean(dateFrom || dateTo)
 
   useEffect(() => {
     fetchVisits()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Header right: calendar filter button
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable
+          onPress={() => {
+            setPendingFrom(dateFrom ?? new Date())
+            setPendingTo(dateTo ?? new Date())
+            setShowToPicker(false)
+            setShowDateFilter(true)
+            if (Platform.OS === 'android') setShowFromPicker(true)
+          }}
+          style={styles.headerBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Filtrar por fecha"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MaterialCommunityIcons
+            name={dateRangeActive ? 'calendar-filter' : 'calendar-filter-outline'}
+            size={22}
+            color={dateRangeActive ? colors.primary : colors.textSecondary}
+          />
+        </Pressable>
+      ),
+    })
+  }, [navigation, dateRangeActive, dateFrom, dateTo]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleRowPress(visit: VisitWithClient) {
     router.push(`/visits/${visit.id}`)
@@ -217,6 +267,158 @@ export default function VisitsIndexScreen() {
           </ScrollView>
         </View>
       </TourStep>
+
+      {/* Active date range pill */}
+      {dateRangeActive && (
+        <View style={styles.activeDateRangeBar}>
+          <MaterialCommunityIcons name="calendar-range" size={14} color={colors.primary} />
+          <Text style={styles.activeDateRangeText}>
+            {dateFrom ? dayjs(dateFrom).format('DD/MM') : '…'}
+            {' – '}
+            {dateTo ? dayjs(dateTo).format('DD/MM') : '…'}
+          </Text>
+          <Pressable
+            onPress={() => { setDateFrom(null); setDateTo(null) }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Quitar filtro de fecha"
+          >
+            <MaterialCommunityIcons name="close-circle" size={16} color={colors.primary} />
+          </Pressable>
+        </View>
+      )}
+
+      {/* Date range filter modal */}
+      <Modal
+        visible={showDateFilter}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowDateFilter(false)}
+        statusBarTranslucent
+      >
+        <Pressable style={styles.dateModalBackdrop} onPress={() => setShowDateFilter(false)} />
+        <View style={styles.dateModalSheet}>
+          <View style={styles.dateModalHandle} />
+          <View style={styles.dateModalHeader}>
+            <MaterialCommunityIcons name="calendar-range" size={20} color={colors.primary} />
+            <Text style={styles.dateModalTitle}>Filtrar por fecha</Text>
+            <Pressable
+              onPress={() => setShowDateFilter(false)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Cerrar"
+            >
+              <MaterialCommunityIcons name="close" size={22} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+
+          <View style={styles.dateModalContent}>
+            {/* From */}
+            <View style={styles.dateFieldGroup}>
+              <Text style={styles.dateFieldLabel}>Desde</Text>
+              {Platform.OS === 'android' ? (
+                <Pressable
+                  style={({ pressed }) => [styles.dateDisplayButton, pressed && styles.dateDisplayButtonPressed]}
+                  onPress={() => setShowFromPicker(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Seleccionar fecha desde"
+                >
+                  <Text style={styles.dateDisplayText}>{dayjs(pendingFrom).format('DD/MM/YYYY')}</Text>
+                  <MaterialCommunityIcons name="calendar" size={20} color={colors.primary} />
+                </Pressable>
+              ) : (
+                <DateTimeInput
+                  value={pendingFrom}
+                  mode="date"
+                  display="inline"
+                  onChange={setPendingFrom}
+                  accentColor={colors.primary}
+                  locale="es"
+                />
+              )}
+            </View>
+
+            {/* To */}
+            <View style={styles.dateFieldGroup}>
+              <Text style={styles.dateFieldLabel}>Hasta</Text>
+              {Platform.OS === 'android' ? (
+                <Pressable
+                  style={({ pressed }) => [styles.dateDisplayButton, pressed && styles.dateDisplayButtonPressed]}
+                  onPress={() => setShowToPicker(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Seleccionar fecha hasta"
+                >
+                  <Text style={styles.dateDisplayText}>{dayjs(pendingTo).format('DD/MM/YYYY')}</Text>
+                  <MaterialCommunityIcons name="calendar" size={20} color={colors.primary} />
+                </Pressable>
+              ) : (
+                <DateTimeInput
+                  value={pendingTo}
+                  mode="date"
+                  display="inline"
+                  onChange={setPendingTo}
+                  accentColor={colors.primary}
+                  locale="es"
+                />
+              )}
+            </View>
+          </View>
+
+          {/* Android date pickers — rendered as modal dialogs, one at a time */}
+          {Platform.OS === 'android' && showFromPicker && (
+            <DateTimeInput
+              value={pendingFrom}
+              mode="date"
+              display="calendar"
+              onChange={(date) => { setPendingFrom(date); setShowFromPicker(false); setShowToPicker(true) }}
+              isAndroidModal
+              onDismiss={() => setShowFromPicker(false)}
+              accentColor={colors.primary}
+              locale="es"
+            />
+          )}
+          {Platform.OS === 'android' && showToPicker && (
+            <DateTimeInput
+              value={pendingTo}
+              mode="date"
+              display="calendar"
+              onChange={(date) => { setPendingTo(date); setShowToPicker(false) }}
+              isAndroidModal
+              onDismiss={() => setShowToPicker(false)}
+              accentColor={colors.primary}
+              locale="es"
+            />
+          )}
+
+          {/* Actions */}
+          <View style={styles.dateModalActions}>
+            <Pressable
+              style={styles.dateModalClearButton}
+              onPress={() => {
+                setDateFrom(null)
+                setDateTo(null)
+                setShowDateFilter(false)
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Quitar filtro"
+            >
+              <Text style={styles.dateModalClearLabel}>Quitar filtro</Text>
+            </Pressable>
+            <Pressable
+              style={styles.dateModalApplyButton}
+              onPress={() => {
+                setDateFrom(pendingFrom)
+                setDateTo(pendingTo)
+                setShowDateFilter(false)
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Aplicar filtro"
+            >
+              <Text style={styles.dateModalApplyLabel}>Aplicar</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       {/* Loading state */}
       {loading && visits.length === 0 ? (
@@ -411,6 +613,134 @@ const styles = StyleSheet.create({
   footerLoader: {
     paddingVertical: spacing[4],
     alignItems: 'center',
+  },
+
+  // Header button
+  headerBtn: {
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+
+  // Active date range pill
+  activeDateRangeBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    backgroundColor: colors.primaryLight,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  activeDateRangeText: {
+    flex: 1,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.primary,
+  },
+
+  // Date filter modal
+  dateModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  dateModalSheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+  },
+  dateModalHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.border,
+    alignSelf: 'center',
+    marginTop: spacing[2],
+    marginBottom: spacing[2],
+  },
+  dateModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[4],
+    paddingBottom: spacing[3],
+    gap: spacing[2],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  dateModalTitle: {
+    flex: 1,
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textPrimary,
+  },
+  dateModalContent: {
+    padding: spacing[4],
+    gap: spacing[4],
+  },
+  dateFieldGroup: {
+    gap: spacing[2],
+  },
+  dateFieldLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textSecondary,
+  },
+  dateDisplayButton: {
+    height: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.background,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing[3],
+  },
+  dateDisplayButtonPressed: {
+    borderColor: colors.primary,
+  },
+  dateDisplayText: {
+    fontSize: fontSize.base,
+    color: colors.textPrimary,
+  },
+  dateModalActions: {
+    flexDirection: 'row',
+    gap: spacing[3],
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[3],
+    paddingBottom: spacing[6],
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  dateModalClearButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+  dateModalClearLabel: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textSecondary,
+  },
+  dateModalApplyButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dateModalApplyLabel: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textOnPrimary,
   },
 
   // FAB

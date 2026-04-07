@@ -458,6 +458,59 @@
 
 ---
 
+## EP-035 — Bug: visit notes missing after Excel import
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 35.1 | Fix notes column typo in importStore: `'Minuta de la Reunião'` → `'Minuta de la Reunión'` | scripts + state | `done` |
+
+---
+
+## EP-036 — Bug: past visits auto-completing
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 36.1 | Remove auto-status-from-date logic in visit form; new visits always default to `pending` | state + frontend | `done` |
+
+---
+
+## EP-037 — Send report email on demand with custom recipients
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 37.1 | Remove `__DEV__` guard from "Enviar reporte ahora" button in Settings | frontend | `done` |
+| 37.2 | "Send report" modal with pre-filled configured recipients (read-only chips) + ad-hoc recipient input; Zod-validated; ad-hoc not persisted | frontend + state | `done` |
+
+> Note: Edge function (`weekly-email`) needs backend update to use `recipients` from request body when provided.
+
+---
+
+## EP-038 — Date range filter on visits list
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 38.1 | Calendar icon in visits list header opens date range modal; client-side filter; dismissible active range pill | frontend + state | `done` |
+
+---
+
+## EP-039 — Statistics: filter by completed status and date range
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 39.1 | "Solo completadas" toggle (default: on) + date range pickers (default: first of month → today) inside StatsModal; stats re-computed reactively | frontend + state | `done` |
+
+---
+
+## EP-040 — Keyboard covering inputs on Android
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 40.1 | Audit `app.json` softInputMode and existing KeyboardAvoidingView usage | frontend | `done` |
+| 40.2 | Set `softInputMode: "adjustResize"` in `app.json` under `expo.android` | frontend | `done` |
+| 40.3 | Verify modals (email report, address search) have keyboard avoidance | frontend | `done` |
+
+---
+
 ## Pending
 
 > All stories across all EPs that are not yet `done`.
