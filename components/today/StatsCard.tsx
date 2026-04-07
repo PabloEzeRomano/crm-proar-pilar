@@ -57,21 +57,25 @@ const pbStyles = StyleSheet.create({
 interface PeriodCardProps {
   label: string
   total: number
+  totalAll: number
   completed: number
   pending: number
   completionRate: number
+  completedOnly: boolean
 }
 
-function PeriodCard({ label, total, completed, pending, completionRate }: PeriodCardProps) {
-  const rateColor =
-    completionRate >= 75 ? colors.success : completionRate >= 50 ? colors.warning : colors.error
+function PeriodCard({ label, total, totalAll, completed, pending, completionRate, completedOnly }: PeriodCardProps) {
+  // When completedOnly is active, show real completion rate against unfiltered total
+  const displayRate = completedOnly && totalAll > 0 ? Math.round((total / totalAll) * 100) : completionRate
+  const rateColor = displayRate >= 75 ? colors.success : displayRate >= 50 ? colors.warning : colors.error
+  const showAsFraction = completedOnly && totalAll > total
 
   return (
     <View style={pcStyles.card}>
       <Text style={pcStyles.label}>{label}</Text>
       <Text style={pcStyles.total}>
-        {total}
-        <Text style={pcStyles.unit}> {total === 1 ? 'visita' : 'visitas'}</Text>
+        {showAsFraction ? `${total} de ${totalAll}` : total}
+        <Text style={pcStyles.unit}> {totalAll === 1 ? 'visita' : 'visitas'}</Text>
       </Text>
 
       <View style={pcStyles.row}>
@@ -84,8 +88,8 @@ function PeriodCard({ label, total, completed, pending, completionRate }: Period
       </View>
 
       <View style={pcStyles.rateRow}>
-        <ProgressBar rate={completionRate} />
-        <Text style={[pcStyles.rateText, { color: rateColor }]}>{completionRate}%</Text>
+        <ProgressBar rate={displayRate} />
+        <Text style={[pcStyles.rateText, { color: rateColor }]}>{displayRate}%</Text>
       </View>
     </View>
   )
@@ -148,11 +152,23 @@ const pcStyles = StyleSheet.create({
 export function StatsModal({ visible, onClose }: StatsModalProps) {
   // Default range: first day of current month → today
   const [completedOnly, setCompletedOnly] = useState(true)
-  const [dateFrom, setDateFrom] = useState<Date>(() => dayjs().startOf('month').toDate())
-  const [dateTo, setDateTo] = useState<Date>(() => dayjs().toDate())
+  const [dateFrom, setDateFrom] = useState<Date | null>(() => dayjs().startOf('month').toDate())
+  const [dateTo, setDateTo] = useState<Date | null>(() => dayjs().toDate())
+  const [showFromPicker, setShowFromPicker] = useState(false)
+  const [showToPicker, setShowToPicker] = useState(false)
+
+  const datesActive = !!(dateFrom && dateTo)
+  const clearDates = () => { setDateFrom(null); setDateTo(null) }
+  const resetDates = () => { setDateFrom(dayjs().startOf('month').toDate()); setDateTo(dayjs().toDate()) }
 
   const stats = useVisitStats({ completedOnly, dateFrom, dateTo })
-  const hasData = stats.week.total > 0 || stats.month.total > 0 || stats.topClients.length > 0
+  const { hasDateFilter } = stats
+  const rangeDateLabel = datesActive
+    ? `${dayjs(dateFrom).format('DD/MM')} – ${dayjs(dateTo).format('DD/MM')}`
+    : ''
+  const hasData =
+    (hasDateFilter ? stats.range.totalAll > 0 : stats.week.total > 0 || stats.month.total > 0) ||
+    stats.topClients.length > 0
 
   return (
     <Modal
@@ -204,52 +220,148 @@ export function StatsModal({ visible, onClose }: StatsModalProps) {
               />
             </View>
 
-            {/* Date range */}
-            <View style={styles.dateRangeRow}>
-              <View style={styles.datePickerGroup}>
-                <Text style={styles.datePickerLabel}>Desde</Text>
-                <DateTimeInput
-                  value={dateFrom}
-                  mode="date"
-                  display={Platform.OS === 'android' ? 'calendar' : 'inline'}
-                  onChange={setDateFrom}
-                  accentColor={colors.primary}
-                  locale="es"
-                />
-              </View>
-              <View style={styles.datePickerGroup}>
-                <Text style={styles.datePickerLabel}>Hasta</Text>
-                <DateTimeInput
-                  value={dateTo}
-                  mode="date"
-                  display={Platform.OS === 'android' ? 'calendar' : 'inline'}
-                  onChange={setDateTo}
-                  accentColor={colors.primary}
-                  locale="es"
-                />
-              </View>
+            {/* Date range header */}
+            <View style={styles.dateRangeHeader}>
+              <Text style={styles.datePickerLabel}>Rango de fechas</Text>
+              {datesActive ? (
+                <Pressable
+                  onPress={clearDates}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Quitar filtro de fechas"
+                >
+                  <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+                </Pressable>
+              ) : (
+                <Pressable
+                  onPress={resetDates}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Agregar filtro de fechas"
+                >
+                  <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
+                </Pressable>
+              )}
             </View>
+
+            {/* Date range pickers — only when active */}
+            {datesActive && (
+              <>
+                <View style={styles.dateRangeRow}>
+                  <View style={styles.datePickerGroup}>
+                    <Text style={styles.datePickerLabel}>Desde</Text>
+                    {Platform.OS === 'android' ? (
+                      <Pressable
+                        style={({ pressed }) => [styles.dateDisplayButton, pressed && styles.dateDisplayButtonPressed]}
+                        onPress={() => setShowFromPicker(true)}
+                        accessibilityRole="button"
+                        accessibilityLabel="Seleccionar fecha desde"
+                      >
+                        <Text style={styles.dateDisplayText}>{dayjs(dateFrom).format('DD/MM/YYYY')}</Text>
+                        <MaterialCommunityIcons name="calendar" size={20} color={colors.primary} />
+                      </Pressable>
+                    ) : (
+                      <DateTimeInput
+                        value={dateFrom!}
+                        mode="date"
+                        display="inline"
+                        onChange={setDateFrom}
+                        accentColor={colors.primary}
+                        locale="es"
+                      />
+                    )}
+                  </View>
+                  <View style={styles.datePickerGroup}>
+                    <Text style={styles.datePickerLabel}>Hasta</Text>
+                    {Platform.OS === 'android' ? (
+                      <Pressable
+                        style={({ pressed }) => [styles.dateDisplayButton, pressed && styles.dateDisplayButtonPressed]}
+                        onPress={() => setShowToPicker(true)}
+                        accessibilityRole="button"
+                        accessibilityLabel="Seleccionar fecha hasta"
+                      >
+                        <Text style={styles.dateDisplayText}>{dayjs(dateTo).format('DD/MM/YYYY')}</Text>
+                        <MaterialCommunityIcons name="calendar" size={20} color={colors.primary} />
+                      </Pressable>
+                    ) : (
+                      <DateTimeInput
+                        value={dateTo!}
+                        mode="date"
+                        display="inline"
+                        onChange={setDateTo}
+                        accentColor={colors.primary}
+                        locale="es"
+                      />
+                    )}
+                  </View>
+                </View>
+
+                {/* Android date pickers — rendered as modal dialogs, one at a time */}
+                {Platform.OS === 'android' && showFromPicker && (
+                  <DateTimeInput
+                    value={dateFrom!}
+                    mode="date"
+                    display="calendar"
+                    onChange={(date) => { setDateFrom(date); setShowFromPicker(false); setShowToPicker(true) }}
+                    isAndroidModal
+                    onDismiss={() => setShowFromPicker(false)}
+                    accentColor={colors.primary}
+                    locale="es"
+                  />
+                )}
+                {Platform.OS === 'android' && showToPicker && (
+                  <DateTimeInput
+                    value={dateTo!}
+                    mode="date"
+                    display="calendar"
+                    onChange={(date) => { setDateTo(date); setShowToPicker(false) }}
+                    isAndroidModal
+                    onDismiss={() => setShowToPicker(false)}
+                    accentColor={colors.primary}
+                    locale="es"
+                  />
+                )}
+              </>
+            )}
           </View>
 
           {hasData ? (
             <>
               {/* Period cards */}
-              <View style={styles.periodsRow}>
-                <PeriodCard
-                  label="Esta semana"
-                  total={stats.week.total}
-                  completed={stats.week.completed}
-                  pending={stats.week.pending}
-                  completionRate={stats.week.completionRate}
-                />
-                <PeriodCard
-                  label="Este mes"
-                  total={stats.month.total}
-                  completed={stats.month.completed}
-                  pending={stats.month.pending}
-                  completionRate={stats.month.completionRate}
-                />
-              </View>
+              {hasDateFilter ? (
+                <View style={styles.periodsRow}>
+                  <PeriodCard
+                    label={rangeDateLabel}
+                    total={stats.range.total}
+                    totalAll={stats.range.totalAll}
+                    completed={stats.range.completed}
+                    pending={stats.range.pending}
+                    completionRate={stats.range.completionRate}
+                    completedOnly={completedOnly}
+                  />
+                </View>
+              ) : (
+                <View style={styles.periodsRow}>
+                  <PeriodCard
+                    label="Esta semana"
+                    total={stats.week.total}
+                    totalAll={stats.week.totalAll}
+                    completed={stats.week.completed}
+                    pending={stats.week.pending}
+                    completionRate={stats.week.completionRate}
+                    completedOnly={completedOnly}
+                  />
+                  <PeriodCard
+                    label="Este mes"
+                    total={stats.month.total}
+                    totalAll={stats.month.totalAll}
+                    completed={stats.month.completed}
+                    pending={stats.month.pending}
+                    completionRate={stats.month.completionRate}
+                    completedOnly={completedOnly}
+                  />
+                </View>
+              )}
 
               {/* Top clients */}
               {stats.topClients.length > 0 && (
@@ -361,6 +473,11 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.medium as '500',
     color: colors.textPrimary,
   },
+  dateRangeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   dateRangeRow: {
     flexDirection: 'row',
     gap: spacing[3],
@@ -375,6 +492,26 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
+  },
+  dateDisplayButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    minHeight: 48,
+  },
+  dateDisplayButtonPressed: {
+    backgroundColor: colors.border,
+  },
+  dateDisplayText: {
+    fontSize: fontSize.base,
+    color: colors.textPrimary,
+    fontWeight: fontWeight.medium as '500',
   },
 
   // Period cards
