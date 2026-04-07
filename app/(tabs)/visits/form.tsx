@@ -20,12 +20,12 @@ import {
   FlatList,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -77,12 +77,6 @@ function combineDateAndTime(date: Date, time: Date): string {
     .minute(dayjs(time).minute())
     .second(0)
     .toISOString()
-}
-
-/** Returns 'pending' if date >= today (date only), otherwise 'completed' */
-function defaultStatusForDate(date: Date): 'pending' | 'completed' {
-  const today = dayjs().startOf('day')
-  return dayjs(date).isBefore(today) ? 'completed' : 'pending'
 }
 
 // ---------------------------------------------------------------------------
@@ -157,8 +151,7 @@ export default function VisitFormScreen() {
       const gap = val ? Number(val) : DEFAULT_GAP
       setGapMinutes(gap)
       if (!isEditMode) {
-        // Set status and time based on today
-        setStatus(defaultStatusForDate(defaultDate))
+        // New visits always start as pending
         const today = dayjs().format('YYYY-MM-DD')
         const todayVisits = useVisitsStore.getState().visits.filter(
           (v) => dayjs(v.scheduled_at).format('YYYY-MM-DD') === today,
@@ -268,7 +261,7 @@ export default function VisitFormScreen() {
     }
 
     setSaving(false)
-    
+
     // Only dismiss if save was successful
     if (!error) {
       closeForm()
@@ -276,10 +269,6 @@ export default function VisitFormScreen() {
   }
 
   function applyDateDefaults(date: Date) {
-    // Auto-set status based on whether date is past or future (create mode only)
-    if (!isEditMode) {
-      setStatus(defaultStatusForDate(date))
-    }
     // Default time: latest visit on that date + gap, else 10:00
     const dateKey = dayjs(date).format('YYYY-MM-DD')
     const visitsOnDate = visits.filter(
@@ -350,10 +339,12 @@ export default function VisitFormScreen() {
   // -------------------------------------------------------------------------
 
   return (
-    <ScrollView
+    <KeyboardAwareScrollView
       style={styles.scroll}
       contentContainerStyle={styles.scrollContent}
       keyboardShouldPersistTaps="handled"
+      enableOnAndroid
+      extraScrollHeight={200}
     >
 
       {/* ── Cliente ─────────────────────────────────────────────────────── */}
@@ -704,7 +695,7 @@ export default function VisitFormScreen() {
         />
       </View>
 
-    </ScrollView>
+    </KeyboardAwareScrollView>
   )
 }
 

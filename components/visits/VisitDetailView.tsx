@@ -14,12 +14,12 @@ import React, { useEffect, useLayoutEffect, useState } from 'react'
 import {
   ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import { useLocalSearchParams, useNavigation, usePathname, useRouter } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 
@@ -173,7 +173,13 @@ export default function VisitDetailView() {
   // -------------------------------------------------------------------------
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+    <KeyboardAwareScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled"
+      enableOnAndroid
+      extraScrollHeight={80}
+    >
 
       {/* ── Sección: Cliente ───────────────────────────────────────────── */}
       <View style={styles.section}>
@@ -301,7 +307,7 @@ export default function VisitDetailView() {
         </>
       ) : null}
 
-    </ScrollView>
+    </KeyboardAwareScrollView>
   )
 }
 

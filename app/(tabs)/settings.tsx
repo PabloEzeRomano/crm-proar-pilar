@@ -23,6 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -32,6 +33,7 @@ import {
   TextInput,
   View,
 } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import TourStep from '@/components/tour/TourStep'
 
 import { brand } from '@/constants/brand'
@@ -100,6 +102,10 @@ function SettingsScreenContent() {
   const [addEmailError, setAddEmailError] = useState<string | null>(null)
   const [sendingReport, setSendingReport] = useState(false)
   const [reportFeedback, setReportFeedback] = useState<{ ok: boolean; message: string } | null>(null)
+  const [showSendModal, setShowSendModal] = useState(false)
+  const [modalAdHocEmails, setModalAdHocEmails] = useState<string[]>([])
+  const [modalAdHocInput, setModalAdHocInput] = useState('')
+  const [modalAdHocError, setModalAdHocError] = useState<string | null>(null)
   const [notificationsEnabled, setNotificationsEnabled] = useState(true)
   const [testingNotification, setTestingNotification] = useState(false)
   const [notificationFeedback, setNotificationFeedback] = useState<{ ok: boolean; message: string } | null>(null)
@@ -261,17 +267,47 @@ function SettingsScreenContent() {
     setIsDirty(false)
   }
 
+  function handleOpenSendModal() {
+    setModalAdHocEmails([])
+    setModalAdHocInput('')
+    setModalAdHocError(null)
+    setReportFeedback(null)
+    setShowSendModal(true)
+  }
+
+  function handleModalAddEmail() {
+    const trimmed = modalAdHocInput.trim()
+    const result = emailSchema.safeParse(trimmed)
+    if (!result.success) {
+      setModalAdHocError('Email inválido')
+      return
+    }
+    const allRecipients = [...(profile?.email_config?.recipients ?? []), ...modalAdHocEmails]
+    if (allRecipients.includes(trimmed)) {
+      setModalAdHocError('Ya agregado')
+      return
+    }
+    setModalAdHocEmails((prev) => [...prev, trimmed])
+    setModalAdHocInput('')
+    setModalAdHocError(null)
+  }
+
+  function handleModalRemoveAdHoc(email: string) {
+    setModalAdHocEmails((prev) => prev.filter((e) => e !== email))
+  }
+
   async function handleSendReport() {
+    const invokeWeeklyEmail = useAuthStore.getState().invokeWeeklyEmail
+    const configuredRecipients = profile?.email_config?.recipients ?? []
+    const allRecipients = [...configuredRecipients, ...modalAdHocEmails]
     setSendingReport(true)
     setReportFeedback(null)
     try {
-      const invokeWeeklyEmail = useAuthStore((state) => state.invokeWeeklyEmail)
-      await invokeWeeklyEmail()
-      const error = useAuthStore((state) => state.error)
-      if (error) {
-        throw new Error(error)
-      }
+      await invokeWeeklyEmail(allRecipients.length > 0 ? allRecipients : undefined)
+      const error = useAuthStore.getState().error
+      if (error) throw new Error(error)
       setReportFeedback({ ok: true, message: 'Enviado correctamente' })
+      setShowSendModal(false)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Error al enviar el reporte'
       setReportFeedback({ ok: false, message })
@@ -323,14 +359,18 @@ function SettingsScreenContent() {
 
   return (
     <View style={styles.flex}>
-      <ScrollView
-        ref={scrollRef}
+      <KeyboardAwareScrollView
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        innerRef={(r: any) => { scrollRef.current = r }}
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: scrollPaddingBottom },
         ]}
         keyboardShouldPersistTaps="handled"
+        enableOnAndroid
+        enableAutomaticScroll={!showSendModal}
+        extraScrollHeight={100}
       >
         {/* ================================================================
             Section 1 — Resumen semanal
@@ -361,41 +401,31 @@ function SettingsScreenContent() {
             </View>
           </TourStep>
 
-          {/* Send now button — dev only */}
-          {__DEV__ && (
-            <View style={[styles.row, styles.rowColumn, styles.rowBorderTop]}>
-              <Pressable
-                style={[styles.sendReportButton, sendingReport && styles.importButtonDisabled]}
-                onPress={handleSendReport}
-                disabled={sendingReport}
-                accessibilityRole="button"
-                accessibilityLabel="Enviar reporte ahora"
-                accessibilityState={{ disabled: sendingReport, busy: sendingReport }}
-              >
-                {sendingReport ? (
-                  <ActivityIndicator color={colors.textOnPrimary} size="small" />
-                ) : (
-                  <>
-                    <MaterialCommunityIcons name="email-fast-outline" size={18} color={colors.textOnPrimary} />
-                    <Text style={styles.importButtonLabel}>Enviar ahora</Text>
-                  </>
-                )}
-              </Pressable>
+          {/* Send report button — always visible */}
+          <View style={[styles.row, styles.rowColumn, styles.rowBorderTop]}>
+            <Pressable
+              style={styles.sendReportButton}
+              onPress={handleOpenSendModal}
+              accessibilityRole="button"
+              accessibilityLabel="Enviar reporte ahora"
+            >
+              <MaterialCommunityIcons name="email-fast-outline" size={18} color={colors.textOnPrimary} />
+              <Text style={styles.importButtonLabel}>Enviar reporte ahora</Text>
+            </Pressable>
 
-              {reportFeedback && (
-                <View style={[styles.importResult, !reportFeedback.ok && styles.importResultError]}>
-                  <MaterialCommunityIcons
-                    name={reportFeedback.ok ? 'check-circle' : 'alert-circle'}
-                    size={16}
-                    color={reportFeedback.ok ? colors.success : colors.error}
-                  />
-                  <Text style={[styles.importResultText, !reportFeedback.ok && styles.importResultErrorText]}>
-                    {reportFeedback.message}
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
+            {reportFeedback && !showSendModal && (
+              <View style={[styles.importResult, !reportFeedback.ok && styles.importResultError]}>
+                <MaterialCommunityIcons
+                  name={reportFeedback.ok ? 'check-circle' : 'alert-circle'}
+                  size={16}
+                  color={reportFeedback.ok ? colors.success : colors.error}
+                />
+                <Text style={[styles.importResultText, !reportFeedback.ok && styles.importResultErrorText]}>
+                  {reportFeedback.message}
+                </Text>
+              </View>
+            )}
+          </View>
 
           {/* Expanded config when enabled */}
           {localConfig.enabled && (
@@ -713,7 +743,153 @@ function SettingsScreenContent() {
           <Text style={styles.appInfoText}>{brand.appName}</Text>
           <Text style={styles.appInfoText}>Versión {Constants.expoConfig?.version || 'desconocida'}</Text>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
+
+      {/* ================================================================
+          Send report modal
+      ================================================================ */}
+      <Modal
+        visible={showSendModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowSendModal(false)}
+        statusBarTranslucent
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setShowSendModal(false)} />
+        <View style={[styles.modalSheet, { paddingBottom: spacing[4] + insets.bottom }]}>
+          {/* Handle */}
+          <View style={styles.modalHandle} />
+
+          {/* Header */}
+          <View style={styles.modalHeader}>
+            <MaterialCommunityIcons name="email-fast-outline" size={20} color={colors.primary} />
+            <Text style={styles.modalTitle}>Enviar reporte de visitas</Text>
+            <Pressable
+              onPress={() => setShowSendModal(false)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Cerrar"
+            >
+              <MaterialCommunityIcons name="close" size={22} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+
+          <KeyboardAwareScrollView
+            style={styles.modalScroll}
+            contentContainerStyle={styles.modalContent}
+            keyboardShouldPersistTaps="handled"
+            enableOnAndroid
+            extraScrollHeight={180}
+          >
+            {/* Configured recipients (read-only chips) */}
+            {(profile?.email_config?.recipients ?? []).length > 0 && (
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionLabel}>Destinatarios configurados</Text>
+                <View style={styles.chipsContainer}>
+                  {(profile?.email_config?.recipients ?? []).map((email) => (
+                    <View key={email} style={styles.chip}>
+                      <Text style={styles.chipText} numberOfLines={1}>{email}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Ad-hoc recipients */}
+            <View style={styles.modalSection}>
+              <Text style={styles.modalSectionLabel}>Agregar destinatarios adicionales</Text>
+              <Text style={styles.rowSubtitle}>No se guardarán — solo para este envío</Text>
+
+              {modalAdHocEmails.length > 0 && (
+                <View style={[styles.chipsContainer, { marginTop: spacing[2] }]}>
+                  {modalAdHocEmails.map((email) => (
+                    <View key={email} style={styles.chip}>
+                      <Text style={styles.chipText} numberOfLines={1}>{email}</Text>
+                      <Pressable
+                        onPress={() => handleModalRemoveAdHoc(email)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        accessibilityLabel={`Eliminar ${email}`}
+                      >
+                        <MaterialCommunityIcons name="close" size={16} color={colors.textSecondary} />
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              <View style={[styles.addRow, { marginVertical: spacing[2] }]}>
+                <TextInput
+                  style={[styles.input, styles.addInput]}
+                  value={modalAdHocInput}
+                  onChangeText={(text) => {
+                    setModalAdHocInput(text)
+                    if (modalAdHocError) setModalAdHocError(null)
+                  }}
+                  placeholder="correo@ejemplo.com"
+                  placeholderTextColor={colors.textDisabled}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  returnKeyType="done"
+                  onSubmitEditing={handleModalAddEmail}
+                />
+                <Pressable
+                  style={styles.addButton}
+                  onPress={handleModalAddEmail}
+                  accessibilityRole="button"
+                  accessibilityLabel="Agregar destinatario"
+                >
+                  <Text style={styles.addButtonLabel}>Agregar</Text>
+                </Pressable>
+              </View>
+
+              {modalAdHocError && (
+                <Text style={styles.fieldError}>{modalAdHocError}</Text>
+              )}
+              {/* <View style={{ height: spacing[8] }} /> */}
+            </View>
+
+            {/* Error feedback inside modal */}
+            {reportFeedback && !reportFeedback.ok && (
+              <View style={[styles.importResult, styles.importResultError]}>
+                <MaterialCommunityIcons name="alert-circle" size={16} color={colors.error} />
+                <Text style={[styles.importResultText, styles.importResultErrorText]}>
+                  {reportFeedback.message}
+                </Text>
+              </View>
+            )}
+          </KeyboardAwareScrollView>
+
+          {/* Actions */}
+          <View style={styles.modalActions}>
+            <Pressable
+              style={[styles.modalCancelButton]}
+              onPress={() => setShowSendModal(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Cancelar"
+            >
+              <Text style={styles.modalCancelLabel}>Cancelar</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.sendReportButton, styles.modalSendButton, sendingReport && styles.importButtonDisabled]}
+              onPress={handleSendReport}
+              disabled={sendingReport}
+              accessibilityRole="button"
+              accessibilityLabel="Enviar reporte"
+              accessibilityState={{ disabled: sendingReport, busy: sendingReport }}
+            >
+              {sendingReport ? (
+                <ActivityIndicator color={colors.textOnPrimary} size="small" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="send" size={16} color={colors.textOnPrimary} />
+                  <Text style={styles.importButtonLabel}>Enviar</Text>
+                </>
+              )}
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       {/* ================================================================
           Floating save bar — visible only when there are unsaved changes
@@ -928,6 +1104,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: fontWeight.regular as '400',
     color: colors.error,
+    marginBottom: spacing[1],
   },
 
   // ── Send report button ────────────────────────────────────────────────────
@@ -1024,6 +1201,84 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     fontWeight: fontWeight.medium as '500',
     color: colors.error,
+  },
+
+  // ── Send report modal ─────────────────────────────────────────────────────
+
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  modalSheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    maxHeight: '75%',
+  },
+  modalHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.border,
+    alignSelf: 'center',
+    marginTop: spacing[2],
+    marginBottom: spacing[2],
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[4],
+    paddingBottom: spacing[3],
+    gap: spacing[2],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  modalTitle: {
+    flex: 1,
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textPrimary,
+  },
+  modalScroll: {
+    flexGrow: 0,
+  },
+  modalContent: {
+    padding: spacing[4],
+    gap: spacing[4],
+  },
+  modalSection: {
+    gap: spacing[2],
+  },
+  modalSectionLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textSecondary,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: spacing[3],
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[3],
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  modalCancelButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+  modalCancelLabel: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textSecondary,
+  },
+  modalSendButton: {
+    flex: 1,
   },
 
   // ── Floating save bar ─────────────────────────────────────────────────────
