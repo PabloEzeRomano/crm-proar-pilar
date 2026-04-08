@@ -27,6 +27,7 @@
       ]
     ],
     "ios": {
+      "bundleIdentifier": "com.proar.crm",
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Para ordenar las visitas del día por cercanía."
@@ -41,7 +42,10 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "softInputMode": "adjustNothing",
+      "softInputMode": "adjustPan",
+      "jsEngine": "hermes",
+      "enableProguardInReleaseBuilds": true,
+      "enableShrinkResourcesInReleaseBuilds": true,
       "permissions": ["ACCESS_FINE_LOCATION", "POST_NOTIFICATIONS"]
     },
     "web": {
