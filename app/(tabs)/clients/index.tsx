@@ -23,7 +23,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import TourStep from '@/components/tour/TourStep'
 
 import { useClients, ClientSortOrder } from '@/hooks/useClients'
+import { useClientsStore } from '@/stores/clientsStore'
 import { useLookupsStore } from '@/stores/lookupsStore'
+import SearchableSelect from '@/components/ui/SearchableSelect'
 import dayjs from '@/lib/dayjs'
 import {
   borderRadius,
@@ -69,6 +71,7 @@ function ClientsScreenContent() {
   const [sortOrder, setSortOrder] = useState<ClientSortOrder>('name-asc')
   const [filterVisible, setFilterVisible] = useState(false)
   const [sortVisible, setSortVisible] = useState(false)
+  const [showInactive, setShowInactive] = useState(false)
 
   // Draft state inside the filter modal (applied only on "Aplicar")
   const [draftRubros, setDraftRubros] = useState<string[]>([])
@@ -84,6 +87,9 @@ function ClientsScreenContent() {
     sortOrder,
     selectedVisitType,
   )
+  const inactiveClients = useClientsStore((s) => s.inactiveClients)
+  const fetchInactiveClients = useClientsStore((s) => s.fetchInactiveClients)
+  const restoreClient = useClientsStore((s) => s.restoreClient)
   const rubros = useLookupsStore((s) => s.rubros)
   const localidades = useLookupsStore((s) => s.localidades)
 
@@ -103,6 +109,12 @@ function ClientsScreenContent() {
   useEffect(() => {
     fetchClients()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (showInactive) {
+      fetchInactiveClients()
+    }
+  }, [showInactive]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Filter modal handlers ────────────────────────────────────────────────
 
@@ -205,6 +217,37 @@ function ClientsScreenContent() {
     )
   }
 
+  function renderInactiveItem({ item }: { item: Client }) {
+    const subtitle = [item.industry, item.city].filter(Boolean).join(' · ')
+    return (
+      <View style={styles.inactiveRow}>
+        <View style={styles.rowContent}>
+          <View style={styles.inactiveRowHeader}>
+            <Text style={styles.inactiveRowTitle} numberOfLines={1}>{item.name}</Text>
+            <View style={styles.inactiveBadge}>
+              <Text style={styles.inactiveBadgeText}>Inactivo</Text>
+            </View>
+          </View>
+          {subtitle ? (
+            <Text style={styles.rowSubtitle} numberOfLines={1}>{subtitle}</Text>
+          ) : null}
+        </View>
+        <Pressable
+          style={({ pressed }) => [
+            styles.restoreButton,
+            pressed && styles.restoreButtonPressed,
+          ]}
+          onPress={() => restoreClient(item.id)}
+          accessibilityRole="button"
+          accessibilityLabel={`Restaurar ${item.name}`}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Text style={styles.restoreButtonText}>Restaurar</Text>
+        </Pressable>
+      </View>
+    )
+  }
+
   function renderEmpty() {
     if (loading) {
       return (
@@ -292,6 +335,21 @@ function ClientsScreenContent() {
             )}
           </Pressable>
         </TourStep>
+
+        {/* Inactivos toggle */}
+        <Pressable
+          style={[styles.filterButton, showInactive && styles.filterButtonActive]}
+          onPress={() => setShowInactive(!showInactive)}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: showInactive }}
+          accessibilityLabel="Mostrar clientes inactivos"
+        >
+          <MaterialCommunityIcons
+            name="archive-outline"
+            size={20}
+            color={showInactive ? colors.textOnPrimary : colors.textSecondary}
+          />
+        </Pressable>
       </View>
 
       {/* Active filter chips summary */}
@@ -364,10 +422,23 @@ function ClientsScreenContent() {
       )}
 
       {/* List */}
-      {loading && clients.length === 0 ? (
+      {loading && (showInactive ? inactiveClients.length === 0 : clients.length === 0) ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
+      ) : showInactive ? (
+        <FlatList
+          data={inactiveClients}
+          keyExtractor={(item) => item.id}
+          renderItem={renderInactiveItem}
+          ItemSeparatorComponent={() => <View style={styles.divider} />}
+          ListEmptyComponent={() => (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No hay clientes inactivos</Text>
+            </View>
+          )}
+          contentContainerStyle={inactiveClients.length === 0 ? styles.listEmptyContent : undefined}
+        />
       ) : (
         <FlatList
           data={clients}
@@ -477,24 +548,16 @@ function ClientsScreenContent() {
             {rubros.length > 0 && (
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>RUBRO</Text>
-                {rubros.map((r) => {
-                  const checked = draftRubros.includes(r)
-                  return (
-                    <Pressable
-                      key={r}
-                      style={({ pressed }) => [styles.checkRow, pressed && styles.checkRowPressed]}
-                      onPress={() => toggleDraft(draftRubros, r, setDraftRubros)}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked }}
-                      accessibilityLabel={r}
-                    >
-                      <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-                        {checked && <MaterialCommunityIcons name="check" size={14} color={colors.textOnPrimary} />}
-                      </View>
-                      <Text style={styles.checkLabel} numberOfLines={1}>{r}</Text>
-                    </Pressable>
-                  )
-                })}
+                <View style={styles.filterSectionPadded}>
+                  <SearchableSelect
+                    label="Rubro"
+                    options={rubros}
+                    selected={draftRubros}
+                    onChange={setDraftRubros}
+                    multiple
+                    placeholder="Todos los rubros"
+                  />
+                </View>
               </View>
             )}
 
@@ -502,24 +565,16 @@ function ClientsScreenContent() {
             {localidades.length > 0 && (
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>LOCALIDAD</Text>
-                {localidades.map((l) => {
-                  const checked = draftLocalidades.includes(l)
-                  return (
-                    <Pressable
-                      key={l}
-                      style={({ pressed }) => [styles.checkRow, pressed && styles.checkRowPressed]}
-                      onPress={() => toggleDraft(draftLocalidades, l, setDraftLocalidades)}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked }}
-                      accessibilityLabel={l}
-                    >
-                      <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-                        {checked && <MaterialCommunityIcons name="check" size={14} color={colors.textOnPrimary} />}
-                      </View>
-                      <Text style={styles.checkLabel} numberOfLines={1}>{l}</Text>
-                    </Pressable>
-                  )
-                })}
+                <View style={styles.filterSectionPadded}>
+                  <SearchableSelect
+                    label="Localidad"
+                    options={localidades}
+                    selected={draftLocalidades}
+                    onChange={setDraftLocalidades}
+                    multiple
+                    placeholder="Todas las localidades"
+                  />
+                </View>
               </View>
             )}
 
@@ -859,6 +914,9 @@ const styles = StyleSheet.create({
     paddingTop: spacing[4],
     paddingBottom: spacing[2],
   },
+  filterSectionPadded: {
+    paddingHorizontal: spacing[4],
+  },
   filterSectionTitle: {
     fontSize: fontSize.xs,
     fontWeight: fontWeight.semibold as '600',
@@ -937,5 +995,58 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     fontWeight: fontWeight.semibold as '600',
     color: colors.textOnPrimary,
+  },
+
+  // ── Inactive clients ───────────────────────────────────────────────────────
+
+  inactiveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 64,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    backgroundColor: colors.surface,
+    opacity: 0.75,
+  },
+  inactiveRowHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    flexWrap: 'wrap',
+  },
+  inactiveRowTitle: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textSecondary,
+  },
+  inactiveBadge: {
+    backgroundColor: colors.statusCanceledLight,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing[2],
+    paddingVertical: 2,
+  },
+  inactiveBadgeText: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.statusCanceled,
+  },
+  restoreButton: {
+    height: 36,
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    marginLeft: spacing[2],
+  },
+  restoreButtonPressed: {
+    opacity: 0.7,
+  },
+  restoreButtonText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.primary,
   },
 })

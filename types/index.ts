@@ -58,6 +58,7 @@ export interface Client {
   last_visited_at?: string | null
   latitude?: number | null
   longitude?: number | null
+  deleted_at?: string | null
   created_at: string
   updated_at: string
 }

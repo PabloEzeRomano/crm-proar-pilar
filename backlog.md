@@ -511,6 +511,79 @@
 
 ---
 
+## EP-041 — APK size reduction and build config fixes
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 41.1 | Fix softInputMode to `adjustPan` for KeyboardAwareScrollView compatibility | frontend | `done` |
+| 41.2 | Enable Hermes JS engine + ProGuard + shrinkResources in app.json | frontend | `done` |
+| 41.3 | Move `expo-dev-client` to devDependencies | pm-tl | `done` |
+| 41.4 | Move `eas` CLI to devDependencies | pm-tl | `done` |
+| 41.5 | Audit `xlsx` usage — found in `stores/importStore.ts` (app code, bundled) | pm-tl | `done` |
+| 41.6 | Audit `react-native-svg` usage — zero imports found, unused dependency | pm-tl | `done` |
+| 41.7 | Verify EAS production profile uses `app-bundle` (already correct) | pm-tl | `done` |
+
+**41.5 finding:** `xlsx` is imported in `stores/importStore.ts` (in-app Excel import feature). This adds ~1.5MB to the bundle. Decision needed: keep the in-app import feature, or move it to scripts-only and remove the package from the mobile bundle.
+
+**41.6 finding:** `react-native-svg` is listed in `dependencies` but has **zero imports** anywhere in the codebase. Safe to remove entirely — saves native module compilation time and some bundle size.
+
+---
+
+## EP-042 — Bug: visit type not saved on edit
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 42.1 | Fix `type` field not persisted on visit update — `visitType` was missing from `useLayoutEffect` deps in form.tsx, causing stale closure when only type changed | state + frontend | `done` |
+
+---
+
+## EP-043 — Delete visit (gestión)
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 43.1 | Add `deleting: boolean` and `deleteError: string | null` to visitsStore; update deleteVisit to use them | state | `done` |
+| 43.2 | Delete button on visit detail screen with Alert confirmation; navigates back on success | frontend | `done` |
+
+---
+
+## EP-044 — Soft delete clients
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 44.1 | Migration `0021_soft_delete_clients.sql`: add `deleted_at TIMESTAMPTZ DEFAULT NULL` to clients | backend | `done` |
+| 44.2 | Update Client type (`deleted_at?`); add `archiveClient`, `restoreClient`, `fetchInactiveClients` to clientsStore; `fetchClients` filters `deleted_at IS NULL` | state | `done` |
+| 44.3 | Archive button on client detail with confirmation dialog | frontend | `done` |
+| 44.4 | Archive icon toggle in client list header; shows inactive clients with muted style, Inactivo badge, and Restaurar button | frontend + state | `done` |
+
+---
+
+## EP-045 — Cross-platform date picker component
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 45.1 | `WebDatePicker.tsx`: calendar UI with RN primitives, Monday-first, minDate/maxDate, theme tokens | frontend + ui-ux | `done` |
+| 45.2 | `AppDatePicker.tsx`: web date → WebDatePicker in modal; web time → HTML input; mobile → DateTimeInput pass-through | frontend | `done` |
+| 45.3 | Replace DateTimeInput with AppDatePicker in form.tsx, StatsCard.tsx, visits/index.tsx | frontend | `done` |
+
+---
+
+## EP-046 — Searchable select/multiselect component
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 46.1 | `SearchableSelect.tsx`: pressable trigger, bottom-sheet modal with search, selected chips (multi), options list, single/multi mode, `onAddNew` callback | frontend + ui-ux | `done` |
+| 46.2 | Replace Rubro and Localidad checkbox lists in client filter modal with `SearchableSelect multiple` | frontend | `done` |
+
+---
+
+## EP-047 — Searchable pickers for Rubro and Localidad in client form
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 47.1 | Replace Rubro and Localidad inline pickers in client form with `SearchableSelect multiple={false}`; "Agregar nuevo…" option preserved via `onAddNew` callback | frontend | `done` |
+
+---
+
 ## Pending
 
 > All stories across all EPs that are not yet `done`.

@@ -15,7 +15,7 @@ import { Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View 
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { borderRadius, colors, fontSize, fontWeight, shadows, spacing } from '@/constants/theme'
 import { useVisitStats } from '@/hooks/useVisitStats'
-import DateTimeInput from '@/components/DateTimeInput'
+import AppDatePicker from '@/components/ui/AppDatePicker'
 import dayjs from '@/lib/dayjs'
 
 interface StatsModalProps {
@@ -261,7 +261,7 @@ export function StatsModal({ visible, onClose }: StatsModalProps) {
                         <MaterialCommunityIcons name="calendar" size={20} color={colors.primary} />
                       </Pressable>
                     ) : (
-                      <DateTimeInput
+                      <AppDatePicker
                         value={dateFrom!}
                         mode="date"
                         display="inline"
@@ -284,7 +284,7 @@ export function StatsModal({ visible, onClose }: StatsModalProps) {
                         <MaterialCommunityIcons name="calendar" size={20} color={colors.primary} />
                       </Pressable>
                     ) : (
-                      <DateTimeInput
+                      <AppDatePicker
                         value={dateTo!}
                         mode="date"
                         display="inline"
@@ -298,7 +298,7 @@ export function StatsModal({ visible, onClose }: StatsModalProps) {
 
                 {/* Android date pickers — rendered as modal dialogs, one at a time */}
                 {Platform.OS === 'android' && showFromPicker && (
-                  <DateTimeInput
+                  <AppDatePicker
                     value={dateFrom!}
                     mode="date"
                     display="calendar"
@@ -310,7 +310,7 @@ export function StatsModal({ visible, onClose }: StatsModalProps) {
                   />
                 )}
                 {Platform.OS === 'android' && showToPicker && (
-                  <DateTimeInput
+                  <AppDatePicker
                     value={dateTo!}
                     mode="date"
                     display="calendar"

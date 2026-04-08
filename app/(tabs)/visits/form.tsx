@@ -30,7 +30,7 @@ import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
-import DateTimeInput from '@/components/DateTimeInput'
+import AppDatePicker from '@/components/ui/AppDatePicker'
 import { useVisitsStore } from '@/stores/visitsStore'
 import { useClientsStore } from '@/stores/clientsStore'
 import {
@@ -227,7 +227,7 @@ export default function VisitFormScreen() {
         </Pressable>
       ),
     })
-  }, [isValid, saving, selectedClient, selectedDate, selectedTime, notes, status, navigation, closeForm]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isValid, saving, selectedClient, selectedDate, selectedTime, notes, status, visitType, navigation, closeForm]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // -------------------------------------------------------------------------
   // Handlers
@@ -536,7 +536,7 @@ export default function VisitFormScreen() {
           </Pressable>
         ) : (
           /* iOS and Web: inline date picker */
-          <DateTimeInput
+          <AppDatePicker
             value={selectedDate}
             mode="date"
             display={Platform.OS === 'android' ? 'calendar' : 'inline'}
@@ -551,7 +551,7 @@ export default function VisitFormScreen() {
 
         {/* Android date picker modal */}
         {Platform.OS === 'android' && showDatePicker ? (
-          <DateTimeInput
+          <AppDatePicker
             value={selectedDate}
             mode="date"
             display="calendar"
@@ -587,7 +587,7 @@ export default function VisitFormScreen() {
           </Pressable>
         ) : (
           /* iOS and Web: inline time picker */
-          <DateTimeInput
+          <AppDatePicker
             value={selectedTime}
             mode="time"
             display={Platform.OS === 'android' ? 'clock' : 'spinner'}
@@ -602,7 +602,7 @@ export default function VisitFormScreen() {
 
         {/* Android time picker modal */}
         {Platform.OS === 'android' && showTimePicker ? (
-          <DateTimeInput
+          <AppDatePicker
             value={selectedTime}
             mode="time"
             display="clock"

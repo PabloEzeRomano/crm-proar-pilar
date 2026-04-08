@@ -7,12 +7,16 @@ import { CreateClientInput, UpdateClientInput } from '../validators/client'
 
 interface ClientsState {
   clients: Client[]
+  inactiveClients: Client[]
   loading: boolean
   error: string | null
   fetchClients: () => Promise<void>
+  fetchInactiveClients: () => Promise<void>
   fetchClient: (id: string) => Promise<Client | null>
   createClient: (data: CreateClientInput) => Promise<Client | null>
   updateClient: (id: string, data: UpdateClientInput) => Promise<void>
+  archiveClient: (id: string) => Promise<void>
+  restoreClient: (id: string) => Promise<void>
   deleteClient: (id: string) => Promise<void>
   deleteAllUserClients: () => Promise<void>
   geocodeClient: (id: string) => Promise<void>
@@ -33,6 +37,7 @@ export const useClientsStore = create<ClientsState>()(
   persist(
     (set, get) => ({
   clients: [],
+  inactiveClients: [],
   loading: false,
   error: null,
 
@@ -42,6 +47,7 @@ export const useClientsStore = create<ClientsState>()(
     const { data, error } = await supabase
       .from('clients')
       .select('*')
+      .is('deleted_at', null)
       .order('name', { ascending: true })
 
     if (error) {
@@ -50,6 +56,23 @@ export const useClientsStore = create<ClientsState>()(
     }
 
     set({ clients: (data as Client[]) ?? [], loading: false })
+  },
+
+  fetchInactiveClients: async () => {
+    set({ loading: true, error: null })
+
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .not('deleted_at', 'is', null)
+      .order('name', { ascending: true })
+
+    if (error) {
+      set({ error: error.message, loading: false })
+      return
+    }
+
+    set({ inactiveClients: (data as Client[]) ?? [], loading: false })
   },
 
   fetchClient: async (id: string) => {
@@ -142,6 +165,49 @@ export const useClientsStore = create<ClientsState>()(
     get().geocodeClient(id).catch(() => {})
   },
 
+  archiveClient: async (id: string) => {
+    set({ error: null })
+
+    const { error } = await supabase
+      .from('clients')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+
+    if (error) {
+      set({ error: error.message })
+      return
+    }
+
+    set((state) => ({
+      clients: state.clients.filter((c) => c.id !== id),
+    }))
+  },
+
+  restoreClient: async (id: string) => {
+    set({ error: null })
+
+    const { data: updated, error } = await supabase
+      .from('clients')
+      .update({ deleted_at: null })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      set({ error: error.message })
+      return
+    }
+
+    const restoredClient = updated as Client
+
+    set((state) => ({
+      inactiveClients: state.inactiveClients.filter((c) => c.id !== id),
+      clients: [...state.clients, restoredClient].sort((a, b) =>
+        a.name.localeCompare(b.name),
+      ),
+    }))
+  },
+
   deleteClient: async (id: string) => {
     set({ error: null })
 
@@ -232,7 +298,7 @@ export const useClientsStore = create<ClientsState>()(
     {
       name: 'clients-store',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state) => ({ clients: state.clients }),
+      partialize: (state) => ({ clients: state.clients, inactiveClients: state.inactiveClients }),
     }
   )
 )

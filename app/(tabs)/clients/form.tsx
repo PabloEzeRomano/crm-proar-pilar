@@ -30,6 +30,7 @@ import { ZodError } from 'zod'
 import { useClients } from '@/hooks/useClients'
 import { useClientsStore } from '@/stores/clientsStore'
 import { useLookupsStore } from '@/stores/lookupsStore'
+import SearchableSelect from '@/components/ui/SearchableSelect'
 import {
   createClientSchema,
   updateClientSchema,
@@ -159,8 +160,6 @@ export default function ClientFormScreen() {
   const [errors, setErrors] = useState<FieldErrors>({})
   const [focusedField, setFocusedField] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [showRubroPicker, setShowRubroPicker] = useState(false)
-  const [showLocalidadPicker, setShowLocalidadPicker] = useState(false)
 
   // Address autocomplete
   const [showAddressSearch, setShowAddressSearch] = useState(false)
@@ -454,94 +453,46 @@ export default function ClientFormScreen() {
         {/* ── Rubro ─────────────────────────────────────────────────── */}
         <View style={styles.fieldWrapper}>
           <Text style={styles.label}>Rubro</Text>
-          <Pressable
-            style={[styles.input, styles.selectField]}
-            onPress={() => { setShowRubroPicker((v) => !v); setShowLocalidadPicker(false) }}
-            accessibilityRole="button"
-            accessibilityLabel="Seleccionar rubro"
-          >
-            <Text style={form.industry ? styles.selectText : styles.selectPlaceholder} numberOfLines={1}>
-              {form.industry || 'Seleccionar rubro…'}
-            </Text>
-            <MaterialCommunityIcons
-              name={showRubroPicker ? 'chevron-up' : 'chevron-down'}
-              size={20}
-              color={colors.textSecondary}
-            />
-          </Pressable>
-          {showRubroPicker && (
-            <View style={styles.pickerList}>
-              <ScrollView style={styles.pickerScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled">
-                {form.industry ? (
-                  <>
-                    <Pressable
-                      style={styles.pickerRow}
-                      onPress={() => { setField('industry', ''); setShowRubroPicker(false) }}
-                    >
-                      <Text style={styles.pickerRowClear}>Sin rubro</Text>
-                    </Pressable>
-                    <View style={styles.pickerDivider} />
-                  </>
-                ) : null}
-                {rubros.map((item, i) => (
-                  <View key={item}>
-                    <Pressable
-                      style={({ pressed }) => [styles.pickerRow, pressed && styles.pickerRowPressed]}
-                      onPress={() => { setField('industry', item); setShowRubroPicker(false) }}
-                    >
-                      <Text style={[styles.pickerRowText, form.industry === item && styles.pickerRowActive]}>
-                        {item}
-                      </Text>
-                      {form.industry === item && (
-                        <MaterialCommunityIcons name="check" size={16} color={colors.primary} />
-                      )}
-                    </Pressable>
-                    {i < rubros.length - 1 && <View style={styles.pickerDivider} />}
-                  </View>
-                ))}
-              </ScrollView>
-              <View style={styles.pickerDivider} />
-              {addingRubro ? (
-                <View style={styles.pickerAddRow}>
-                  <TextInput
-                    ref={newRubroRef}
-                    style={styles.pickerAddInput}
-                    value={newRubroText}
-                    onChangeText={setNewRubroText}
-                    placeholder="Nuevo rubro…"
-                    placeholderTextColor={colors.textDisabled}
-                    autoCapitalize="words"
-                    returnKeyType="done"
-                    onSubmitEditing={handleAddRubro}
-                    autoFocus
-                  />
-                  <Pressable
-                    style={[styles.pickerAddConfirm, (!newRubroText.trim() || addingLoading) && styles.pickerAddConfirmDisabled]}
-                    onPress={handleAddRubro}
-                    disabled={!newRubroText.trim() || addingLoading}
-                  >
-                    {addingLoading
-                      ? <ActivityIndicator size="small" color={colors.background} />
-                      : <MaterialCommunityIcons name="check" size={16} color={colors.background} />
-                    }
-                  </Pressable>
-                  <Pressable
-                    style={styles.pickerAddCancel}
-                    onPress={() => { setAddingRubro(false); setNewRubroText('') }}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <MaterialCommunityIcons name="close" size={16} color={colors.textSecondary} />
-                  </Pressable>
-                </View>
-              ) : (
-                <Pressable
-                  style={({ pressed }) => [styles.pickerRow, pressed && styles.pickerRowPressed]}
-                  onPress={() => { setAddingRubro(true); setNewRubroText('') }}
-                >
-                  <MaterialCommunityIcons name="plus" size={16} color={colors.primary} style={styles.pickerAddIcon} />
-                  <Text style={styles.pickerAddText}>Agregar nuevo…</Text>
-                </Pressable>
-              )}
+          <SearchableSelect
+            label="Rubro"
+            options={rubros}
+            selected={form.industry ? [form.industry] : []}
+            onChange={(vals) => setField('industry', vals[0] ?? '')}
+            multiple={false}
+            placeholder="Seleccionar rubro…"
+            onAddNew={() => { setAddingRubro(true); setNewRubroText('') }}
+          />
+          {addingRubro && (
+            <View style={styles.pickerAddRow}>
+              <TextInput
+                ref={newRubroRef}
+                style={styles.pickerAddInput}
+                value={newRubroText}
+                onChangeText={setNewRubroText}
+                placeholder="Nuevo rubro…"
+                placeholderTextColor={colors.textDisabled}
+                autoCapitalize="words"
+                returnKeyType="done"
+                onSubmitEditing={handleAddRubro}
+                autoFocus
+              />
+              <Pressable
+                style={[styles.pickerAddConfirm, (!newRubroText.trim() || addingLoading) && styles.pickerAddConfirmDisabled]}
+                onPress={handleAddRubro}
+                disabled={!newRubroText.trim() || addingLoading}
+              >
+                {addingLoading
+                  ? <ActivityIndicator size="small" color={colors.background} />
+                  : <MaterialCommunityIcons name="check" size={16} color={colors.background} />
+                }
+              </Pressable>
+              <Pressable
+                style={styles.pickerAddCancel}
+                onPress={() => { setAddingRubro(false); setNewRubroText('') }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <MaterialCommunityIcons name="close" size={16} color={colors.textSecondary} />
+              </Pressable>
             </View>
           )}
           {errors.industry ? (
@@ -676,94 +627,46 @@ export default function ClientFormScreen() {
         {/* ── Localidad ─────────────────────────────────────────────── */}
         <View style={styles.fieldWrapper}>
           <Text style={styles.label}>Localidad</Text>
-          <Pressable
-            style={[styles.input, styles.selectField]}
-            onPress={() => { setShowLocalidadPicker((v) => !v); setShowRubroPicker(false) }}
-            accessibilityRole="button"
-            accessibilityLabel="Seleccionar localidad"
-          >
-            <Text style={form.city ? styles.selectText : styles.selectPlaceholder} numberOfLines={1}>
-              {form.city || 'Seleccionar localidad…'}
-            </Text>
-            <MaterialCommunityIcons
-              name={showLocalidadPicker ? 'chevron-up' : 'chevron-down'}
-              size={20}
-              color={colors.textSecondary}
-            />
-          </Pressable>
-          {showLocalidadPicker && (
-            <View style={styles.pickerList}>
-              <ScrollView style={styles.pickerScroll} nestedScrollEnabled keyboardShouldPersistTaps="handled">
-                {form.city ? (
-                  <>
-                    <Pressable
-                      style={styles.pickerRow}
-                      onPress={() => { setField('city', ''); setShowLocalidadPicker(false) }}
-                    >
-                      <Text style={styles.pickerRowClear}>Sin localidad</Text>
-                    </Pressable>
-                    <View style={styles.pickerDivider} />
-                  </>
-                ) : null}
-                {localidades.map((item, i) => (
-                  <View key={item}>
-                    <Pressable
-                      style={({ pressed }) => [styles.pickerRow, pressed && styles.pickerRowPressed]}
-                      onPress={() => { setField('city', item); setShowLocalidadPicker(false) }}
-                    >
-                      <Text style={[styles.pickerRowText, form.city === item && styles.pickerRowActive]}>
-                        {item}
-                      </Text>
-                      {form.city === item && (
-                        <MaterialCommunityIcons name="check" size={16} color={colors.primary} />
-                      )}
-                    </Pressable>
-                    {i < localidades.length - 1 && <View style={styles.pickerDivider} />}
-                  </View>
-                ))}
-              </ScrollView>
-              <View style={styles.pickerDivider} />
-              {addingLocalidad ? (
-                <View style={styles.pickerAddRow}>
-                  <TextInput
-                    ref={newLocalidadRef}
-                    style={styles.pickerAddInput}
-                    value={newLocalidadText}
-                    onChangeText={setNewLocalidadText}
-                    placeholder="Nueva localidad…"
-                    placeholderTextColor={colors.textDisabled}
-                    autoCapitalize="words"
-                    returnKeyType="done"
-                    onSubmitEditing={handleAddLocalidad}
-                    autoFocus
-                  />
-                  <Pressable
-                    style={[styles.pickerAddConfirm, (!newLocalidadText.trim() || addingLoading) && styles.pickerAddConfirmDisabled]}
-                    onPress={handleAddLocalidad}
-                    disabled={!newLocalidadText.trim() || addingLoading}
-                  >
-                    {addingLoading
-                      ? <ActivityIndicator size="small" color={colors.background} />
-                      : <MaterialCommunityIcons name="check" size={16} color={colors.background} />
-                    }
-                  </Pressable>
-                  <Pressable
-                    style={styles.pickerAddCancel}
-                    onPress={() => { setAddingLocalidad(false); setNewLocalidadText('') }}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <MaterialCommunityIcons name="close" size={16} color={colors.textSecondary} />
-                  </Pressable>
-                </View>
-              ) : (
-                <Pressable
-                  style={({ pressed }) => [styles.pickerRow, pressed && styles.pickerRowPressed]}
-                  onPress={() => { setAddingLocalidad(true); setNewLocalidadText('') }}
-                >
-                  <MaterialCommunityIcons name="plus" size={16} color={colors.primary} style={styles.pickerAddIcon} />
-                  <Text style={styles.pickerAddText}>Agregar nueva…</Text>
-                </Pressable>
-              )}
+          <SearchableSelect
+            label="Localidad"
+            options={localidades}
+            selected={form.city ? [form.city] : []}
+            onChange={(vals) => setField('city', vals[0] ?? '')}
+            multiple={false}
+            placeholder="Seleccionar localidad…"
+            onAddNew={() => { setAddingLocalidad(true); setNewLocalidadText('') }}
+          />
+          {addingLocalidad && (
+            <View style={styles.pickerAddRow}>
+              <TextInput
+                ref={newLocalidadRef}
+                style={styles.pickerAddInput}
+                value={newLocalidadText}
+                onChangeText={setNewLocalidadText}
+                placeholder="Nueva localidad…"
+                placeholderTextColor={colors.textDisabled}
+                autoCapitalize="words"
+                returnKeyType="done"
+                onSubmitEditing={handleAddLocalidad}
+                autoFocus
+              />
+              <Pressable
+                style={[styles.pickerAddConfirm, (!newLocalidadText.trim() || addingLoading) && styles.pickerAddConfirmDisabled]}
+                onPress={handleAddLocalidad}
+                disabled={!newLocalidadText.trim() || addingLoading}
+              >
+                {addingLoading
+                  ? <ActivityIndicator size="small" color={colors.background} />
+                  : <MaterialCommunityIcons name="check" size={16} color={colors.background} />
+                }
+              </Pressable>
+              <Pressable
+                style={styles.pickerAddCancel}
+                onPress={() => { setAddingLocalidad(false); setNewLocalidadText('') }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <MaterialCommunityIcons name="close" size={16} color={colors.textSecondary} />
+              </Pressable>
             </View>
           )}
           {errors.city ? (

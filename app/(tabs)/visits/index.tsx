@@ -39,7 +39,7 @@ import { VisitStatus, VisitType, VisitWithClient } from '@/types'
 import { useVisits } from '@/hooks/useVisits'
 import { useAuthStore } from '@/stores/authStore'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import DateTimeInput from '@/components/DateTimeInput'
+import AppDatePicker from '@/components/ui/AppDatePicker'
 
 // ---------------------------------------------------------------------------
 // Status configuration
@@ -327,7 +327,7 @@ export default function VisitsIndexScreen() {
                   <MaterialCommunityIcons name="calendar" size={20} color={colors.primary} />
                 </Pressable>
               ) : (
-                <DateTimeInput
+                <AppDatePicker
                   value={pendingFrom}
                   mode="date"
                   display="inline"
@@ -352,7 +352,7 @@ export default function VisitsIndexScreen() {
                   <MaterialCommunityIcons name="calendar" size={20} color={colors.primary} />
                 </Pressable>
               ) : (
-                <DateTimeInput
+                <AppDatePicker
                   value={pendingTo}
                   mode="date"
                   display="inline"
@@ -366,7 +366,7 @@ export default function VisitsIndexScreen() {
 
           {/* Android date pickers — rendered as modal dialogs, one at a time */}
           {Platform.OS === 'android' && showFromPicker && (
-            <DateTimeInput
+            <AppDatePicker
               value={pendingFrom}
               mode="date"
               display="calendar"
@@ -378,7 +378,7 @@ export default function VisitsIndexScreen() {
             />
           )}
           {Platform.OS === 'android' && showToPicker && (
-            <DateTimeInput
+            <AppDatePicker
               value={pendingTo}
               mode="date"
               display="calendar"

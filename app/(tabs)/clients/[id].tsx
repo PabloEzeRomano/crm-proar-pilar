@@ -98,6 +98,7 @@ export default function ClientDetailScreen() {
   )
   const loading = useClientsStore((state) => state.loading)
   const fetchClient = useClientsStore((state) => state.fetchClient)
+  const archiveClient = useClientsStore((state) => state.archiveClient)
 
   // Visits for this client — fetch directly by client_id to bypass global pagination
   const { visits, fetchVisitsByClient } = useVisits(id)
@@ -144,6 +145,24 @@ export default function ClientDetailScreen() {
       v.client_id === id &&
       dayjs(v.scheduled_at).isSame(dayjs(), 'day'),
   )
+
+  function handleArchiveClient() {
+    Alert.alert(
+      'Archivar cliente',
+      '¿Archivar este cliente? Podrás verlo en la sección de inactivos.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Archivar',
+          style: 'destructive',
+          onPress: async () => {
+            await archiveClient(id)
+            router.back()
+          },
+        },
+      ],
+    )
+  }
 
   const handleVisitarHoy = async () => {
     if (!id) return
@@ -415,6 +434,22 @@ export default function ClientDetailScreen() {
           ))
         )}
       </View>
+
+      {/* ── Archivar cliente ─────────────────────────────────────────────── */}
+      <View style={styles.divider} />
+      <View style={styles.section}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.archiveButton,
+            pressed && styles.archiveButtonPressed,
+          ]}
+          onPress={handleArchiveClient}
+          accessibilityRole="button"
+          accessibilityLabel="Archivar cliente"
+        >
+          <Text style={styles.archiveButtonText}>Archivar cliente</Text>
+        </Pressable>
+      </View>
     </ScrollView>
   )
 }
@@ -608,5 +643,22 @@ const styles = StyleSheet.create({
   visitDivider: {
     height: 1,
     backgroundColor: colors.border,
+  },
+  archiveButton: {
+    height: 48,
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: colors.borderStrong,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.transparent,
+  },
+  archiveButtonPressed: {
+    opacity: 0.7,
+  },
+  archiveButtonText: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textSecondary,
   },
 })

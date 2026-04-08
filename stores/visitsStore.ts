@@ -17,6 +17,8 @@ interface VisitsState {
   loading: boolean
   loadingMore: boolean
   error: string | null
+  deleting: boolean
+  deleteError: string | null
   fetchVisits: (showAll?: boolean) => Promise<void>
   fetchMoreVisits: (showAll?: boolean) => Promise<void>
   fetchVisit: (id: string) => Promise<void>
@@ -36,6 +38,8 @@ export const useVisitsStore = create<VisitsState>()(
       loading: false,
       loadingMore: false,
       error: null,
+      deleting: false,
+      deleteError: null,
 
       fetchVisits: async (showAll?: boolean) => {
         set({ loading: true, error: null })
@@ -355,7 +359,7 @@ export const useVisitsStore = create<VisitsState>()(
       },
 
       deleteVisit: async (id: string) => {
-        set({ error: null })
+        set({ deleting: true, deleteError: null })
 
         // Get existing visit to retrieve notification_id
         const existingVisit = get().visits.find((v) => v.id === id)
@@ -372,11 +376,13 @@ export const useVisitsStore = create<VisitsState>()(
         const { error } = await supabase.from('visits').delete().eq('id', id)
 
         if (error) {
-          set({ error: error.message })
+          set({ deleting: false, deleteError: error.message })
           return
         }
 
         set((state) => ({
+          deleting: false,
+          deleteError: null,
           visits: state.visits.filter((v) => v.id !== id),
         }))
       },

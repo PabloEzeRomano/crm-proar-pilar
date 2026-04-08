@@ -13,6 +13,7 @@
 import React, { useEffect, useLayoutEffect, useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -57,9 +58,12 @@ export default function VisitDetailView() {
 
   const visit = useVisitsStore((state) => state.visits.find((v) => v.id === id))
   const error = useVisitsStore((state) => state.error)
+  const deleting = useVisitsStore((state) => state.deleting)
+  const deleteError = useVisitsStore((state) => state.deleteError)
   const fetchVisit = useVisitsStore((state) => state.fetchVisit)
   const updateVisit = useVisitsStore((state) => state.updateVisit)
   const updateStatus = useVisitsStore((state) => state.updateStatus)
+  const deleteVisit = useVisitsStore((state) => state.deleteVisit)
 
   // If the visit isn't in the store yet (e.g. navigating from Today tab
   // before visitsStore has been populated), fetch it on demand.
@@ -144,6 +148,26 @@ export default function VisitDetailView() {
     setStatusLoading(true)
     await updateStatus(id, 'canceled')
     setStatusLoading(false)
+  }
+
+  function handleDelete() {
+    Alert.alert(
+      'Eliminar gestión',
+      '¿Estás seguro? Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteVisit(id)
+            if (!deleteError) {
+              router.back()
+            }
+          },
+        },
+      ],
+    )
   }
 
   // -------------------------------------------------------------------------
@@ -306,6 +330,29 @@ export default function VisitDetailView() {
           </View>
         </>
       ) : null}
+
+      {/* ── Eliminar gestión ────────────────────────────────────────────── */}
+      <View style={styles.divider} />
+      <View style={styles.section}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.actionButton,
+            styles.actionButtonDelete,
+            pressed && styles.actionButtonDeletePressed,
+            deleting && styles.actionButtonDisabled,
+          ]}
+          onPress={handleDelete}
+          disabled={deleting}
+          accessibilityRole="button"
+          accessibilityLabel="Eliminar gestión"
+        >
+          {deleting ? (
+            <ActivityIndicator color={colors.error} />
+          ) : (
+            <Text style={styles.actionButtonDeleteText}>Eliminar gestión</Text>
+          )}
+        </Pressable>
+      </View>
 
     </KeyboardAwareScrollView>
   )
@@ -480,5 +527,18 @@ const styles = StyleSheet.create({
   },
   actionButtonDisabled: {
     opacity: 0.4,
+  },
+  actionButtonDelete: {
+    backgroundColor: colors.transparent,
+    borderWidth: 1.5,
+    borderColor: colors.error,
+  },
+  actionButtonDeletePressed: {
+    opacity: 0.75,
+  },
+  actionButtonDeleteText: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.error,
   },
 })
