@@ -27,7 +27,7 @@ export interface AuthState {
   updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
   setInviteUser: (value: boolean) => void;
   completeInviteFlow: (isNewUser: boolean) => void;
-  setInitialPassword: (newPassword: string) => Promise<{ error: string | null }>;
+  setInitialPassword: (newPassword: string, fullName?: string) => Promise<{ error: string | null }>;
   updateEmailConfig: (config: import('../types').EmailConfig) => Promise<void>;
   completeTour: () => Promise<void>;
   resetTour: () => Promise<void>;
@@ -102,7 +102,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
 
         // Fetch profile in the background without blocking
         fetchProfile(session.user.id).then((profile) => {
-          if (profile) set({ profile });
+          if (profile) set({ profile })
         }).catch(() => {
           // Profile may not exist yet on first sign-up (DB trigger is async)
         });
@@ -214,11 +214,57 @@ export const useAuthStore = create<AuthState>()((set) => ({
     set({ isInviteSetup: false, isInviteUser: isNewUser }),
 
   // Like updatePassword but does NOT sign out — used for first-time invite password setup.
-  setInitialPassword: async (newPassword: string) => {
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) return { error: error.message };
-    set({ isInviteUser: false });
-    return { error: null };
+  // Also completes the invited user's profile: sets email_config from their email address
+  // and writes company_id from auth metadata as a safety net (in case the handle_new_user
+  // trigger ran before migration 0024 was applied).
+  setInitialPassword: async (newPassword: string, fullName?: string) => {
+    const updateData: { password: string; data?: { full_name: string } } = {
+      password: newPassword,
+    }
+    if (fullName) updateData.data = { full_name: fullName }
+    const { error } = await supabase.auth.updateUser(updateData)
+    if (error) return { error: error.message }
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const userEmail = user.email ?? ''
+      const localPart = userEmail.split('@')[0] ?? ''
+      const senderAddress = localPart
+        ? `${localPart}@send.gemm-apps.com`
+        : 'noreply@send.gemm-apps.com'
+      const emailConfig = {
+        sender: userEmail,
+        sender_address: senderAddress,
+        sender_name: fullName ?? userEmail,
+        recipients: [],
+        enabled: false,
+      }
+
+      // company_id from invite metadata — safety net if trigger ran before 0024
+      const companyId = (user.user_metadata?.company_id as string | undefined) ?? null
+
+      const profileUpdate: Record<string, unknown> = { email_config: emailConfig }
+      if (fullName) profileUpdate.full_name = fullName
+      if (companyId) profileUpdate.company_id = companyId
+
+      await supabase.from('profiles').update(profileUpdate).eq('id', user.id)
+
+      set((state) => ({
+        profile: state.profile
+          ? {
+              ...state.profile,
+              ...(fullName ? { full_name: fullName } : {}),
+              ...(companyId ? { company_id: companyId } : {}),
+              email_config: emailConfig,
+            }
+          : state.profile,
+        isInviteUser: false,
+      }))
+    } else {
+      set({ isInviteUser: false })
+    }
+
+    return { error: null }
   },
 
   completeTour: async () => {
@@ -278,14 +324,22 @@ export const useAuthStore = create<AuthState>()((set) => ({
   invokeWeeklyEmail: async (recipientsOverride?: string[]) => {
     set({ error: null });
 
-    const { error } = await supabase.functions.invoke('weekly-email', {
-      body: recipientsOverride ? { recipients: recipientsOverride } : undefined,
+    const userId = useAuthStore.getState().user?.id;
+    const body: Record<string, unknown> = {};
+    if (userId) body.userId = userId;
+    if (recipientsOverride) body.recipients = recipientsOverride;
+
+    const { data, error } = await supabase.functions.invoke('weekly-email', {
+      body: Object.keys(body).length > 0 ? body : undefined,
     });
+
+    console.log('[weekly-email] response:', JSON.stringify(data), 'error:', error, 'body:', body);
 
     if (error) {
       set({
         error: typeof error === 'string' ? error : 'Error sending weekly email',
       });
+      console.error('[weekly-email] error:', error);
     }
   },
 }));

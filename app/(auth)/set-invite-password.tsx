@@ -22,7 +22,7 @@ import { useRouter } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 
 import { useAuthStore } from '@/stores/authStore'
-import { resetPasswordSchema, type ResetPasswordInput } from '@/validators/auth'
+import { setInvitePasswordSchema, type SetInvitePasswordInput } from '@/validators/auth'
 import {
   borderRadius,
   colors,
@@ -31,21 +31,28 @@ import {
   spacing,
 } from '@/constants/theme'
 
-type FieldErrors = Partial<Record<keyof ResetPasswordInput, string>>
+type FieldErrors = Partial<Record<keyof SetInvitePasswordInput, string>>
 
 export default function SetInvitePasswordScreen() {
   const router = useRouter()
   const setInitialPassword = useAuthStore((s) => s.setInitialPassword)
 
+  const [fullName, setFullName] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [loading, setLoading] = useState(false)
 
+  const [fullNameFocused, setFullNameFocused] = useState(false)
   const [passwordFocused, setPasswordFocused] = useState(false)
   const [confirmFocused, setConfirmFocused] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+
+  function handleFullNameChange(text: string) {
+    setFullName(text)
+    if (fieldErrors.fullName) setFieldErrors((prev) => ({ ...prev, fullName: undefined }))
+  }
 
   function handlePasswordChange(text: string) {
     setPassword(text)
@@ -58,12 +65,12 @@ export default function SetInvitePasswordScreen() {
   }
 
   async function handleSubmit() {
-    const result = resetPasswordSchema.safeParse({ password, passwordConfirm })
+    const result = setInvitePasswordSchema.safeParse({ fullName, password, passwordConfirm })
 
     if (!result.success) {
       const errors: FieldErrors = {}
       for (const issue of result.error.issues) {
-        const field = issue.path[0] as keyof ResetPasswordInput
+        const field = issue.path[0] as keyof SetInvitePasswordInput
         if (!errors[field]) errors[field] = issue.message
       }
       setFieldErrors(errors)
@@ -72,7 +79,7 @@ export default function SetInvitePasswordScreen() {
 
     setFieldErrors({})
     setLoading(true)
-    const { error } = await setInitialPassword(result.data.password)
+    const { error } = await setInitialPassword(result.data.password, result.data.fullName)
     setLoading(false)
 
     if (error) {
@@ -83,6 +90,12 @@ export default function SetInvitePasswordScreen() {
     // isInviteUser is now false → useAuthGuard routes to /(tabs)/agenda
     router.replace('/(tabs)/agenda')
   }
+
+  const fullNameBorderColor = fieldErrors.fullName
+    ? colors.error
+    : fullNameFocused
+    ? colors.primary
+    : colors.border
 
   const passwordBorderColor = fieldErrors.password
     ? colors.error
@@ -108,10 +121,32 @@ export default function SetInvitePasswordScreen() {
       >
         <View style={styles.form}>
           <View style={styles.header}>
-            <Text style={styles.title}>Configurar contraseña</Text>
+            <Text style={styles.title}>Configurar tu cuenta</Text>
             <Text style={styles.subtitle}>
-              Para completar tu acceso, elegí una contraseña para tu cuenta.
+              Ingresá tu nombre y elegí una contraseña para activar tu acceso.
             </Text>
+          </View>
+
+          {/* Full name field */}
+          <View style={styles.fieldWrapper}>
+            <Text style={styles.label}>Nombre completo</Text>
+            <TextInput
+              style={[styles.input, { borderColor: fullNameBorderColor }]}
+              value={fullName}
+              onChangeText={handleFullNameChange}
+              onFocus={() => setFullNameFocused(true)}
+              onBlur={() => setFullNameFocused(false)}
+              autoCapitalize="words"
+              textContentType="name"
+              placeholder="Ej: Juan García"
+              placeholderTextColor={colors.textDisabled}
+              editable={!loading}
+              autoFocus
+              returnKeyType="next"
+            />
+            {fieldErrors.fullName ? (
+              <Text style={styles.fieldError}>{fieldErrors.fullName}</Text>
+            ) : null}
           </View>
 
           {/* Password field */}
@@ -131,7 +166,7 @@ export default function SetInvitePasswordScreen() {
                 placeholder="Mínimo 8 caracteres"
                 placeholderTextColor={colors.textDisabled}
                 editable={!loading}
-                autoFocus
+                returnKeyType="next"
               />
               <Pressable
                 onPress={() => setShowPassword(!showPassword)}
@@ -168,6 +203,8 @@ export default function SetInvitePasswordScreen() {
                 placeholder="Repetí la contraseña"
                 placeholderTextColor={colors.textDisabled}
                 editable={!loading}
+                returnKeyType="done"
+                onSubmitEditing={handleSubmit}
               />
               <Pressable
                 onPress={() => setShowConfirm(!showConfirm)}
@@ -192,7 +229,7 @@ export default function SetInvitePasswordScreen() {
             onPress={handleSubmit}
             disabled={loading}
             accessibilityRole="button"
-            accessibilityLabel="Guardar contraseña"
+            accessibilityLabel="Guardar y continuar"
           >
             {loading ? (
               <ActivityIndicator color={colors.textOnPrimary} />

@@ -34,6 +34,11 @@ export const resetPasswordSchema = z
     path: ['passwordConfirm'],
   })
 
+export const setInvitePasswordSchema = resetPasswordSchema.extend({
+  fullName: z.string().min(2, 'Por favor ingresá tu nombre completo'),
+})
+
 export type SignUpInput = z.infer<typeof signUpSchema>
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>
+export type SetInvitePasswordInput = z.infer<typeof setInvitePasswordSchema>
