@@ -22,7 +22,7 @@
  *   SUPABASE_SERVICE_ROLE_KEY
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // ---------------------------------------------------------------------------
 // HTML Escaping Helper
@@ -32,13 +32,13 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
  * Escape HTML special characters to prevent XSS injection in email body.
  */
 function escapeHtml(text: string | null | undefined): string {
-  if (!text) return ''
+  if (!text) return '';
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
+    .replace(/'/g, '&#39;');
 }
 
 // ---------------------------------------------------------------------------
@@ -46,46 +46,41 @@ function escapeHtml(text: string | null | undefined): string {
 // ---------------------------------------------------------------------------
 
 interface EmailConfig {
-  sender: string | null
-  recipients: string[]
-  enabled: boolean
-  sender_address?: string
-  sender_name?: string
+  sender: string;
+  recipients: string[];
+  enabled: boolean;
+  sender_address?: string;
+  sender_name?: string;
 }
 
 /**
  * Type guard: ensure EmailConfig has valid sender_address and sender_name.
  */
 function isValidEmailConfig(config: unknown): config is EmailConfig {
-  if (!config || typeof config !== 'object') return false
-  const obj = config as Record<string, unknown>
-  return (
-    typeof obj.sender_address === 'string' &&
-    typeof obj.sender_name === 'string' &&
-    Array.isArray(obj.recipients) &&
-    typeof obj.enabled === 'boolean'
-  )
+  if (!config || typeof config !== 'object') return false;
+  const obj = config as Record<string, unknown>;
+  return Array.isArray(obj.recipients) && typeof obj.enabled === 'boolean';
 }
 
 interface Profile {
-  id: string
-  full_name: string | null
-  email_config: EmailConfig | null
+  id: string;
+  full_name: string | null;
+  email_config: EmailConfig | null;
 }
 
 interface Client {
-  id: string
-  name: string
-  address: string | null
-  city: string | null
+  id: string;
+  name: string;
+  address: string | null;
+  city: string | null;
 }
 
 interface Visit {
-  id: string
-  scheduled_at: string
-  status: string
-  notes: string | null
-  client: Client
+  id: string;
+  scheduled_at: string;
+  status: string;
+  notes: string | null;
+  client: Client;
 }
 
 // ---------------------------------------------------------------------------
@@ -97,22 +92,22 @@ interface Visit {
  * "Last week" relative to the date this function runs (Monday morning).
  */
 function getLastWeekRange(): { from: string; to: string; label: string } {
-  const now = new Date()
+  const now = new Date();
 
   // Go back 7 days to land in last week, then find that week's Monday
-  const lastWeekDate = new Date(now)
-  lastWeekDate.setUTCDate(now.getUTCDate() - 7)
+  const lastWeekDate = new Date(now);
+  lastWeekDate.setUTCDate(now.getUTCDate() - 7);
 
-  const dayOfWeek = lastWeekDate.getUTCDay() // 0=Sun, 1=Mon, ..., 6=Sat
-  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+  const dayOfWeek = lastWeekDate.getUTCDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
 
-  const monday = new Date(lastWeekDate)
-  monday.setUTCDate(lastWeekDate.getUTCDate() - daysFromMonday)
-  monday.setUTCHours(0, 0, 0, 0)
+  const monday = new Date(lastWeekDate);
+  monday.setUTCDate(lastWeekDate.getUTCDate() - daysFromMonday);
+  monday.setUTCHours(0, 0, 0, 0);
 
-  const sunday = new Date(monday)
-  sunday.setUTCDate(monday.getUTCDate() + 6)
-  sunday.setUTCHours(23, 59, 59, 999)
+  const sunday = new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate() + 6);
+  sunday.setUTCHours(23, 59, 59, 999);
 
   const fmt = (d: Date): string =>
     d.toLocaleDateString('es-AR', {
@@ -120,13 +115,13 @@ function getLastWeekRange(): { from: string; to: string; label: string } {
       month: '2-digit',
       year: 'numeric',
       timeZone: 'America/Argentina/Buenos_Aires',
-    })
+    });
 
   return {
     from: monday.toISOString(),
     to: sunday.toISOString(),
     label: `${fmt(monday)} al ${fmt(sunday)}`,
-  }
+  };
 }
 
 function formatDate(iso: string): string {
@@ -135,7 +130,7 @@ function formatDate(iso: string): string {
     day: '2-digit',
     month: 'long',
     timeZone: 'America/Argentina/Buenos_Aires',
-  })
+  });
 }
 
 function formatTime(iso: string): string {
@@ -143,7 +138,7 @@ function formatTime(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
     timeZone: 'America/Argentina/Buenos_Aires',
-  })
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -156,29 +151,29 @@ function generateHtml(
   weekLabel: string,
 ): string {
   // Group visits by date (YYYY-MM-DD)
-  const byDate = new Map<string, Visit[]>()
+  const byDate = new Map<string, Visit[]>();
   for (const visit of visits) {
-    const dateKey = visit.scheduled_at.slice(0, 10)
-    const group = byDate.get(dateKey) ?? []
-    group.push(visit)
-    byDate.set(dateKey, group)
+    const dateKey = visit.scheduled_at.slice(0, 10);
+    const group = byDate.get(dateKey) ?? [];
+    group.push(visit);
+    byDate.set(dateKey, group);
   }
 
   const statusLabel: Record<string, string> = {
     completed: 'Completada',
     pending: 'Pendiente',
     canceled: 'Cancelada',
-  }
+  };
 
   const statusColor: Record<string, string> = {
     completed: '#16A34A',
     pending: '#D97706',
     canceled: '#9CA3AF',
-  }
+  };
 
-  const greeting = profile.full_name ? `Hola ${profile.full_name}` : 'Hola'
+  const greeting = profile.full_name ? `Hola ${profile.full_name}` : 'Hola';
 
-  let rows = ''
+  let rows = '';
   for (const [dateKey, dayVisits] of [...byDate.entries()].sort()) {
     rows += `
       <tr>
@@ -191,18 +186,18 @@ function generateHtml(
           text-transform: capitalize;
           border-top: 1px solid #E5E7EB;
         ">${formatDate(dateKey + 'T00:00:00Z')}</td>
-      </tr>`
+      </tr>`;
 
     for (const visit of dayVisits) {
-      const status = visit.status ?? 'pending'
-      const escapedNotes = escapeHtml(visit.notes)
+      const status = visit.status ?? 'pending';
+      const escapedNotes = escapeHtml(visit.notes);
       const notesHtml = escapedNotes
         ? `<div style="margin-top:4px;font-size:13px;color:#6B7280;">${escapedNotes.replace(/\n/g, '<br>')}</div>`
-        : ''
+        : '';
 
-      const clientName = escapeHtml(visit.client.name)
-      const clientAddress = escapeHtml(visit.client.address)
-      const clientCity = escapeHtml(visit.client.city)
+      const clientName = escapeHtml(visit.client.name);
+      const clientAddress = escapeHtml(visit.client.address);
+      const clientCity = escapeHtml(visit.client.city);
 
       rows += `
         <tr>
@@ -224,7 +219,7 @@ function generateHtml(
               border-radius:9999px;
             ">${statusLabel[status] ?? status}</span>
           </td>
-        </tr>`
+        </tr>`;
     }
   }
 
@@ -309,7 +304,7 @@ function generateHtml(
     </tr>
   </table>
 </body>
-</html>`
+</html>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -317,22 +312,22 @@ function generateHtml(
 // ---------------------------------------------------------------------------
 
 async function sendEmail(opts: {
-  from: string
-  replyTo?: string
-  to: string[]
-  subject: string
-  html: string
+  from: string;
+  replyTo?: string;
+  to: string[];
+  subject: string;
+  html: string;
 }): Promise<void> {
-  const apiKey = Deno.env.get('RESEND_API_KEY')
-  if (!apiKey) throw new Error('RESEND_API_KEY secret not set')
+  const apiKey = Deno.env.get('RESEND_API_KEY');
+  if (!apiKey) throw new Error('RESEND_API_KEY secret not set');
 
   const body: Record<string, unknown> = {
     from: opts.from,
     to: opts.to,
     subject: opts.subject,
     html: opts.html,
-  }
-  if (opts.replyTo) body['reply_to'] = opts.replyTo
+  };
+  if (opts.replyTo) body['reply_to'] = opts.replyTo;
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -341,103 +336,159 @@ async function sendEmail(opts: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
-  })
+  });
 
   if (!res.ok) {
-    const body = await res.text()
-    throw new Error(`Resend error ${res.status}: ${body}`)
+    const body = await res.text();
+    throw new Error(`Resend error ${res.status}: ${body}`);
   }
 }
+
+// ---------------------------------------------------------------------------
+// CORS
+// ---------------------------------------------------------------------------
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type',
+};
 
 // ---------------------------------------------------------------------------
 // Handler
 // ---------------------------------------------------------------------------
 
-Deno.serve(async (_req) => {
+Deno.serve(async (req) => {
+  // CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    const supabase = createClient(supabaseUrl, serviceRoleKey)
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    const { from, to, label } = getLastWeekRange()
+    // Parse optional body params
+    let bodyUserId: string | undefined;
+    let bodyRecipients: string[] | undefined;
+    try {
+      const body = await req.json();
+      if (typeof body.userId === 'string') bodyUserId = body.userId;
+      if (Array.isArray(body.recipients)) bodyRecipients = body.recipients;
+    } catch {
+      // no body — fine
+    }
 
-    // Fetch all profiles with email enabled
-    const { data: profiles, error: profilesErr } = await supabase
+    const { from, to, label } = getLastWeekRange();
+
+    // Fetch profiles with email enabled — scope to requesting user if provided
+    let profilesQuery = supabase
       .from('profiles')
       .select('id, full_name, email_config')
       .not('email_config', 'is', null)
-      .filter('email_config->>enabled', 'eq', 'true')
+      .filter('email_config->>enabled', 'eq', 'true');
 
-    if (profilesErr) throw profilesErr
+    if (bodyUserId) profilesQuery = profilesQuery.eq('id', bodyUserId);
 
-    const results: { userId: string; status: string }[] = []
+    const { data: profiles, error: profilesErr } = await profilesQuery;
+    if (profilesErr) throw profilesErr;
+
+    console.log(
+      `[weekly-email] bodyUserId=${bodyUserId} profiles found=${profiles?.length ?? 0}`,
+    );
+
+    const results: {
+      userId: string;
+      status: string;
+    }[] = [];
 
     for (const profile of (profiles as Profile[]) ?? []) {
-      const config = profile.email_config
-      if (!config?.enabled || !config.recipients?.length) continue
+      const config = profile.email_config;
+      console.log(
+        `[weekly-email] profile=${profile.id} config=${JSON.stringify(config)}`,
+      );
+
+      const effectiveRecipients = bodyRecipients?.length
+        ? bodyRecipients
+        : (config?.recipients ?? []);
+      if (!config?.enabled || !effectiveRecipients?.length) {
+        results.push({
+          userId: profile.id,
+          status: 'skipped: email disabled or no recipients',
+        });
+        continue;
+      }
 
       // Validate email_config has required sender fields
       if (!isValidEmailConfig(config)) {
-        results.push({
-          userId: profile.id,
-          status: 'error: invalid email_config (missing sender_address or sender_name)',
-        })
-        continue
+        results.push({ userId: profile.id, status: 'error: invalid email_config' });
+        continue;
       }
 
       // Fetch last week's visits for this user
       const { data: visits, error: visitsErr } = await supabase
         .from('visits')
-        .select('id, scheduled_at, status, notes, client:clients(id, name, address, city)')
+        .select(
+          'id, scheduled_at, status, notes, client:clients(id, name, address, city)',
+        )
         .eq('owner_user_id', profile.id)
         .neq('status', 'canceled')
         .gte('scheduled_at', from)
         .lte('scheduled_at', to)
-        .order('scheduled_at')
+        .order('scheduled_at');
 
       if (visitsErr) {
-        results.push({ userId: profile.id, status: `error: ${visitsErr.message}` })
-        continue
+        results.push({ userId: profile.id, status: `error: ${visitsErr.message}` });
+        continue;
       }
 
       if (!visits?.length) {
-        results.push({ userId: profile.id, status: 'skipped: no visits last week' })
-        continue
+        results.push({ userId: profile.id, status: 'skipped: no visits last week' });
+        continue;
       }
 
-      const html = generateHtml(profile, visits as Visit[], label)
+      const html = generateHtml(profile, visits as unknown as Visit[], label);
 
       // Use profile's sender_address and sender_name (extracted from auth email at signup)
-      const mailFromName = config.sender_name ?? 'CRM'
-      const mailFromAddress = config.sender_address ?? 'onboarding@resend.dev'
+      const mailFromName = config.sender_name ?? 'CRM';
+      const mailFromAddress =
+        config.sender_address ?? 'noreply@send.gemm-apps.com';
 
       try {
         await sendEmail({
           from: `${mailFromName} <${mailFromAddress}>`,
-          replyTo: config.sender ?? undefined,
-          to: config.recipients,
+          replyTo: config.sender,
+          to: effectiveRecipients,
           subject: `Resumen de visitas: ${label}`,
           html,
-        })
+        });
 
-        results.push({ userId: profile.id, status: `sent to ${config.recipients.length} recipient(s)` })
+        results.push({
+          userId: profile.id,
+          status: `sent to ${effectiveRecipients.length} recipient(s)`,
+        });
       } catch (sendErr: unknown) {
-        const sendErrMsg = sendErr instanceof Error ? sendErr.message : String(sendErr)
-        results.push({ userId: profile.id, status: `error sending: ${sendErrMsg}` })
+        const sendErrMsg =
+          sendErr instanceof Error ? sendErr.message : String(sendErr);
+        results.push({
+          userId: profile.id,
+          status: `error sending: ${sendErrMsg}`,
+        });
         // Continue to next user instead of aborting
       }
     }
 
     return new Response(JSON.stringify({ ok: true, results }), {
-      headers: { 'Content-Type': 'application/json' },
-    })
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err)
-    console.error('weekly-email error:', message)
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('weekly-email error:', message);
     return new Response(JSON.stringify({ ok: false, error: message }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    })
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
-})
+});
