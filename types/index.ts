@@ -35,9 +35,14 @@ export interface Profile {
   full_name: string | null
   email_config: EmailConfig
   role: UserRole
+  company_id: string | null
   show_tour: boolean
   created_at: string
   updated_at: string
+}
+
+export interface CompanyConfig {
+  max_users: number
 }
 
 export interface ContactInfo {

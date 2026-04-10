@@ -91,6 +91,19 @@ function parseFragmentParams(url: string): Record<string, string> {
 
 function useDeepLinkHandler(): void {
   useEffect(() => {
+    // On web, Supabase may redirect to the Site URL (e.g. localhost:8081) with
+    // session tokens in the URL fragment (#access_token=...&refresh_token=...).
+    // The deep link handler only watches crm-proar:// URLs on native, so we
+    // handle web fragment tokens here as a one-time check on mount.
+    // Skip if we're already on /auth/callback — that screen handles its own fragment.
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const hash = window.location.hash;
+      if (hash && window.location.pathname !== '/auth/callback') {
+        handleWebFragment(hash);
+      }
+      return; // No native deep link listener needed on web
+    }
+
     Linking.getInitialURL().then((url) => {
       if (url) handleUrl(url);
     });
@@ -98,6 +111,44 @@ function useDeepLinkHandler(): void {
     const sub = Linking.addEventListener('url', ({ url }) => handleUrl(url));
     return () => sub.remove();
   }, []);
+
+  async function handleWebFragment(hash: string) {
+    // parseFragmentParams expects a string containing '#' — pass hash as-is.
+    const params = parseFragmentParams(hash);
+
+    if (params.error) {
+      useAuthStore.getState().setError(params.error_description || params.error);
+      return;
+    }
+
+    if (params.access_token && params.refresh_token) {
+      // Block the auth guard while we establish the session (prevents redirect-to-login race).
+      useAuthStore.getState().setInviteSetup(true);
+      // Clean the fragment from the URL bar.
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      const { error } = await supabase.auth.setSession({
+        access_token: params.access_token,
+        refresh_token: params.refresh_token,
+      });
+      // Atomically clear inviteSetup and (if invite) mark user as needing password setup.
+      // A two-step set would let the guard briefly see userId+no flags → redirect to /agenda.
+      useAuthStore.getState().completeInviteFlow(
+        !error && params.type === 'invite'
+      );
+      if (error) {
+        useAuthStore.getState().setError(error.message);
+      }
+      return;
+    }
+
+    if (params.code) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      const { error } = await supabase.auth.exchangeCodeForSession(params.code);
+      if (error) {
+        useAuthStore.getState().setError(error.message);
+      }
+    }
+  }
 
   async function handleUrl(url: string) {
     const parsed = Linking.parse(url);
@@ -132,8 +183,11 @@ function useDeepLinkHandler(): void {
         access_token: accessToken,
         refresh_token: refreshToken,
       });
+      const type = Array.isArray(params.type) ? params.type[0] : params.type;
       if (error) {
         useAuthStore.getState().setError(error.message);
+      } else if (type === 'invite') {
+        useAuthStore.getState().setInviteUser(true);
       }
       return;
     }
@@ -155,6 +209,8 @@ function useAuthGuard(): void {
   const userId = useAuthStore((s) => s.session?.user?.id ?? null);
   const loading = useAuthStore((s) => s.loading);
   const isPasswordRecovery = useAuthStore((s) => s.isPasswordRecovery);
+  const isInviteSetup = useAuthStore((s) => s.isInviteSetup);
+  const isInviteUser = useAuthStore((s) => s.isInviteUser);
   const router = useRouter();
 
   useEffect(() => {
@@ -165,12 +221,22 @@ function useAuthGuard(): void {
       return;
     }
 
+    // Invite setup flow: callback screen is handling session establishment.
+    // Don't redirect — let app/auth/callback.tsx drive navigation.
+    if (isInviteSetup) return;
+
+    // Invited user has a session but no password yet — send to setup screen.
+    if (isInviteUser) {
+      router.replace('/(auth)/set-invite-password');
+      return;
+    }
+
     if (!userId) {
       router.replace('/(auth)/login');
     } else {
       router.replace('/(tabs)/agenda');
     }
-  }, [userId, loading, isPasswordRecovery]);
+  }, [userId, loading, isPasswordRecovery, isInviteSetup, isInviteUser]);
 }
 
 // ---------------------------------------------------------------------------
@@ -288,6 +354,7 @@ export default function RootLayout() {
   // Navigate to Agenda so chapter "agenda" starts on the visible screen.
   // Guard: only fire when showTour transitions to true — avoids re-navigating when
   // resetTour() (called from handleRestartTour) later resolves and updates Zustand.
+  const isInviteUser = useAuthStore((s) => s.isInviteUser);
   const tourStartedRef = useRef(false);
   useEffect(() => {
     if (!showTour) {
@@ -295,11 +362,15 @@ export default function RootLayout() {
       return;
     }
     if (!userId || loading) return;
+    // Don't start tour while the user is still setting their invite password.
+    // Once isInviteUser clears (after password saved), this effect re-runs and
+    // the tour starts normally on /(tabs)/agenda.
+    if (isInviteUser) return;
     if (tourStartedRef.current) return;
     tourStartedRef.current = true;
     startTour();
     router.replace('/(tabs)/agenda');
-  }, [showTour, userId, loading]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [showTour, userId, loading, isInviteUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Refresh lookups when app comes into focus
   useRefreshLookupsOnFocus();

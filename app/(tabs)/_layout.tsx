@@ -171,6 +171,15 @@ export default function TabsLayout() {
           href: null, // hide from tab bar; navigated to via header icon
         }}
       />
+
+      {/* Users management — admin/root only; navigated to from Settings */}
+      <Tabs.Screen
+        name="users"
+        options={{
+          title: 'Usuarios',
+          href: null, // hide from tab bar
+        }}
+      />
     </Tabs>
   )
 }

@@ -584,6 +584,37 @@
 
 ---
 
+## EP-048 — User Invitation System with Seat Limit Control
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 48.1 | Migration `0022_user_role_enum.sql`: create `public.user_role` enum ('user', 'admin', 'root'), drop `check_role_valid` CHECK constraint, migrate `profiles.role` TEXT → enum, update `handle_new_user`, `fn_prevent_self_role_elevation`, and `auth.is_admin()` to use enum | backend | `done` |
+| 48.2 | Migration `0023_companies.sql`: create `companies` and `company_config` tables with RLS (authenticated users see own company; admins see own company_config) | backend | `done` |
+| 48.3 | Migration `0024_profiles_company.sql`: add `company_id` FK to `profiles`, update `handle_new_user` to read `role` + `company_id` from invite metadata, add `auth.my_company_id()` and `auth.is_root()` SECURITY DEFINER helpers, add `profiles_admin_select_policy` so admins can SELECT all profiles in their company | backend | `done` |
+| 48.4 | Edge Function `invite-user`: validate caller is admin/root, check seat limit from `company_config.max_users` (root bypasses), call `supabase.auth.admin.inviteUserByEmail` with `role` + `company_id` metadata | backend | `done` |
+| 48.5 | Add `CompanyConfig` type and `company_id` field to `Profile` in `types/index.ts` | state | `done` |
+| 48.6 | Create `usersStore.ts`: `fetchUsers`, `fetchCompanyConfig`, `inviteUser` (calls `invite-user` Edge Function), loading/error/inviteLoading/inviteError state | state | `done` |
+| 48.7 | Remove open registration: delete `app/(auth)/register.tsx`, remove "Crear cuenta" link from `login.tsx` | frontend | `done` |
+| 48.8 | Create `app/(tabs)/users.tsx`: user list with role badges, seat counter (`X / MAX`), invite modal (email + role picker, Zod-validated), access guard for non-admin/root; register as hidden tab in `_layout.tsx` | frontend | `done` |
+| 48.9 | Add "Gestión de usuarios" row in `settings.tsx` (admin/root only) navigating to `/(tabs)/users` | frontend | `done` |
+| 48.10 | Document `invite-user` Edge Function, company bootstrap SQL, and `companies`/`company_config` setup instructions in `CLAUDE.md` | pm-tl | `done` |
+
+---
+
+## EP-048b — Invite Redirect URL + Password Setup Page
+
+> **Context:** Supabase invite emails land users on the default confirmation page which logs them in with no password. EP-048b adds an intermediate static HTML page that lets users set a password, then redirects them to the app (native deep link or Expo web).
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 48b.1 | Create `web/auth/invite.html`: static password-setup page; verifies invite token via `verifyOtp`, shows password form, calls `updateUser({ password })`, then shows two buttons: "Abrir en la app" (native deep link `crm-proar://auth/callback#<tokens>`) and "Usar versión web" (`/auth/callback#<tokens>`) | backend + frontend | `done` |
+| 48b.2 | Add `emailRedirectTo` to `invite-user` Edge Function using `INVITE_REDIRECT_URL` env secret (falls back to Supabase default if not set) | backend | `done` |
+| 48b.3 | Add `isInviteSetup: boolean` + `setInviteSetup(value)` to `authStore`; block `useAuthGuard` redirect while flag is set | state | `done` |
+| 48b.4 | Create `app/auth/callback.tsx`: reads `access_token` + `refresh_token` from `window.location.hash`, calls `supabase.auth.setSession()`, then clears `isInviteSetup` so guard can route to `/(tabs)/agenda`; native platform skips (handled by `useDeepLinkHandler`) | frontend | `done` |
+| 48b.5 | Document hosting instructions, `WEB_APP_URL` constant, and `INVITE_REDIRECT_URL` secret in `CLAUDE.md` | pm-tl | `done` |
+
+---
+
 ## Pending
 
 > All stories across all EPs that are not yet `done`.
@@ -624,3 +655,7 @@
 | 2026-03-17 | Use Resend for signup verification emails instead of Supabase's built-in | Already integrated with Resend for weekly-email. Resend allows beautiful React Email templates + better deliverability + higher rate limits. Verification email is a first impression; worth the polish. |
 | 2026-03-20 | Use Supabase's built-in email system for signup + password reset (EP-030 revision) | Simpler than custom Edge Function; Supabase manages token lifecycle; branded HTML templates customized in dashboard; Resend integration reserved for operational emails (weekly-email, bulk sends). |
 | 2026-03-26 | Web version built within same Expo project via React Native Web (EP-028), not as separate Next.js app | Previous defer decision was based on outdated RNW state. Exploration revealed zero build complexity — no metro.config.js, no Babel stubs. Web infra already in place. Stores, types, validators, theme tokens 100% reused. Only fix: DateTimePicker → HTML `<input>` on web. Stories 28.3–28.5 already done from prior work. |
+| 2026-04-09 | `profiles.role` uses a PostgreSQL enum `public.user_role` instead of a TEXT+CHECK constraint (EP-048) | Enums provide stricter DB-level type safety, enable exhaustive pattern matching in queries, and prevent invalid strings at the storage layer. Migration casts existing values cleanly via `USING role::public.user_role`. |
+| 2026-04-09 | Open registration removed; users can only join via admin-sent invitations (EP-048) | Single-tenant CRM — user onboarding must be controlled by the company admin to prevent unauthorized access. `supabase.auth.admin.inviteUserByEmail` sends a Supabase-managed magic link; accepted invite triggers `handle_new_user` which sets `role` and `company_id` from metadata. |
+| 2026-04-09 | Seat limit enforced server-side in `invite-user` Edge Function, not only in UI (EP-048) | UI checks can be bypassed; authoritative enforcement must be in backend. Root role bypasses limit by design for super-admin operations. `company_config.max_users` is managed directly in DB by root — no in-app UI for seat management at MVP. |
+| 2026-04-09 | Invite flow uses static HTML intermediate page + separate Expo `/auth/callback` screen (EP-048b) | Supabase's default invite confirmation page logs users in with no password. Static HTML page (served outside the Expo app) exchanges `token_hash` for a session, prompts password setup, then redirects using URL fragment tokens. Native and web take different URL schemes but share the same session-transfer mechanism (`access_token` + `refresh_token` in fragment). `isInviteSetup` flag in authStore prevents auth guard from interfering while session is established. |

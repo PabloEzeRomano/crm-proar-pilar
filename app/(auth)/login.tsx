@@ -230,15 +230,6 @@ export default function LoginScreen() {
             <Text style={styles.textLinkLabel}>¿Olvidaste tu contraseña?</Text>
           </Pressable>
 
-          {/* Sign up link */}
-          <Pressable
-            onPress={() => router.push('/(auth)/register')}
-            style={styles.textLink}
-            accessibilityRole="link"
-            accessibilityLabel="Crear cuenta"
-          >
-            <Text style={styles.textLinkLabel}>¿No tenés cuenta? Crear cuenta</Text>
-          </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

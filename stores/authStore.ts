@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { Platform } from 'react-native';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
@@ -10,6 +11,8 @@ export interface AuthState {
   loading: boolean;
   error: string | null;
   isPasswordRecovery: boolean;
+  isInviteSetup: boolean;
+  isInviteUser: boolean;
   initialize: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (
@@ -22,10 +25,14 @@ export interface AuthState {
   setError: (message: string) => void;
   requestPasswordReset: (email: string) => Promise<{ error: string | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
+  setInviteUser: (value: boolean) => void;
+  completeInviteFlow: (isNewUser: boolean) => void;
+  setInitialPassword: (newPassword: string) => Promise<{ error: string | null }>;
   updateEmailConfig: (config: import('../types').EmailConfig) => Promise<void>;
   completeTour: () => Promise<void>;
   resetTour: () => Promise<void>;
   invokeWeeklyEmail: (recipientsOverride?: string[]) => Promise<void>;
+  setInviteSetup: (value: boolean) => void;
 }
 
 // Module-level variable to hold the auth state change subscription so it
@@ -64,6 +71,8 @@ export const useAuthStore = create<AuthState>()((set) => ({
   loading: true,
   error: null,
   isPasswordRecovery: false,
+  isInviteSetup: false,
+  isInviteUser: false,
 
   initialize: async () => {
     set({ loading: true });
@@ -172,9 +181,14 @@ export const useAuthStore = create<AuthState>()((set) => ({
   },
 
   requestPasswordReset: async (email) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'crm-proar://auth/callback',
-    });
+    // On web, use the current origin so the reset link lands on /auth/callback
+    // (which calls exchangeCodeForSession via handleWebFragment or the callback screen).
+    // On native, use the deep link scheme.
+    const redirectTo =
+      Platform.OS === 'web' && typeof window !== 'undefined'
+        ? `${window.location.origin}/auth/callback`
+        : 'crm-proar://auth/callback';
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
     return { error: error?.message ?? null };
   },
 
@@ -189,6 +203,23 @@ export const useAuthStore = create<AuthState>()((set) => ({
   clearError: () => set({ error: null }),
 
   setError: (message: string) => set({ error: message }),
+
+  setInviteSetup: (value: boolean) => set({ isInviteSetup: value }),
+
+  setInviteUser: (value: boolean) => set({ isInviteUser: value }),
+
+  // Atomically clears isInviteSetup and sets isInviteUser in one render cycle,
+  // preventing the guard from briefly seeing userId set with both flags false.
+  completeInviteFlow: (isNewUser: boolean) =>
+    set({ isInviteSetup: false, isInviteUser: isNewUser }),
+
+  // Like updatePassword but does NOT sign out — used for first-time invite password setup.
+  setInitialPassword: async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) return { error: error.message };
+    set({ isInviteUser: false });
+    return { error: null };
+  },
 
   completeTour: async () => {
     const {
