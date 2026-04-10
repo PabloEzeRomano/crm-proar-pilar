@@ -21,7 +21,9 @@
       [
         "expo-notifications",
         {
-          "icons": ["./assets/notification-icon.png"],
+          "icons": [
+            "./assets/notification-icon.png"
+          ],
           "color": "#ffffff"
         }
       ]
@@ -30,7 +32,8 @@
       "bundleIdentifier": "com.proar.crm",
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Para ordenar las visitas del día por cercanía."
+        "NSLocationWhenInUseUsageDescription": "Para ordenar las visitas del día por cercanía.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -46,7 +49,10 @@
       "jsEngine": "hermes",
       "enableProguardInReleaseBuilds": true,
       "enableShrinkResourcesInReleaseBuilds": true,
-      "permissions": ["ACCESS_FINE_LOCATION", "POST_NOTIFICATIONS"]
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ]
     },
     "web": {
       "bundler": "metro",
