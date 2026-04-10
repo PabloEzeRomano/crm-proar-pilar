@@ -112,7 +112,7 @@ export default function AuthCallbackScreen() {
     }
 
     setupSession()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   // ---------------------------------------------------------------------------
   // Loading

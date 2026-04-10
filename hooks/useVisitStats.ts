@@ -106,5 +106,5 @@ export function useVisitStats(filters?: VisitStatsFilters): VisitStats {
       hasDateFilter,
       topClients,
     }
-  }, [visits, completedOnly, dateFrom, dateTo]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visits, completedOnly, dateFrom, dateTo])
 }

@@ -69,7 +69,7 @@ export default function VisitDetailView() {
   // before visitsStore has been populated), fetch it on demand.
   useEffect(() => {
     if (!visit && id) fetchVisit(id)
-  }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id])
 
   const [notesText, setNotesText] = useState<string>(visit?.notes ?? '')
   const [saveState, setSaveState] = useState<SaveState>('idle')
@@ -80,7 +80,7 @@ export default function VisitDetailView() {
     if (visit) {
       setNotesText(visit.notes ?? '')
     }
-  }, [visit?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visit?.id])
 
   // Set header: "Editar" button
   useLayoutEffect(() => {

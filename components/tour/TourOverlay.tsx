@@ -178,14 +178,14 @@ export default function TourOverlay() {
     }
 
     measureStep(currentStepId)
-  }, [currentIndex]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentIndex])
 
   // Re-measure when a new step registers (fires after cross-screen nav completes)
   useEffect(() => {
     if (currentStepId && steps[currentStepId] && rect === null) {
       measureStep(currentStepId)
     }
-  }, [steps]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [steps])
 
   // Cleanup on unmount
   useEffect(() => () => clearRetry(), [])

@@ -164,7 +164,7 @@ function TodayScreenContent() {
       fetchTodayVisits(span)
       const interval = setInterval(() => fetchTodayVisits(span), 60_000)
       return () => clearInterval(interval)
-    }, [span]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [span])
   )
 
   // ── Header: gear icon + date subtitle ───────────────────────────────────
@@ -228,7 +228,7 @@ function TodayScreenContent() {
   const liveMinutesUntilNext = useMemo<number | null>(() => {
     if (!nextVisit) return null
     return dayjs(nextVisit.scheduled_at).diff(dayjs(), 'minute')
-  }, [nextVisit]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [nextVisit])
   // Note: this is intentionally recalculated on each render, not only when
   // nextVisit changes. The dependency on nextVisit is still correct —
   // a new render triggered by the 60s interval will recompute the value.

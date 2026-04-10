@@ -348,7 +348,7 @@ export default function RootLayout() {
       fetchTodayVisits(),
       fetchLookups(),
     ]);
-  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   // Start the interactive tour when show_tour = true (first login or "Ver tour de nuevo").
   // Navigate to Agenda so chapter "agenda" starts on the visible screen.
@@ -370,7 +370,7 @@ export default function RootLayout() {
     tourStartedRef.current = true;
     startTour();
     router.replace('/(tabs)/agenda');
-  }, [showTour, userId, loading, isInviteUser]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [showTour, userId, loading, isInviteUser]);
 
   // Refresh lookups when app comes into focus
   useRefreshLookupsOnFocus();

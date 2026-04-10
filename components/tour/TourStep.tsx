@@ -102,7 +102,7 @@ export default function TourStep({
   useEffect(() => {
     register({ id, order, text, borderRadius, routePath, measure })
     return () => unregister(id)
-  }, [order, text, borderRadius, routePath]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [order, text, borderRadius, routePath])
 
   return (
     <View ref={viewRef} collapsable={false} style={wrapperStyle}>

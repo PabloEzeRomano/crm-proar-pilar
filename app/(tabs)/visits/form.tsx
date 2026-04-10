@@ -164,7 +164,7 @@ export default function VisitFormScreen() {
         }
       }
     })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     if (isEditMode && existingVisit) {
@@ -181,7 +181,7 @@ export default function VisitFormScreen() {
       const preFilledClient = clients.find((c) => c.id === paramClientId)
       if (preFilledClient) setSelectedClient(preFilledClient)
     }
-  }, [isEditMode, existingVisit?.id, paramClientId, clients]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isEditMode, existingVisit?.id, paramClientId, clients])
 
   // -------------------------------------------------------------------------
   // Validation
@@ -227,7 +227,7 @@ export default function VisitFormScreen() {
         </Pressable>
       ),
     })
-  }, [isValid, saving, selectedClient, selectedDate, selectedTime, notes, status, visitType, navigation, closeForm]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isValid, saving, selectedClient, selectedDate, selectedTime, notes, status, visitType, navigation, closeForm])
 
   // -------------------------------------------------------------------------
   // Handlers

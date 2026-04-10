@@ -148,7 +148,7 @@ export default function UsersScreen() {
     if (!isAdminOrRoot) return
     fetchUsers()
     fetchCompanyConfig()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Invite handlers ───────────────────────────────────────────────────────
 
