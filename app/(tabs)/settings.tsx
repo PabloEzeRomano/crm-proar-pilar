@@ -12,7 +12,7 @@
  * All data read/written through useAuthStore. No direct Supabase calls.
  */
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { z } from 'zod'
 import Constants from 'expo-constants'
 import { useRouter } from 'expo-router'
@@ -95,6 +95,8 @@ function SettingsScreenContent() {
     enabled: profile?.email_config?.enabled ?? false,
     sender: profile?.email_config?.sender ?? '',
     recipients: profile?.email_config?.recipients ?? [],
+    sender_address: profile?.email_config?.sender_address ?? '',
+    sender_name: profile?.email_config?.sender_name ?? '',
   }))
   const [isDirty, setIsDirty] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -123,18 +125,22 @@ function SettingsScreenContent() {
       fetchTodayVisits()
       fetchVisits()
     }
-  }, [importResult]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [importResult])
 
   // Sync from store only when not dirty (profile may load after first render)
   useEffect(() => {
+    console.log('useEffect profile')
+    console.log(profile)
     if (!isDirty && profile?.email_config) {
       setLocalConfig({
         enabled: profile.email_config.enabled,
-        sender: profile.email_config.sender ?? '',
+        sender: profile.email_config.sender,
         recipients: profile.email_config.recipients,
+        sender_address: profile.email_config.sender_address,
+        sender_name: profile.email_config.sender_name,
       })
     }
-  }, [profile]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [profile])
 
   // Native-only: scroll the settings page to the active tour step section.
   // On web, TourStep handles scrollIntoView via the DOM — doing it here too
@@ -244,7 +250,10 @@ function SettingsScreenContent() {
     setIsDirty(true)
   }
 
-  async function handleSave() {
+  const handleSave = useCallback(async () => {
+    console.log('handleSave')
+    console.log(localConfig)
+    console.log(profile)
     setSaving(true)
 
     // Validate sender email if provided
@@ -260,12 +269,14 @@ function SettingsScreenContent() {
 
     await updateEmailConfig({
       enabled: localConfig.enabled,
-      sender: localConfig.sender || null,
+      sender: localConfig.sender,
+      sender_address: localConfig.sender_address,
+      sender_name: localConfig.sender_name,
       recipients: localConfig.recipients,
     })
     setSaving(false)
     setIsDirty(false)
-  }
+  }, [localConfig, profile, updateEmailConfig])
 
   function handleOpenSendModal() {
     setModalAdHocEmails([])

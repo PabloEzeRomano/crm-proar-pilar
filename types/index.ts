@@ -6,13 +6,13 @@ export type UserRole = 'user' | 'admin' | 'root'
 
 export interface EmailConfig {
   /** User's personal/business email — used as Reply-To in outgoing emails */
-  sender: string | null
+  sender: string
   recipients: string[]
   enabled: boolean
   /** Auto-generated sender address from auth email local part + send domain (e.g., gvega@send.gemm-apps.com) */
-  sender_address?: string
+  sender_address: string
   /** Auto-generated sender display name from auth email local part (e.g., gvega) */
-  sender_name?: string
+  sender_name: string
 }
 
 /**
