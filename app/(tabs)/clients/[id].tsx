@@ -105,7 +105,7 @@ export default function ClientDetailScreen() {
 
   useEffect(() => {
     if (id) fetchVisitsByClient(id)
-  }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id])
 
   // Fetch client if not in store
   useEffect(() => {

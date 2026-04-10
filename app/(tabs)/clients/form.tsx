@@ -235,7 +235,7 @@ export default function ClientFormScreen() {
     addressDebounceRef.current = setTimeout(async () => {
       setAddressSearching(true)
       try {
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=5`
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=5&countrycodes=ar`
         const res = await fetch(url, {
           headers: { 'User-Agent': 'crm-proar-pilar' },
         })
@@ -247,7 +247,7 @@ export default function ClientFormScreen() {
         setAddressSearching(false)
       }
     }, 500)
-  }, [addressQuery, showAddressSearch]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [addressQuery, showAddressSearch])
 
   function handleAddressSelect(result: NominatimResult) {
     const { road, house_number, city, town, village } = result.address
@@ -272,7 +272,7 @@ export default function ClientFormScreen() {
     setAddingLoading(false)
     if (inserted) {
       setField('industry', inserted)
-      setShowRubroPicker(false)
+      // setShowRubroPicker(false)
     }
     setAddingRubro(false)
     setNewRubroText('')
@@ -285,7 +285,7 @@ export default function ClientFormScreen() {
     setAddingLoading(false)
     if (inserted) {
       setField('city', inserted)
-      setShowLocalidadPicker(false)
+      // setShowLocalidadPicker(false)
     }
     setAddingLocalidad(false)
     setNewLocalidadText('')
@@ -318,7 +318,7 @@ export default function ClientFormScreen() {
     }
 
     router.dismiss()
-  }, [form, contacts, addressCoords, isEditMode, clientId, createClient, updateClient, router]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [form, contacts, addressCoords, isEditMode, clientId, createClient, updateClient, router])
 
   // -------------------------------------------------------------------------
   // Is form valid for submit button state
@@ -1019,6 +1019,7 @@ const styles = StyleSheet.create({
     height: 48,
     fontSize: fontSize.base,
     color: colors.textPrimary,
+    borderRadius: borderRadius.md,
   },
   searchResultsList: {
     paddingBottom: spacing[8],

@@ -108,13 +108,13 @@ function ClientsScreenContent() {
 
   useEffect(() => {
     fetchClients()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     if (showInactive) {
       fetchInactiveClients()
     }
-  }, [showInactive]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [showInactive])
 
   // ── Filter modal handlers ────────────────────────────────────────────────
 
