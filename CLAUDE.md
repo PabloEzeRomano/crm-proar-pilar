@@ -50,20 +50,11 @@ A mobile-first CRM for a salesperson who visits businesses in person. Designed a
 
 3. **For weekly email Edge Function:** Set `RESEND_API_KEY` and `MAIL_FROM_ADDRESS` in Supabase → Edge Functions → weekly-email → Secrets (not in `.env`).
 
-4. **For invite-user Edge Function:** Uses `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ANON_KEY` (auto-injected). Optionally set `INVITE_REDIRECT_URL` in Supabase → Edge Functions → invite-user → Secrets to point to the password-setup HTML page (see below). Helper functions `public.my_company_id()` and `public.is_root()` live in the `public` schema (not `auth.*`) due to CLI schema permission limits. Deploy with:
+4. **For invite-user Edge Function:** Uses `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ANON_KEY` (auto-injected). Helper functions `public.my_company_id()` and `public.is_root()` live in the `public` schema (not `auth.*`) due to CLI schema permission limits. Deploy with:
    ```bash
    supabase functions deploy invite-user --no-verify-jwt
    ```
    (JWT verification is done manually inside the function using the anon key.)
-
-5. **Invite password-setup page (`web/auth/invite.html`):**
-   - Static HTML page served separately from the Expo app.
-   - Supabase invite email links here (via `INVITE_REDIRECT_URL` secret).
-   - Page exchanges `token_hash` for a session, prompts password setup, then redirects:
-     - **Native:** `crm-proar://auth/callback#access_token=...&refresh_token=...` (handled by `useDeepLinkHandler` in `_layout.tsx`)
-     - **Web:** `http://localhost:8081/auth/callback#access_token=...&refresh_token=...` (handled by `app/auth/callback.tsx`)
-   - Update `WEB_APP_URL` constant inside the HTML file when deploying to production.
-   - For local dev, serve from the repo root: `npx serve . -p 3000` then set `INVITE_REDIRECT_URL=http://localhost:3000/web/auth/invite.html`.
 
 ### Running the App Locally
 
@@ -278,9 +269,6 @@ Single entity: starts as scheduled appointment, updated with notes after.
   theme.ts                     # Design tokens (colors, typography, spacing, radius)
   brand.ts                     # White-label config (appName, primaryColor, logoUrl)
   index.ts
-/web
-  /auth
-    invite.html                # Static invite password-setup page (EP-48b)
 /supabase
   /migrations                  # SQL migration files
   /functions
@@ -296,16 +284,15 @@ Single entity: starts as scheduled appointment, updated with notes after.
 
 ```
 Supabase invite email
-  → invite.html (INVITE_REDIRECT_URL)
-      • verifyOtp({ token_hash, type })
-      • updateUser({ password })
-      • session tokens in URL fragment
-          ↓ native          ↓ web
-  crm-proar://         http://[WEB_APP_URL]/
-  auth/callback#...    auth/callback#...
-          ↓                  ↓
-  _layout.tsx          app/auth/callback.tsx
-  useDeepLinkHandler   setSession() → guard → /(tabs)/agenda
+  → http://[Site URL]#access_token=...&refresh_token=...&type=invite
+          ↓
+  _layout.tsx useDeepLinkHandler (web: handleWebFragment, native: handleUrl)
+      • setSession(access_token, refresh_token)
+      • type=invite → isInviteUser=true
+          ↓
+  useAuthGuard → /(auth)/set-invite-password
+      • user sets password → setInitialPassword()
+      • isInviteUser=false → router.replace('/(tabs)/agenda')
 ```
 
 ---

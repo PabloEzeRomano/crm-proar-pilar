@@ -24,13 +24,6 @@
  *   SUPABASE_URL
  *   SUPABASE_SERVICE_ROLE_KEY
  *   SUPABASE_ANON_KEY
- *
- * Optional secret (set in Supabase Edge Function secrets):
- *   INVITE_REDIRECT_URL — URL of the password-setup page the invite email links to.
- *     Native: file:///path/to/invite.html (side-loaded)
- *     Web:    https://your-domain.com/auth/invite.html
- *     Local:  http://localhost:8081/web/auth/invite.html (for dev)
- *   Falls back to Supabase's default invite confirmation page if not set.
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -84,7 +77,6 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
-    const inviteRedirectUrl = Deno.env.get('INVITE_REDIRECT_URL') ?? undefined
 
     // ── 1. Authenticate caller ──────────────────────────────────────────────
 
@@ -193,7 +185,6 @@ Deno.serve(async (req) => {
           role,
           company_id: callerProfile.company_id,
         },
-        ...(inviteRedirectUrl ? { redirectTo: inviteRedirectUrl } : {}),
       },
     )
 
