@@ -615,6 +615,20 @@
 
 ---
 
+## EP-049 — Fixes: Nominatim, Role Trigger, Equipo Redesign, Email Config, Invite Password
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 49.3 | Fix Nominatim: add `countrycodes=ar` to address search modal + geocodeClient; remove manual `, Argentina` from query string | frontend + state | `done` |
+| 49.4 | Fix address search input missing `borderRadius`; apply `borderRadius.md` from theme | frontend + ui-ux | `done` |
+| 49.5 | Migration `0025_fix_role_trigger.sql`: fix `fn_prevent_self_role_elevation` to only block when `auth.uid() IS NOT NULL AND auth.uid() = NEW.id` so dashboard SQL Editor can promote users | backend | `done` |
+| 49.6 | Redesign Equipo tab: replace flat team view with user list → per-user drill-down; visits/clients screens always show logged-in user's own data only; `fetchVisitsByOwner` + `fetchClientsByOwner` in stores | frontend + state | `done` |
+| 49.7 | Fix weekly email: auto-populate `email_config` on first sign-in when null; update skip log message | state + backend | `done` |
+| 49.8 | Add "Full name" field to set-invite-password screen; persist to auth metadata + profiles table | frontend + state | `done` |
+| 49.9 | Docs: add "Bootstrap: First Root User" section to CLAUDE.md; update backlog | pm-tl | `done` |
+
+---
+
 ## Pending
 
 > All stories across all EPs that are not yet `done`.

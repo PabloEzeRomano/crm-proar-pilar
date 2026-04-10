@@ -4,6 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
+Token Efficient Rules
+
+1. Think before acting. Read existing files before writing code.
+2. Be concise in output but thorough in reasoning.
+3. Prefer editing over rewriting whole files.
+4. Do not re-read files you have already read unless the file may have changed.
+5. Test your code before declaring done.
+6. No sycophantic openers or closing fluff.
+7. Keep solutions simple and direct.
+8. User instructions always override this file.
+
 # CRM Proar Pilar — Claude Code Instructions
 
 ## Project Overview
@@ -102,6 +113,28 @@ supabase db push
 # Option 2: For prod, use Supabase dashboard SQL editor
 # Copy the migration content and run it directly
 ```
+
+## Bootstrap: First Root User
+
+The first system administrator must be promoted to `root` manually from the Supabase dashboard. This is a one-time operation per project.
+
+**Steps:**
+1. Create your account normally in the app (email + password login, or accept an invite if another admin exists)
+2. Find your User ID in **Supabase dashboard → Authentication → Users**
+3. Open **SQL Editor** and run:
+
+```sql
+UPDATE public.profiles
+SET role = 'root'
+WHERE id = '<your-user-id>';
+```
+
+4. Verify: `SELECT id, full_name, role FROM public.profiles WHERE id = '<your-user-id>';`
+5. Sign out and sign back in so the app reloads the profile
+
+**Why this works:** The SQL Editor runs as `postgres`, not as an authenticated user, so `auth.uid()` is NULL and the `fn_prevent_self_role_elevation` trigger does not block the change (see migration 0025). Once you are `root`, you can invite admins directly from **User Management** inside the app.
+
+---
 
 ### Initial Company Setup (after migrations 0022–0024)
 
