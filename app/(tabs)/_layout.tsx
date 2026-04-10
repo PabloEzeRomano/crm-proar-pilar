@@ -47,7 +47,7 @@ function TabIcon({ activeIcon, inactiveIcon, focused, color }: TabIconProps) {
 
 export default function TabsLayout() {
   const profile = useAuthStore((state) => state.profile)
-  const isAdminOnWeb = profile?.role === 'admin' && Platform.OS === 'web'
+  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root'
   const { width } = useWindowDimensions()
 
   // On web screens > 768px wide, constrain content to 480px and center it
@@ -146,12 +146,13 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* ── Equipo (Team) — admin + web only ──────────────────────────────── */}
+      {/* ── Equipo (Team) — admin/root only ──────────────────────────────── */}
       <Tabs.Screen
         name="team"
         options={{
           title: 'Equipo',
-          href: isAdminOnWeb ? undefined : null, // hide unless admin + web
+          href: isAdminOrRoot ? undefined : null, // hide unless admin or root
+          headerShown: false, // nested Stack in team/_layout.tsx owns the header
           tabBarIcon: ({ focused, color }) => (
             <TabIcon
               activeIcon="account-multiple"

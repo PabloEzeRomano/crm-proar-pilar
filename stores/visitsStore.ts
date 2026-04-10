@@ -19,10 +19,14 @@ interface VisitsState {
   error: string | null
   deleting: boolean
   deleteError: string | null
-  fetchVisits: (showAll?: boolean) => Promise<void>
-  fetchMoreVisits: (showAll?: boolean) => Promise<void>
+  teamVisits: VisitWithClient[]
+  teamLoading: boolean
+  fetchVisits: () => Promise<void>
+  fetchMoreVisits: () => Promise<void>
   fetchVisit: (id: string) => Promise<void>
   fetchVisitsByClient: (clientId: string) => Promise<void>
+  fetchVisitsByOwner: (userId: string) => Promise<void>
+  clearTeamVisits: () => void
   createVisit: (data: CreateVisitInput) => Promise<Visit | null>
   updateVisit: (id: string, data: UpdateVisitInput) => Promise<void>
   updateStatus: (id: string, status: VisitStatus) => Promise<void>
@@ -40,13 +44,22 @@ export const useVisitsStore = create<VisitsState>()(
       error: null,
       deleting: false,
       deleteError: null,
+      teamVisits: [],
+      teamLoading: false,
 
-      fetchVisits: async (showAll?: boolean) => {
+      fetchVisits: async () => {
         set({ loading: true, error: null })
+
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          set({ loading: false, error: 'Usuario no autenticado' })
+          return
+        }
 
         const { data, error } = await supabase
           .from('visits')
           .select('*, client:clients(*)')
+          .eq('owner_user_id', user.id)
           .order('scheduled_at', { ascending: false })
           .limit(PAGE_SIZE)
 
@@ -55,36 +68,19 @@ export const useVisitsStore = create<VisitsState>()(
           return
         }
 
-        let rows = (data as unknown as VisitWithClient[]) ?? []
-
-        // If admin view, fetch owner profiles for all visits
-        if (showAll && rows.length > 0) {
-          const ownerIds = Array.from(new Set(rows.map((v) => v.owner_user_id)))
-          if (ownerIds.length > 0) {
-            const { data: profiles } = await supabase
-              .from('profiles')
-              .select('id, full_name, email_config')
-              .in('id', ownerIds)
-
-            if (profiles) {
-              const profileMap = Object.fromEntries(profiles.map((p) => [p.id, p]))
-              rows = rows.map((v) => ({
-                ...v,
-                owner: profileMap[v.owner_user_id],
-              }))
-            }
-          }
-        }
-
+        const rows = (data as unknown as VisitWithClient[]) ?? []
         set({ visits: rows, hasMore: rows.length === PAGE_SIZE, loading: false })
       },
 
-      fetchMoreVisits: async (showAll?: boolean) => {
+      fetchMoreVisits: async () => {
         const { visits, hasMore, loadingMore, loading } = get()
         if (!hasMore || loadingMore || loading) return
 
         const oldest = visits[visits.length - 1]
         if (!oldest) return
+
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
 
         set({ loadingMore: true })
 
@@ -93,6 +89,7 @@ export const useVisitsStore = create<VisitsState>()(
         const { data, error } = await supabase
           .from('visits')
           .select('*, client:clients(*)')
+          .eq('owner_user_id', user.id)
           .order('scheduled_at', { ascending: false })
           .order('id', { ascending: false })
           .or(`scheduled_at.lt.${oldest.scheduled_at},and(scheduled_at.eq.${oldest.scheduled_at},id.lt.${oldest.id})`)
@@ -103,27 +100,7 @@ export const useVisitsStore = create<VisitsState>()(
           return
         }
 
-        let rows = (data as unknown as VisitWithClient[]) ?? []
-
-        // If admin view, fetch owner profiles for new visits
-        if (showAll && rows.length > 0) {
-          const ownerIds = Array.from(new Set(rows.map((v) => v.owner_user_id)))
-          if (ownerIds.length > 0) {
-            const { data: profiles } = await supabase
-              .from('profiles')
-              .select('id, full_name, email_config')
-              .in('id', ownerIds)
-
-            if (profiles) {
-              const profileMap = Object.fromEntries(profiles.map((p) => [p.id, p]))
-              rows = rows.map((v) => ({
-                ...v,
-                owner: profileMap[v.owner_user_id],
-              }))
-            }
-          }
-        }
-
+        const rows = (data as unknown as VisitWithClient[]) ?? []
         set((state) => ({
           visits: [...state.visits, ...rows],
           hasMore: rows.length === PAGE_SIZE,
@@ -147,6 +124,25 @@ export const useVisitsStore = create<VisitsState>()(
           return { visits: [...others, ...incoming] }
         })
       },
+
+      fetchVisitsByOwner: async (userId: string) => {
+        set({ teamLoading: true })
+
+        const { data, error } = await supabase
+          .from('visits')
+          .select('*, client:clients(*)')
+          .eq('owner_user_id', userId)
+          .order('scheduled_at', { ascending: false })
+
+        if (error || !data) {
+          set({ teamLoading: false })
+          return
+        }
+
+        set({ teamVisits: data as VisitWithClient[], teamLoading: false })
+      },
+
+      clearTeamVisits: () => set({ teamVisits: [], teamLoading: false }),
 
       fetchVisit: async (id: string) => {
         const { data, error } = await supabase

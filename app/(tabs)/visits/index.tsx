@@ -37,7 +37,6 @@ import {
 } from '@/constants/theme'
 import { VisitStatus, VisitType, VisitWithClient } from '@/types'
 import { useVisits } from '@/hooks/useVisits'
-import { useAuthStore } from '@/stores/authStore'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import AppDatePicker from '@/components/ui/AppDatePicker'
 
@@ -88,9 +87,7 @@ export default function VisitsIndexScreen() {
   const [showFromPicker, setShowFromPicker] = useState(false)
   const [showToPicker, setShowToPicker] = useState(false)
 
-  const profile = useAuthStore((state) => state.profile)
-  const isAdmin = profile?.role === 'admin'
-  const { visits: rawVisits, hasMore, loading, loadingMore, error, fetchVisits, fetchMoreVisits } = useVisits(undefined, activeFilter, isAdmin)
+  const { visits: rawVisits, hasMore, loading, loadingMore, error, fetchVisits, fetchMoreVisits } = useVisits(undefined, activeFilter)
 
   // Apply date range filter client-side
   const visits = rawVisits.filter((v) => {
@@ -105,7 +102,7 @@ export default function VisitsIndexScreen() {
 
   useEffect(() => {
     fetchVisits()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   // Header right: calendar filter button
   useLayoutEffect(() => {
@@ -132,7 +129,7 @@ export default function VisitsIndexScreen() {
         </Pressable>
       ),
     })
-  }, [navigation, dateRangeActive, dateFrom, dateTo]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [navigation, dateRangeActive, dateFrom, dateTo])
 
   function handleRowPress(visit: VisitWithClient) {
     router.push(`/visits/${visit.id}`)
@@ -169,11 +166,6 @@ export default function VisitsIndexScreen() {
     const clientName = item.client?.name ?? 'Cliente desconocido'
     const dateText = formatVisitDate(item.scheduled_at)
 
-    // Get owner display name: full_name if available, otherwise email local part
-    const ownerDisplay = item.owner?.full_name
-      ? item.owner.full_name.split(' ')[0] // First name only
-      : item.owner?.email_config?.sender_name || 'Unknown'
-
     return (
       <Pressable
         style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
@@ -203,11 +195,6 @@ export default function VisitsIndexScreen() {
                 {VISIT_TYPE_LABEL[item.type ?? 'visit']}
               </Text>
             </View>
-            {isAdmin && item.owner && (
-              <Text style={styles.ownerIndicator} numberOfLines={1}>
-                por {ownerDisplay}
-              </Text>
-            )}
           </View>
         </View>
 

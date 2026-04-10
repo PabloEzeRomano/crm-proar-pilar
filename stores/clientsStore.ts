@@ -10,9 +10,13 @@ interface ClientsState {
   inactiveClients: Client[]
   loading: boolean
   error: string | null
+  teamClients: Client[]
+  teamClientsLoading: boolean
   fetchClients: () => Promise<void>
   fetchInactiveClients: () => Promise<void>
   fetchClient: (id: string) => Promise<Client | null>
+  fetchClientsByOwner: (userId: string) => Promise<void>
+  clearTeamClients: () => void
   createClient: (data: CreateClientInput) => Promise<Client | null>
   updateClient: (id: string, data: UpdateClientInput) => Promise<void>
   archiveClient: (id: string) => Promise<void>
@@ -40,13 +44,22 @@ export const useClientsStore = create<ClientsState>()(
   inactiveClients: [],
   loading: false,
   error: null,
+  teamClients: [],
+  teamClientsLoading: false,
 
   fetchClients: async () => {
     set({ loading: true, error: null })
 
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      set({ loading: false, error: 'Usuario no autenticado' })
+      return
+    }
+
     const { data, error } = await supabase
       .from('clients')
       .select('*')
+      .eq('owner_user_id', user.id)
       .is('deleted_at', null)
       .order('name', { ascending: true })
 
@@ -61,9 +74,16 @@ export const useClientsStore = create<ClientsState>()(
   fetchInactiveClients: async () => {
     set({ loading: true, error: null })
 
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      set({ loading: false, error: 'Usuario no autenticado' })
+      return
+    }
+
     const { data, error } = await supabase
       .from('clients')
       .select('*')
+      .eq('owner_user_id', user.id)
       .not('deleted_at', 'is', null)
       .order('name', { ascending: true })
 
@@ -102,6 +122,26 @@ export const useClientsStore = create<ClientsState>()(
     }
     return client
   },
+
+  fetchClientsByOwner: async (userId: string) => {
+    set({ teamClientsLoading: true })
+
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('owner_user_id', userId)
+      .is('deleted_at', null)
+      .order('name', { ascending: true })
+
+    if (error || !data) {
+      set({ teamClientsLoading: false })
+      return
+    }
+
+    set({ teamClients: data as Client[], teamClientsLoading: false })
+  },
+
+  clearTeamClients: () => set({ teamClients: [], teamClientsLoading: false }),
 
   createClient: async (data: CreateClientInput) => {
     set({ error: null })
@@ -256,10 +296,10 @@ export const useClientsStore = create<ClientsState>()(
     try {
       // Call Nominatim with rate limiting awareness
       const query = encodeURIComponent(
-        `${client.address}, ${client.city}, Argentina`,
+        `${client.address}, ${client.city}`,
       )
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`,
+        `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1&countrycodes=ar`,
         {
           headers: {
             'User-Agent': 'CRM-Proar-Pilar/1.0',
