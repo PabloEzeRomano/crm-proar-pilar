@@ -192,6 +192,10 @@ export default function VisitDetailView() {
   }
   const typeLabel = TYPE_LABEL[visit.type ?? 'visit']
 
+  const linkedSales = useVisitsStore((s) =>
+    s.visits.filter((v) => v.quote_id === visit.id)
+  )
+
   // -------------------------------------------------------------------------
   // Root render
   // -------------------------------------------------------------------------
@@ -251,6 +255,78 @@ export default function VisitDetailView() {
           </View>
         </View>
       </View>
+
+      {/* ── Monto (solo cotizaciones y ventas con monto) ───────────────── */}
+      {visit.amount != null && (visit.type === 'quote' || visit.type === 'sale') ? (
+        <>
+          <View style={styles.divider} />
+          <View style={styles.section}>
+            <SectionLabel title="Monto" />
+            <Text style={styles.amountText}>
+              ${visit.amount.toLocaleString('es-AR')} ARS
+            </Text>
+          </View>
+        </>
+      ) : null}
+
+      {/* ── Cotización de origen (solo ventas con quote_id) ─────────────── */}
+      {visit.quote_id ? (
+        <>
+          <View style={styles.divider} />
+          <View style={styles.section}>
+            <SectionLabel title="Cotización de origen" />
+            <Pressable
+              style={styles.linkedRow}
+              onPress={() => router.push(`/visits/${visit.quote_id}` as never)}
+              accessibilityRole="link"
+              accessibilityLabel="Ver cotización de origen"
+            >
+              <Text style={styles.linkedRowText}>Ver cotización</Text>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={18}
+                color={colors.primary}
+              />
+            </Pressable>
+          </View>
+        </>
+      ) : null}
+
+      {/* ── Ventas generadas (solo cotizaciones con ventas vinculadas) ───── */}
+      {visit.type === 'quote' && linkedSales.length > 0 ? (
+        <>
+          <View style={styles.divider} />
+          <View style={styles.section}>
+            <SectionLabel title="Ventas generadas" />
+            {linkedSales.map((sale) => (
+              <Pressable
+                key={sale.id}
+                style={styles.linkedRow}
+                onPress={() => router.push(`/visits/${sale.id}` as never)}
+                accessibilityRole="link"
+                accessibilityLabel={`Ver venta del ${dayjs(sale.scheduled_at).format('DD/MM/YYYY')}`}
+              >
+                <View style={styles.linkedRowContent}>
+                  <Text style={styles.linkedRowDate}>
+                    {dayjs(sale.scheduled_at).format('DD/MM/YYYY')}
+                  </Text>
+                  {sale.amount != null ? (
+                    <Text style={styles.linkedRowAmount}>
+                      ${sale.amount.toLocaleString('es-AR')} ARS
+                    </Text>
+                  ) : null}
+                  <StatusBadge status={sale.status} type="sale" />
+                </View>
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={18}
+                  color={colors.textSecondary}
+                />
+              </Pressable>
+            ))}
+          </View>
+        </>
+      ) : null}
 
       <View style={styles.divider} />
 
@@ -491,6 +567,43 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     color: colors.textPrimary,
     textAlignVertical: 'top',
+  },
+
+  // Amount
+  amountText: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textPrimary,
+  },
+
+  // Linked rows (quote origin / generated sales)
+  linkedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 48,
+    paddingVertical: spacing[2],
+  },
+  linkedRowText: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.primary,
+  },
+  linkedRowContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+    flexWrap: 'wrap',
+  },
+  linkedRowDate: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textPrimary,
+  },
+  linkedRowAmount: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
   },
 
   // Action buttons
