@@ -30,6 +30,9 @@ interface VisitsState {
   clientQuotes: VisitWithClient[]
   fetchQuotesByClient: (clientId: string) => Promise<void>
   clearClientQuotes: () => void
+  allVisits: VisitWithClient[]
+  allVisitsLoading: boolean
+  fetchAllVisitsForAdmin: () => Promise<void>
   getMonthlySalesTotal: (userId: string) => number
   createVisit: (data: CreateVisitInput) => Promise<Visit | null>
   updateVisit: (id: string, data: UpdateVisitInput) => Promise<void>
@@ -51,6 +54,8 @@ export const useVisitsStore = create<VisitsState>()(
       teamVisits: [],
       teamLoading: false,
       clientQuotes: [],
+      allVisits: [],
+      allVisitsLoading: false,
 
       fetchVisits: async () => {
         set({ loading: true, error: null })
@@ -148,6 +153,17 @@ export const useVisitsStore = create<VisitsState>()(
       },
 
       clearTeamVisits: () => set({ teamVisits: [], teamLoading: false }),
+
+      fetchAllVisitsForAdmin: async () => {
+        set({ allVisitsLoading: true })
+        const { data, error } = await supabase
+          .from('visits')
+          .select('*, client:clients(*)')
+          .order('scheduled_at', { ascending: false })
+          .limit(500)
+        if (!error && data) set({ allVisits: data as VisitWithClient[] })
+        set({ allVisitsLoading: false })
+      },
 
       fetchQuotesByClient: async (clientId: string) => {
         const { data, error } = await supabase
