@@ -31,6 +31,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import AppDatePicker from '@/components/ui/AppDatePicker'
+import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useVisitsStore } from '@/stores/visitsStore'
 import { useClientsStore } from '@/stores/clientsStore'
 import {
@@ -129,6 +130,11 @@ export default function VisitFormScreen() {
   const [status, setStatus] = useState<VisitStatus>('pending')
   const [visitType, setVisitType] = useState<VisitType>('visit')
   const [gapMinutes, setGapMinutes] = useState<number>(DEFAULT_GAP)
+  const [amount, setAmount] = useState<string>('')
+  const [quoteId, setQuoteId] = useState<string | null>(null)
+  const clientQuotes = useVisitsStore((s) => s.clientQuotes)
+  const fetchQuotesByClient = useVisitsStore((s) => s.fetchQuotesByClient)
+  const clearClientQuotes = useVisitsStore((s) => s.clearClientQuotes)
 
   // Date/time picker visibility (Android needs explicit show/hide)
   const [showDatePicker, setShowDatePicker] = useState(false)
@@ -175,6 +181,8 @@ export default function VisitFormScreen() {
       setNotes(existingVisit.notes ?? '')
       setStatus(existingVisit.status)
       setVisitType(existingVisit.type ?? 'visit')
+      setAmount(existingVisit.amount != null ? String(existingVisit.amount) : '')
+      setQuoteId(existingVisit.quote_id ?? null)
 
       const visitClient = clients.find((c) => c.id === existingVisit.client_id)
       if (visitClient) setSelectedClient(visitClient)
@@ -183,6 +191,15 @@ export default function VisitFormScreen() {
       if (preFilledClient) setSelectedClient(preFilledClient)
     }
   }, [isEditMode, existingVisit?.id, paramClientId, clients])
+
+  useEffect(() => {
+    if (visitType === 'sale' && selectedClient) {
+      fetchQuotesByClient(selectedClient.id)
+    } else {
+      clearClientQuotes()
+    }
+    return () => clearClientQuotes()
+  }, [visitType, selectedClient?.id])
 
   // -------------------------------------------------------------------------
   // Validation
@@ -239,6 +256,7 @@ export default function VisitFormScreen() {
 
     setSaving(true)
     const isoString = combineDateAndTime(selectedDate, selectedTime)
+    const parsedAmount = amount ? Number(amount) : null
 
     if (isEditMode && visitId) {
       await updateVisit(visitId, {
@@ -246,6 +264,8 @@ export default function VisitFormScreen() {
         notes: notes || undefined,
         status,
         type: visitType,
+        amount: parsedAmount,
+        quote_id: quoteId,
       })
     } else {
       if (!selectedClient) {
@@ -258,6 +278,8 @@ export default function VisitFormScreen() {
         notes: notes || undefined,
         status,
         type: visitType,
+        amount: parsedAmount,
+        quote_id: quoteId,
       })
     }
 
@@ -511,6 +533,56 @@ export default function VisitFormScreen() {
           })}
         </View>
       </View>
+
+      {/* ── Monto ───────────────────────────────────────────────────────── */}
+      {(visitType === 'quote' || visitType === 'sale') && (
+        <View style={styles.fieldGroup}>
+          <FieldLabel label="Monto (ARS, opcional)" />
+          <TextInput
+            style={styles.fieldDisplay}
+            value={amount}
+            onChangeText={(text) => setAmount(text.replace(/[^0-9]/g, ''))}
+            keyboardType="numeric"
+            placeholder="Ej: 150000"
+            placeholderTextColor={colors.textDisabled}
+            editable={!saving}
+            accessibilityLabel="Monto en pesos"
+          />
+        </View>
+      )}
+
+      {/* ── Cotización de origen ─────────────────────────────────────────── */}
+      {visitType === 'sale' && (
+        <View style={styles.fieldGroup}>
+          <FieldLabel label="Cotización de origen (opcional)" />
+          {clientQuotes.length === 0 ? (
+            <Text style={styles.emptyHint}>Sin cotizaciones previas para este cliente</Text>
+          ) : (
+            clientQuotes.map((q) => {
+              const selected = quoteId === q.id
+              return (
+                <Pressable
+                  key={q.id}
+                  style={[styles.quoteOption, selected && styles.quoteOptionActive]}
+                  onPress={() => setQuoteId(selected ? null : q.id)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: selected }}
+                >
+                  <Text style={styles.quoteOptionDate}>
+                    {dayjs(q.scheduled_at).format('DD/MM/YYYY')}
+                  </Text>
+                  {q.amount != null && (
+                    <Text style={styles.quoteOptionAmount}>
+                      ${q.amount.toLocaleString('es-AR')} ARS
+                    </Text>
+                  )}
+                  <StatusBadge status={q.status} type="quote" />
+                </Pressable>
+              )
+            })
+          )}
+        </View>
+      )}
 
       {/* ── Fecha ────────────────────────────────────────────────────────── */}
       <View style={styles.fieldGroup}>
@@ -965,5 +1037,36 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     color: colors.textPrimary,
     textAlignVertical: 'top',
+  },
+
+  // Quote picker
+  emptyHint: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    paddingVertical: spacing[2],
+  },
+  quoteOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    padding: spacing[3],
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing[2],
+  },
+  quoteOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  quoteOptionDate: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  quoteOptionAmount: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textPrimary,
   },
 })
