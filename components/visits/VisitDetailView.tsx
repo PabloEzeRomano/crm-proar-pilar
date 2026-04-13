@@ -28,6 +28,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { VisitType } from '@/types'
 
 import { useVisitsStore } from '@/stores/visitsStore'
+import { useAuthStore } from '@/stores/authStore'
 import {
   borderRadius,
   colors,
@@ -52,6 +53,8 @@ export default function VisitDetailView() {
   const router = useRouter()
   const navigation = useNavigation()
   const pathname = usePathname()
+
+  const currentUser = useAuthStore((s) => s.profile)
   const editFormPath = pathname.startsWith('/agenda')
     ? `/agenda/visits/form?visitId=${id}`
     : `/visits/form?visitId=${id}`
@@ -82,24 +85,28 @@ export default function VisitDetailView() {
     }
   }, [visit?.id])
 
-  // Set header: "Editar" button
+  const isOwner = visit ? visit.owner_user_id === currentUser?.id : false
+
+  // Set header: "Editar" button (only for visit owner)
   useLayoutEffect(() => {
     if (!visit) return
     navigation.setOptions({
-      headerRight: () => (
-        <Pressable
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          onPress={() => router.push(editFormPath as any)}
-          style={styles.headerButton}
-          accessibilityRole="button"
-          accessibilityLabel="Editar visita"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Text style={styles.headerButtonText}>Editar</Text>
-        </Pressable>
-      ),
+      headerRight: isOwner
+        ? () => (
+            <Pressable
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              onPress={() => router.push(editFormPath as any)}
+              style={styles.headerButton}
+              accessibilityRole="button"
+              accessibilityLabel="Editar visita"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.headerButtonText}>Editar</Text>
+            </Pressable>
+          )
+        : undefined,
     })
-  }, [visit, id, navigation, router])
+  }, [visit, id, navigation, router, isOwner])
 
   // -------------------------------------------------------------------------
   // Not found / loading
@@ -355,8 +362,8 @@ export default function VisitDetailView() {
         />
       </View>
 
-      {/* ── Sección: Acciones (solo si está pendiente) ──────────────────── */}
-      {visit.status === 'pending' ? (
+      {/* ── Sección: Acciones (solo si está pendiente y es propietario) ─── */}
+      {visit.status === 'pending' && isOwner ? (
         <>
           <View style={styles.divider} />
           <View style={styles.section}>
@@ -407,28 +414,32 @@ export default function VisitDetailView() {
         </>
       ) : null}
 
-      {/* ── Eliminar gestión ────────────────────────────────────────────── */}
-      <View style={styles.divider} />
-      <View style={styles.section}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.actionButton,
-            styles.actionButtonDelete,
-            pressed && styles.actionButtonDeletePressed,
-            deleting && styles.actionButtonDisabled,
-          ]}
-          onPress={handleDelete}
-          disabled={deleting}
-          accessibilityRole="button"
-          accessibilityLabel="Eliminar gestión"
-        >
-          {deleting ? (
-            <ActivityIndicator color={colors.error} />
-          ) : (
-            <Text style={styles.actionButtonDeleteText}>Eliminar gestión</Text>
-          )}
-        </Pressable>
-      </View>
+      {/* ── Eliminar gestión (solo propietario) ────────────────────────── */}
+      {isOwner ? (
+        <>
+          <View style={styles.divider} />
+          <View style={styles.section}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionButton,
+                styles.actionButtonDelete,
+                pressed && styles.actionButtonDeletePressed,
+                deleting && styles.actionButtonDisabled,
+              ]}
+              onPress={handleDelete}
+              disabled={deleting}
+              accessibilityRole="button"
+              accessibilityLabel="Eliminar gestión"
+            >
+              {deleting ? (
+                <ActivityIndicator color={colors.error} />
+              ) : (
+                <Text style={styles.actionButtonDeleteText}>Eliminar gestión</Text>
+              )}
+            </Pressable>
+          </View>
+        </>
+      ) : null}
 
     </KeyboardAwareScrollView>
   )
