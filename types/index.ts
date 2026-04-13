@@ -77,6 +77,8 @@ export interface Visit {
   type: VisitType
   notes: string | null
   notification_id?: string | null
+  amount?: number | null
+  quote_id?: string | null
   created_at: string
   updated_at: string
 }

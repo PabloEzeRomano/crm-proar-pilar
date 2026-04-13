@@ -8,6 +8,8 @@ export const createVisitSchema = z.object({
   notes: z.string().optional(),
   status: z.enum(['pending', 'completed', 'canceled']).optional(),
   type: visitTypeSchema.optional(),
+  amount: z.number().positive('El monto debe ser mayor a 0').nullable().optional(),
+  quote_id: z.string().uuid().nullable().optional(),
 })
 
 export const updateVisitSchema = z.object({
@@ -15,6 +17,8 @@ export const updateVisitSchema = z.object({
   notes: z.string().optional(),
   status: z.enum(['pending', 'completed', 'canceled']).optional(),
   type: visitTypeSchema.optional(),
+  amount: z.number().positive('El monto debe ser mayor a 0').nullable().optional(),
+  quote_id: z.string().uuid().nullable().optional(),
 })
 
 export const updateStatusSchema = z.object({
