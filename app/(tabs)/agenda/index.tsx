@@ -42,8 +42,9 @@ import {
   shadows,
   spacing,
 } from '@/constants/theme'
-import { VisitStatus, VisitWithClient } from '@/types'
+import { VisitStatus, VisitType, VisitWithClient } from '@/types'
 import dayjs from '@/lib/dayjs'
+import { getStatusLabel } from '@/lib/visitStatus'
 
 // ---------------------------------------------------------------------------
 // Status configuration (same pattern as visits screen)
@@ -51,19 +52,16 @@ import dayjs from '@/lib/dayjs'
 
 const STATUS_CONFIG = {
   pending: {
-    label: 'Pendiente',
     bg: colors.statusPendingLight,
     text: colors.statusPending,
     icon: 'clock-outline' as const,
   },
   completed: {
-    label: 'Completada',
     bg: colors.statusCompletedLight,
     text: colors.statusCompleted,
     icon: 'check-circle-outline' as const,
   },
   canceled: {
-    label: 'Cancelada',
     bg: colors.statusCanceledLight,
     text: colors.statusCanceled,
     icon: 'close-circle-outline' as const,
@@ -74,12 +72,13 @@ const STATUS_CONFIG = {
 // StatusBadge (inline — same pattern as visits screen)
 // ---------------------------------------------------------------------------
 
-function StatusBadge({ status }: { status: VisitStatus }) {
+function StatusBadge({ status, type }: { status: VisitStatus; type?: VisitType }) {
   const config = STATUS_CONFIG[status]
+  const label = getStatusLabel(status, type)
   return (
     <View style={[sbStyles.container, { backgroundColor: config.bg }]}>
       <MaterialCommunityIcons name={config.icon} size={14} color={config.text} />
-      <Text style={[sbStyles.label, { color: config.text }]}>{config.label}</Text>
+      <Text style={[sbStyles.label, { color: config.text }]}>{label}</Text>
     </View>
   )
 }
@@ -408,7 +407,7 @@ function TodayScreenContent() {
         </View>
 
         {/* Right: status badge */}
-        <StatusBadge status={visit.status} />
+        <StatusBadge status={visit.status} type={visit.type} />
       </Pressable>
     )
   }

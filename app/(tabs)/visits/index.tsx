@@ -199,7 +199,7 @@ export default function VisitsIndexScreen() {
         </View>
 
         {/* Status badge */}
-        <StatusBadge status={item.status} />
+        <StatusBadge status={item.status} type={item.type} />
       </Pressable>
     )
   }

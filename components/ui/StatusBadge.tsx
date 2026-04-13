@@ -8,24 +8,22 @@
 import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { VisitStatus } from '@/types'
+import { VisitStatus, VisitType } from '@/types'
 import { borderRadius, colors, fontSize, fontWeight, spacing } from '@/constants/theme'
+import { getStatusLabel } from '@/lib/visitStatus'
 
 export const STATUS_CONFIG = {
   pending: {
-    label: 'Pendiente',
     bg: colors.statusPendingLight,
     text: colors.statusPending,
     icon: 'clock-outline' as const,
   },
   completed: {
-    label: 'Completada',
     bg: colors.statusCompletedLight,
     text: colors.statusCompleted,
     icon: 'check-circle-outline' as const,
   },
   canceled: {
-    label: 'Cancelada',
     bg: colors.statusCanceledLight,
     text: colors.statusCanceled,
     icon: 'close-circle-outline' as const,
@@ -34,14 +32,16 @@ export const STATUS_CONFIG = {
 
 interface StatusBadgeProps {
   status: VisitStatus
+  type?: VisitType
 }
 
-export function StatusBadge({ status }: StatusBadgeProps) {
+export function StatusBadge({ status, type }: StatusBadgeProps) {
   const config = STATUS_CONFIG[status]
+  const label = getStatusLabel(status, type)
   return (
     <View style={[styles.container, { backgroundColor: config.bg }]}>
       <MaterialCommunityIcons name={config.icon} size={14} color={config.text} />
-      <Text style={[styles.label, { color: config.text }]}>{config.label}</Text>
+      <Text style={[styles.label, { color: config.text }]}>{label}</Text>
     </View>
   )
 }

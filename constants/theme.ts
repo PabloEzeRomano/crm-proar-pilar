@@ -62,8 +62,8 @@ export const colors = {
   statusPendingLight: '#FEF3C7',
   statusCompleted: '#16A34A',    // same hue as success
   statusCompletedLight: '#DCFCE7',
-  statusCanceled: '#6B7280',     // neutral gray
-  statusCanceledLight: '#F3F4F6',
+  statusCanceled: '#DC2626',      // red — same as colors.error
+  statusCanceledLight: '#FEE2E2', // same as colors.errorLight
 
   // Utility
   white: '#FFFFFF',

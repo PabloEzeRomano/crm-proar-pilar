@@ -42,6 +42,7 @@ import {
 } from '@/constants/theme'
 import { Client, VisitStatus, VisitType } from '@/types'
 import dayjs from '@/lib/dayjs'
+import { getStatusLabel } from '@/lib/visitStatus'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -650,11 +651,12 @@ export default function VisitFormScreen() {
           <View style={styles.statusRow}>
             {(
               [
-                { value: 'pending', label: 'Pendiente', icon: 'clock-outline', color: colors.statusPending },
-                { value: 'completed', label: 'Completada', icon: 'check-circle-outline', color: colors.statusCompleted },
-                { value: 'canceled', label: 'Cancelada', icon: 'close-circle-outline', color: colors.statusCanceled },
-              ] as { value: VisitStatus; label: string; icon: string; color: string }[]
-            ).map(({ value, label, icon, color }) => {
+                { value: 'pending', icon: 'clock-outline', color: colors.statusPending },
+                { value: 'completed', icon: 'check-circle-outline', color: colors.statusCompleted },
+                { value: 'canceled', icon: 'close-circle-outline', color: colors.statusCanceled },
+              ] as { value: VisitStatus; icon: string; color: string }[]
+            ).map(({ value, icon, color }) => {
+              const label = getStatusLabel(value, visitType)
               const active = status === value
               return (
                 <Pressable

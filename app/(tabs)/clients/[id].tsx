@@ -420,7 +420,7 @@ export default function ClientDetailScreen() {
                   <Text style={styles.visitDate}>
                     {formatVisitDate(visit.scheduled_at)}
                   </Text>
-                  <StatusBadge status={visit.status} />
+                  <StatusBadge status={visit.status} type={visit.type} />
                 </View>
 
                 {/* Notes preview */}

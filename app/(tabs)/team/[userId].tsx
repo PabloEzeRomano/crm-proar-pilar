@@ -152,7 +152,7 @@ export default function TeamUserDetailScreen() {
                     </Text>
                     <Text style={styles.rowSubtitle}>{dateText}</Text>
                   </View>
-                  <StatusBadge status={visit.status} />
+                  <StatusBadge status={visit.status} type={visit.type} />
                 </Pressable>
               )
             })}

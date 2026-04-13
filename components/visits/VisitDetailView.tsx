@@ -241,7 +241,7 @@ export default function VisitDetailView() {
         <View style={styles.statusTypeRow}>
           <View style={styles.statusTypeItem}>
             <SectionLabel title="Estado" />
-            <StatusBadge status={visit.status} />
+            <StatusBadge status={visit.status} type={visit.type} />
           </View>
           <View style={styles.statusTypeItem}>
             <SectionLabel title="Tipo" />
