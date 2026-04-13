@@ -27,6 +27,10 @@ interface VisitsState {
   fetchVisitsByClient: (clientId: string) => Promise<void>
   fetchVisitsByOwner: (userId: string) => Promise<void>
   clearTeamVisits: () => void
+  clientQuotes: VisitWithClient[]
+  fetchQuotesByClient: (clientId: string) => Promise<void>
+  clearClientQuotes: () => void
+  getMonthlySalesTotal: (userId: string) => number
   createVisit: (data: CreateVisitInput) => Promise<Visit | null>
   updateVisit: (id: string, data: UpdateVisitInput) => Promise<void>
   updateStatus: (id: string, status: VisitStatus) => Promise<void>
@@ -46,6 +50,7 @@ export const useVisitsStore = create<VisitsState>()(
       deleteError: null,
       teamVisits: [],
       teamLoading: false,
+      clientQuotes: [],
 
       fetchVisits: async () => {
         set({ loading: true, error: null })
@@ -143,6 +148,31 @@ export const useVisitsStore = create<VisitsState>()(
       },
 
       clearTeamVisits: () => set({ teamVisits: [], teamLoading: false }),
+
+      fetchQuotesByClient: async (clientId: string) => {
+        const { data, error } = await supabase
+          .from('visits')
+          .select('*, client:clients(*)')
+          .eq('client_id', clientId)
+          .eq('type', 'quote')
+          .order('scheduled_at', { ascending: false })
+        if (!error && data) set({ clientQuotes: data as VisitWithClient[] })
+      },
+
+      clearClientQuotes: () => set({ clientQuotes: [] }),
+
+      getMonthlySalesTotal: (userId: string) => {
+        const now = dayjs()
+        return get().visits
+          .filter(
+            (v) =>
+              v.type === 'sale' &&
+              v.status === 'completed' &&
+              v.owner_user_id === userId &&
+              dayjs(v.scheduled_at).isSame(now, 'month'),
+          )
+          .reduce((sum, v) => sum + (v.amount ?? 0), 0)
+      },
 
       fetchVisit: async (id: string) => {
         const { data, error } = await supabase
