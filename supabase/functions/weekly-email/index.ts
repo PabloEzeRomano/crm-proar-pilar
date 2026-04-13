@@ -80,6 +80,8 @@ interface Visit {
   scheduled_at: string;
   status: string;
   notes: string | null;
+  type: string;
+  amount: number | null;
   client: Client;
 }
 
@@ -171,6 +173,11 @@ function generateHtml(
     canceled: '#9CA3AF',
   };
 
+  const quotes = visits.filter((v) => v.type === 'quote');
+  const sales = visits.filter((v) => v.type === 'sale');
+  const quoteTotal = quotes.reduce((s, v) => s + (v.amount ?? 0), 0);
+  const saleTotal = sales.reduce((s, v) => s + (v.amount ?? 0), 0);
+
   const greeting = profile.full_name ? `Hola ${profile.full_name}` : 'Hola';
 
   let rows = '';
@@ -218,6 +225,7 @@ function generateHtml(
               padding:2px 8px;
               border-radius:9999px;
             ">${statusLabel[status] ?? status}</span>
+            ${(visit.type === 'quote' || visit.type === 'sale') && visit.amount != null ? `<span style="font-size:12px;color:#6B7280;margin-left:6px;">$${visit.amount.toLocaleString('es-AR')} ARS</span>` : ''}
           </td>
         </tr>`;
     }
@@ -276,6 +284,19 @@ function generateHtml(
                     <div style="font-size:28px;font-weight:700;color:#16A34A;">${visits.filter((v) => v.status === 'completed').length}</div>
                     <div style="font-size:12px;color:#6B7280;margin-top:2px;">completada${visits.filter((v) => v.status === 'completed').length !== 1 ? 's' : ''}</div>
                   </td>
+                  ${(quotes.length > 0 || sales.length > 0) ? `
+                  <td style="width:12px;"></td>
+                  <td style="background:#F5F3FF;border-radius:8px;padding:10px 20px;text-align:center;">
+                    <div style="font-size:22px;font-weight:700;color:#7C3AED;">${quotes.length}</div>
+                    <div style="font-size:12px;color:#6B7280;">cotización${quotes.length !== 1 ? 'es' : ''}</div>
+                    ${quoteTotal > 0 ? `<div style="font-size:11px;color:#7C3AED;">$${quoteTotal.toLocaleString('es-AR')}</div>` : ''}
+                  </td>
+                  <td style="width:12px;"></td>
+                  <td style="background:#FFF7ED;border-radius:8px;padding:10px 20px;text-align:center;">
+                    <div style="font-size:22px;font-weight:700;color:#EA580C;">${sales.length}</div>
+                    <div style="font-size:12px;color:#6B7280;">venta${sales.length !== 1 ? 's' : ''}</div>
+                    ${saleTotal > 0 ? `<div style="font-size:11px;color:#EA580C;">$${saleTotal.toLocaleString('es-AR')}</div>` : ''}
+                  </td>` : ''}
                 </tr>
               </table>
             </td>
@@ -431,7 +452,7 @@ Deno.serve(async (req) => {
       const { data: visits, error: visitsErr } = await supabase
         .from('visits')
         .select(
-          'id, scheduled_at, status, notes, client:clients(id, name, address, city)',
+          'id, scheduled_at, status, notes, type, amount, client:clients(id, name, address, city)',
         )
         .eq('owner_user_id', profile.id)
         .neq('status', 'canceled')
