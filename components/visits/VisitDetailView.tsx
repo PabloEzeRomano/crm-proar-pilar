@@ -67,10 +67,11 @@ export default function VisitDetailView() {
   const updateVisit = useVisitsStore((state) => state.updateVisit)
   const updateStatus = useVisitsStore((state) => state.updateStatus)
   const deleteVisit = useVisitsStore((state) => state.deleteVisit)
-  // Must be declared before any early return (Rules of Hooks)
-  const linkedSales = useVisitsStore((s) =>
-    s.visits.filter((v) => v.quote_id === id)
-  )
+  // Must be declared before any early return (Rules of Hooks).
+  // Selector returns the stable array reference; filter runs outside
+  // the subscription to avoid a new array on every render (infinite loop).
+  const allVisits = useVisitsStore((s) => s.visits)
+  const linkedSales = allVisits.filter((v) => v.quote_id === id)
 
   // If the visit isn't in the store yet (e.g. navigating from Today tab
   // before visitsStore has been populated), fetch it on demand.
