@@ -194,7 +194,8 @@ export default function VisitDetailView() {
   const clientIndustry = visit.client?.industry ?? null
   const clientId = visit.client?.id ?? visit.client_id
 
-  const formattedDate = dayjs(visit.scheduled_at).format('dddd D [de] MMMM · HH:mm')
+  const rawDate = dayjs(visit.scheduled_at).format('dddd D [de] MMMM · HH:mm')
+  const formattedDate = rawDate.charAt(0).toUpperCase() + rawDate.slice(1)
 
   const TYPE_LABEL: Record<VisitType, string> = {
     visit: 'Visita',
@@ -551,7 +552,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.lg,
     fontWeight: fontWeight.medium as '500',
     color: colors.textPrimary,
-    textTransform: 'capitalize',
   },
 
   // Notes

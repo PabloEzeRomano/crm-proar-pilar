@@ -629,6 +629,32 @@
 
 ---
 
+## EP-050 — Quotes & Sales: amount, status labels, quote-to-sale linking, and admin views
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 50.1 | Migration `0026_visits_amount_quote_link.sql`: add `amount NUMERIC(12,2)` and `quote_id UUID FK self-ref` to visits | backend | `done` |
+| 50.2 | Types + validators: add `amount`, `quote_id` to `Visit` interface and both visit Zod schemas | state | `done` |
+| 50.3 | Shared helper `lib/visitStatus.ts` + `getStatusLabel`; fix `statusCanceled` → red in `theme.ts`; update `StatusBadge` to accept optional `type` prop; update all callers | frontend + ui-ux | `done` |
+| 50.4 | Store: add `clientQuotes`, `fetchQuotesByClient`, `clearClientQuotes`, `getMonthlySalesTotal` to visitsStore | state | `done` |
+| 50.5 | Visit form: amount field (quote/sale only) + quote suggestion picker (sale only); wire `amount`/`quote_id` into save | frontend | `done` |
+| 50.6 | Visit detail: show amount row; link to originating quote (if sale); list generated sales (if quote); pass `type` to StatusBadge | frontend | `done` |
+| 50.7 | Equipo admin views: Cotizaciones + Ventas tabs with summary cards; `allVisits` in store; read-only guard for other-user visits | frontend + state | `done` |
+| 50.8 | Weekly email: add `type`/`amount` to Visit interface; quote/sale stat cells; amount next to status badge | backend | `done` |
+
+---
+
+## EP-051 — UI Audit & Visual Bug Fixes
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 51.1 | Fix StatusBadge misaligned when amount is present in team visit rows — alignItems flex-start + visitRowRight alignSelf center | frontend + ui-ux | `done` |
+| 51.2 | Playwright visual audit script: login, navigate all main screens, screenshot each to `e2e/screenshots/`, basic assertions | frontend (QA) | `done` |
+| 51.3 | Fix visual bugs: remove duplicate local StatusBadge in agenda/index.tsx; add cursor:pointer on web in VisitRow | frontend + ui-ux | `done` |
+| 51.4 | Extract shared `VisitRow` component to `components/visits/VisitRow.tsx`; replace inline row rendering in Agenda, Visits, and Team screens | frontend + ui-ux | `done` |
+
+---
+
 ## Pending
 
 > All stories across all EPs that are not yet `done`.
@@ -673,3 +699,4 @@
 | 2026-04-09 | Open registration removed; users can only join via admin-sent invitations (EP-048) | Single-tenant CRM — user onboarding must be controlled by the company admin to prevent unauthorized access. `supabase.auth.admin.inviteUserByEmail` sends a Supabase-managed magic link; accepted invite triggers `handle_new_user` which sets `role` and `company_id` from metadata. |
 | 2026-04-09 | Seat limit enforced server-side in `invite-user` Edge Function, not only in UI (EP-048) | UI checks can be bypassed; authoritative enforcement must be in backend. Root role bypasses limit by design for super-admin operations. `company_config.max_users` is managed directly in DB by root — no in-app UI for seat management at MVP. |
 | 2026-04-09 | Invite flow uses static HTML intermediate page + separate Expo `/auth/callback` screen (EP-048b) | Supabase's default invite confirmation page logs users in with no password. Static HTML page (served outside the Expo app) exchanges `token_hash` for a session, prompts password setup, then redirects using URL fragment tokens. Native and web take different URL schemes but share the same session-transfer mechanism (`access_token` + `refresh_token` in fragment). `isInviteSetup` flag in authStore prevents auth guard from interfering while session is established. |
+| 2026-04-13 | Quote/sale status uses existing VisitStatus values remapped via `getStatusLabel(status, type)` helper — no DB changes (EP-050) | `canceled` = red across all types for semantic consistency. Helper lives in `lib/visitStatus.ts`; `StatusBadge` gains optional `type` prop with `'visit'` fallback so all existing callers remain valid. |

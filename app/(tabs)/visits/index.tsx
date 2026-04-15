@@ -35,27 +35,10 @@ import {
   fontWeight,
   spacing,
 } from '@/constants/theme'
-import { VisitStatus, VisitType, VisitWithClient } from '@/types'
+import { VisitStatus, VisitWithClient } from '@/types'
 import { useVisits } from '@/hooks/useVisits'
-import { StatusBadge } from '@/components/ui/StatusBadge'
+import { VisitRow } from '@/components/visits/VisitRow'
 import AppDatePicker from '@/components/ui/AppDatePicker'
-
-// ---------------------------------------------------------------------------
-// Status configuration
-// ---------------------------------------------------------------------------
-
-const STATUS_STRIP_COLOR: Record<VisitStatus, string> = {
-  pending: colors.statusPending,
-  completed: colors.statusCompleted,
-  canceled: colors.statusCanceled,
-}
-
-const VISIT_TYPE_LABEL: Record<VisitType, string> = {
-  visit: 'Visita',
-  call: 'Llamada',
-  sale: 'Venta',
-  quote: 'Cotización',
-}
 
 // ---------------------------------------------------------------------------
 // Filter tab definitions
@@ -163,49 +146,16 @@ export default function VisitsIndexScreen() {
   }
 
   function renderItem({ item }: { item: VisitWithClient }) {
-    const clientName = item.client?.name ?? 'Cliente desconocido'
-    const dateText = formatVisitDate(item.scheduled_at)
-
     return (
-      <Pressable
-        style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+      <VisitRow
+        visit={item}
         onPress={() => handleRowPress(item)}
-        accessibilityRole="button"
-        accessibilityLabel={`Ver visita a ${clientName}`}
-      >
-        {/* Status strip — 4px wide, full height, left side */}
-        <View
-          style={[
-            styles.statusStrip,
-            { backgroundColor: STATUS_STRIP_COLOR[item.status] },
-          ]}
-        />
-
-        {/* Row content */}
-        <View style={styles.rowContent}>
-          <Text style={styles.rowTitle} numberOfLines={1}>
-            {clientName}
-          </Text>
-          <View style={styles.subtitleRow}>
-            <Text style={[styles.rowSubtitle, styles.dateTextFlex]} numberOfLines={1}>
-              {dateText}
-            </Text>
-            <View style={styles.typeBadge}>
-              <Text style={styles.typeBadgeText}>
-                {VISIT_TYPE_LABEL[item.type ?? 'visit']}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Status badge */}
-        <StatusBadge status={item.status} type={item.type} />
-      </Pressable>
+      />
     )
   }
 
   function renderSeparator() {
-    return <View style={styles.divider} />
+    return <View style={styles.rowGap} />
   }
 
   function renderEmpty() {
@@ -419,7 +369,10 @@ export default function VisitsIndexScreen() {
           renderItem={renderItem}
           ItemSeparatorComponent={renderSeparator}
           ListEmptyComponent={renderEmpty}
-          contentContainerStyle={visits.length === 0 ? styles.listEmptyContent : undefined}
+          contentContainerStyle={[
+            styles.listContent,
+            visits.length === 0 ? styles.listEmptyContent : undefined,
+          ]}
           onEndReached={() => { if (hasMore && !loadingMore) fetchMoreVisits() }}
           onEndReachedThreshold={0.3}
           ListFooterComponent={
@@ -457,21 +410,13 @@ export default function VisitsIndexScreen() {
 }
 
 // ---------------------------------------------------------------------------
-// Date formatting helper
-// ---------------------------------------------------------------------------
-
-function formatVisitDate(scheduledAt: string): string {
-  return dayjs(scheduledAt).format('ddd D MMM · HH:mm')
-}
-
-// ---------------------------------------------------------------------------
 // Styles
 // ---------------------------------------------------------------------------
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
   },
 
   // Filter pills
@@ -511,66 +456,14 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 
-  // Visit rows — min 64px per ListItem spec
-  row: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    minHeight: 64,
-    backgroundColor: colors.background,
-    overflow: 'hidden',
+  // Spacing between card rows
+  rowGap: {
+    height: spacing[2],
   },
-  rowPressed: {
-    backgroundColor: colors.surface,
-  },
-  statusStrip: {
-    width: 4,
-  },
-  rowContent: {
-    flex: 1,
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[3],
-    justifyContent: 'center',
-  },
-  rowTitle: {
-    fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
-    color: colors.textPrimary,
-  },
-  subtitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing[1],
-    gap: spacing[2],
-  },
-  rowSubtitle: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.regular as '400',
-    color: colors.textSecondary,
-  },
-  dateTextFlex: {
-    flex: 1,
-  },
-  typeBadge: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing[2],
-    paddingVertical: 2,
-  },
-  typeBadgeText: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.medium as '500',
-    color: colors.textSecondary,
-  },
-  ownerIndicator: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.regular as '400',
-    color: colors.textSecondary,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border,
+  listContent: {
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[3],
+    paddingBottom: spacing[8],
   },
 
   // States

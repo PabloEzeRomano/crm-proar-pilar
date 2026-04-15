@@ -12,7 +12,6 @@
 import React, { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
-  FlatList,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -33,8 +32,8 @@ import {
 import { useAuthStore } from '@/stores/authStore'
 import { useUsersStore } from '@/stores/usersStore'
 import { useVisitsStore } from '@/stores/visitsStore'
-import { StatusBadge } from '@/components/ui/StatusBadge'
-import type { Profile, UserRole, VisitType } from '@/types'
+import { VisitRow } from '@/components/visits/VisitRow'
+import type { Profile, UserRole } from '@/types'
 import dayjs from '@/lib/dayjs'
 
 // ---------------------------------------------------------------------------
@@ -269,39 +268,17 @@ export default function TeamIndexScreen() {
               </Text>
             </View>
           ) : (
-            filteredVisits.map((v, index) => (
-              <React.Fragment key={v.id}>
-                <Pressable
-                  style={({ pressed }) => [styles.visitRow, pressed && styles.rowPressed]}
+            <View style={styles.visitList}>
+              {filteredVisits.map((v) => (
+                <VisitRow
+                  key={v.id}
+                  visit={v}
                   onPress={() => router.push(`/visits/${v.id}` as never)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Ver gestión del ${dayjs(v.scheduled_at).format('DD/MM/YYYY')}`}
-                >
-                  <View style={styles.visitRowLeft}>
-                    <Text style={styles.visitRowDate}>
-                      {dayjs(v.scheduled_at).format('DD/MM/YYYY')}
-                    </Text>
-                    <Text style={styles.visitRowClient} numberOfLines={1}>
-                      {v.client?.name ?? 'Sin cliente'}
-                    </Text>
-                    {v.owner?.full_name ? (
-                      <Text style={styles.visitRowOwner} numberOfLines={1}>
-                        {v.owner.full_name}
-                      </Text>
-                    ) : null}
-                  </View>
-                  <View style={styles.visitRowRight}>
-                    {v.amount != null ? (
-                      <Text style={styles.visitRowAmount}>
-                        ${v.amount.toLocaleString('es-AR')} ARS
-                      </Text>
-                    ) : null}
-                    <StatusBadge status={v.status} type={v.type as VisitType} />
-                  </View>
-                </Pressable>
-                {index < filteredVisits.length - 1 && <View style={styles.separator} />}
-              </React.Fragment>
-            ))
+                  showOwner
+                  showAmount={v.type === 'quote' || v.type === 'sale'}
+                />
+              ))}
+            </View>
           )}
         </>
       )}
@@ -508,46 +485,9 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold as '600',
   },
 
-  // Visit rows
-  visitRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    padding: spacing[3],
-    gap: spacing[3],
-    ...shadows.subtle,
-    minHeight: 64,
-  },
-  visitRowLeft: {
-    flex: 1,
-    gap: spacing[1],
-  },
-  visitRowDate: {
-    fontSize: fontSize.xs,
-    color: colors.textSecondary,
-    fontWeight: fontWeight.medium as '500',
-  },
-  visitRowClient: {
-    fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
-    color: colors.textPrimary,
-  },
-  visitRowOwner: {
-    fontSize: fontSize.xs,
-    color: colors.textSecondary,
-  },
-  visitRowRight: {
-    alignItems: 'flex-end',
+  // Visit list
+  visitList: {
     gap: spacing[2],
-    flexShrink: 0,
-  },
-  visitRowAmount: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
-    color: colors.textPrimary,
-    textAlign: 'right',
   },
   emptyVisitsContainer: {
     paddingVertical: spacing[8],

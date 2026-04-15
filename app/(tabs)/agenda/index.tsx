@@ -42,61 +42,9 @@ import {
   shadows,
   spacing,
 } from '@/constants/theme'
-import { VisitStatus, VisitType, VisitWithClient } from '@/types'
+import { VisitWithClient } from '@/types'
 import dayjs from '@/lib/dayjs'
-import { getStatusLabel } from '@/lib/visitStatus'
-
-// ---------------------------------------------------------------------------
-// Status configuration (same pattern as visits screen)
-// ---------------------------------------------------------------------------
-
-const STATUS_CONFIG = {
-  pending: {
-    bg: colors.statusPendingLight,
-    text: colors.statusPending,
-    icon: 'clock-outline' as const,
-  },
-  completed: {
-    bg: colors.statusCompletedLight,
-    text: colors.statusCompleted,
-    icon: 'check-circle-outline' as const,
-  },
-  canceled: {
-    bg: colors.statusCanceledLight,
-    text: colors.statusCanceled,
-    icon: 'close-circle-outline' as const,
-  },
-} as const
-
-// ---------------------------------------------------------------------------
-// StatusBadge (inline — same pattern as visits screen)
-// ---------------------------------------------------------------------------
-
-function StatusBadge({ status, type }: { status: VisitStatus; type?: VisitType }) {
-  const config = STATUS_CONFIG[status]
-  const label = getStatusLabel(status, type)
-  return (
-    <View style={[sbStyles.container, { backgroundColor: config.bg }]}>
-      <MaterialCommunityIcons name={config.icon} size={14} color={config.text} />
-      <Text style={[sbStyles.label, { color: config.text }]}>{label}</Text>
-    </View>
-  )
-}
-
-const sbStyles = StyleSheet.create({
-  container: {
-    height: 26,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing[2],
-    borderRadius: borderRadius.full,
-    gap: spacing[1],
-  },
-  label: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
-  },
-})
+import { VisitRow } from '@/components/visits/VisitRow'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -282,7 +230,12 @@ function TodayScreenContent() {
     if (cardState === 'done') {
       return (
         <View style={[styles.nextCard, styles.nextCardDone]}>
-          <Text style={styles.nextCardDoneEmoji}>✅</Text>
+          <MaterialCommunityIcons
+            name="check-circle"
+            size={32}
+            color={colors.success}
+            style={styles.nextCardDoneIcon}
+          />
           <Text style={[styles.nextCardDoneTitle, { color: colors.success }]}>
             Todo listo por hoy
           </Text>
@@ -305,9 +258,10 @@ function TodayScreenContent() {
           accessibilityRole="button"
           accessibilityLabel={`Visita atrasada: ${nextVisit?.client.name}`}
         >
-          <Text style={[styles.nextCardLabel, { color: colors.warning }]}>
-            ⚠️  ATRASADO
-          </Text>
+          <View style={styles.nextCardLabelRow}>
+            <MaterialCommunityIcons name="alert-circle" size={14} color={colors.warning} />
+            <Text style={[styles.nextCardLabel, { color: colors.warning }]}>ATRASADO</Text>
+          </View>
           <Text style={styles.nextCardClientName} numberOfLines={1}>
             {nextVisit?.client.name}
           </Text>
@@ -330,9 +284,10 @@ function TodayScreenContent() {
         accessibilityRole="button"
         accessibilityLabel={`Siguiente visita: ${nextVisit?.client.name}`}
       >
-        <Text style={[styles.nextCardLabel, { color: colors.textSecondary }]}>
-          ⏰  SIGUIENTE
-        </Text>
+        <View style={styles.nextCardLabelRow}>
+          <MaterialCommunityIcons name="clock-outline" size={14} color={colors.primary} />
+          <Text style={[styles.nextCardLabel, { color: colors.primary }]}>SIGUIENTE</Text>
+        </View>
         <Text style={styles.nextCardClientName} numberOfLines={1}>
           {nextVisit?.client.name}
         </Text>
@@ -346,69 +301,13 @@ function TodayScreenContent() {
   // ── Render: Visit row ────────────────────────────────────────────────────
 
   function renderVisitRow(visit: VisitWithClient) {
-    const scheduledDayjs = dayjs(visit.scheduled_at)
-    const dateLabel = span !== 'today' ? scheduledDayjs.format('ddd D') : null
-    const timeLabel = scheduledDayjs.format('HH:mm')
-    const clientName = visit.client?.name ?? 'Cliente desconocido'
-
-    const subtitleParts: string[] = []
-    if (visit.client?.industry) subtitleParts.push(visit.client.industry)
-    if (visit.client?.city) subtitleParts.push(visit.client.city)
-    // Add owner indicator for admins
-    if (isAdmin && visit.owner) {
-      const ownerDisplay = visit.owner.full_name
-        ? visit.owner.full_name.split(' ')[0]
-        : visit.owner.email_config?.sender_name || 'Unknown'
-      subtitleParts.push(`por ${ownerDisplay}`)
-    }
-    const subtitle = subtitleParts.join(' · ')
-
-    const isCompleted = visit.status === 'completed'
-    const isCanceled = visit.status === 'canceled'
-    const isPendingOverdue =
-      visit.status === 'pending' && scheduledDayjs.isBefore(dayjs())
-
-    const rowOpacity = isCompleted ? 0.5 : isCanceled ? 0.4 : 1
-
-    const timeColor = isPendingOverdue ? colors.warning : colors.textPrimary
-
     return (
-      <Pressable
+      <VisitRow
         key={visit.id}
-        style={({ pressed }) => [
-          styles.visitRow,
-          { opacity: rowOpacity },
-          pressed && styles.visitRowPressed,
-        ]}
+        visit={visit}
         onPress={() => handleVisitPress(visit)}
-        accessibilityRole="button"
-        accessibilityLabel={`Ver visita a ${clientName}`}
-      >
-        {/* Left: date + time column */}
-        <View style={styles.visitRowTime}>
-          {dateLabel ? (
-            <Text style={styles.visitDateText}>{dateLabel}</Text>
-          ) : null}
-          <Text style={[styles.visitTimeText, { color: timeColor }]}>
-            {timeLabel}
-          </Text>
-        </View>
-
-        {/* Center: client name + subtitle */}
-        <View style={styles.visitRowContent}>
-          <Text style={styles.visitClientName} numberOfLines={1}>
-            {clientName}
-          </Text>
-          {subtitle.length > 0 && (
-            <Text style={styles.visitSubtitle} numberOfLines={1}>
-              {subtitle}
-            </Text>
-          )}
-        </View>
-
-        {/* Right: status badge */}
-        <StatusBadge status={visit.status} type={visit.type} />
-      </Pressable>
+        showOwner={isAdmin && !!visit.owner}
+      />
     )
   }
 
@@ -417,7 +316,7 @@ function TodayScreenContent() {
   function renderEmptyState() {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyEmoji}>📅</Text>
+        <MaterialCommunityIcons name="calendar-blank" size={40} color={colors.textDisabled} />
         <Text style={styles.emptyText}>
           {span === 'today'
             ? 'No hay visitas programadas para hoy'
@@ -724,12 +623,17 @@ const styles = StyleSheet.create({
   nextCardPressed: {
     opacity: 0.85,
   },
+  nextCardLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    marginBottom: spacing[1],
+  },
   nextCardLabel: {
     fontSize: fontSize.xs,
     fontWeight: fontWeight.semibold as '600',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
-    marginBottom: spacing[1],
   },
   nextCardClientName: {
     fontSize: fontSize['2xl'],
@@ -740,8 +644,7 @@ const styles = StyleSheet.create({
   nextCardTime: {
     fontSize: fontSize.base,
   },
-  nextCardDoneEmoji: {
-    fontSize: fontSize['2xl'],
+  nextCardDoneIcon: {
     marginBottom: spacing[1],
   },
   nextCardDoneTitle: {
@@ -758,57 +661,12 @@ const styles = StyleSheet.create({
   visitList: {
     gap: spacing[2],
   },
-  visitRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 72,
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    padding: spacing[3],
-    ...shadows.subtle,
-    gap: spacing[3],
-  },
-  visitRowPressed: {
-    backgroundColor: colors.background,
-  },
-  visitRowTime: {
-    width: 50,
-    alignItems: 'flex-start',
-    flexShrink: 0,
-  },
-  visitDateText: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
-    color: colors.textSecondary,
-  },
-  visitTimeText: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.bold as '700',
-  },
-  visitRowContent: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  visitClientName: {
-    fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
-    color: colors.textPrimary,
-  },
-  visitSubtitle: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.regular as '400',
-    color: colors.textSecondary,
-    marginTop: spacing[1],
-  },
 
   // ── Empty state ───────────────────────────────────────────────────────────
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: spacing[8],
     gap: spacing[3],
-  },
-  emptyEmoji: {
-    fontSize: fontSize['3xl'],
   },
   emptyText: {
     fontSize: fontSize.base,

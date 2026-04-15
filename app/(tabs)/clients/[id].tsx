@@ -27,7 +27,7 @@ import {
 } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
-import { StatusBadge } from '@/components/ui/StatusBadge'
+import { VisitRow } from '@/components/visits/VisitRow'
 
 import {
   borderRadius,
@@ -74,14 +74,6 @@ function handleContactPhone(phone: string, clientName?: string) {
 
 function handleContactEmail(email: string) {
   Linking.openURL(`mailto:${email}`)
-}
-
-// ---------------------------------------------------------------------------
-// Date formatting helper
-// ---------------------------------------------------------------------------
-
-function formatVisitDate(scheduledAt: string): string {
-  return dayjs(scheduledAt).format('D MMM YYYY · HH:mm')
 }
 
 // ---------------------------------------------------------------------------
@@ -403,35 +395,15 @@ export default function ClientDetailScreen() {
         {visits.length === 0 ? (
           <Text style={styles.emptyField}>No hay visitas registradas</Text>
         ) : (
-          visits.slice(0, 10).map((visit: VisitWithClient, index: number) => (
-            <React.Fragment key={visit.id}>
-              {index > 0 ? <View style={styles.visitDivider} /> : null}
-              <Pressable
-                style={({ pressed }) => [
-                  styles.visitRow,
-                  pressed && styles.visitRowPressed,
-                ]}
+          <View style={styles.visitList}>
+            {visits.slice(0, 10).map((visit: VisitWithClient) => (
+              <VisitRow
+                key={visit.id}
+                visit={visit}
                 onPress={() => router.push(`/visits/${visit.id}`)}
-                accessibilityRole="button"
-                accessibilityLabel={`Ver visita del ${formatVisitDate(visit.scheduled_at)}`}
-              >
-                {/* Date + status */}
-                <View style={styles.visitRowTop}>
-                  <Text style={styles.visitDate}>
-                    {formatVisitDate(visit.scheduled_at)}
-                  </Text>
-                  <StatusBadge status={visit.status} type={visit.type} />
-                </View>
-
-                {/* Notes preview */}
-                {visit.notes ? (
-                  <Text style={styles.visitNotes} numberOfLines={1}>
-                    {visit.notes.slice(0, 60)}
-                  </Text>
-                ) : null}
-              </Pressable>
-            </React.Fragment>
-          ))
+              />
+            ))}
+          </View>
         )}
       </View>
 
@@ -598,7 +570,10 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 
-  // Visit history rows (min 56px per spec)
+  // Visit history
+  visitList: {
+    gap: spacing[2],
+  },
   newVisitButton: {
     height: 48,
     borderRadius: borderRadius.md,
@@ -613,36 +588,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     fontWeight: fontWeight.semibold as '600',
     color: colors.primary,
-  },
-  visitRow: {
-    minHeight: 56,
-    paddingVertical: spacing[3],
-    gap: spacing[1],
-    justifyContent: 'center',
-  },
-  visitRowPressed: {
-    opacity: 0.7,
-  },
-  visitRowTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing[2],
-  },
-  visitDate: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.regular as '400',
-    color: colors.textSecondary,
-    flex: 1,
-  },
-  visitNotes: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.regular as '400',
-    color: colors.textSecondary,
-  },
-  visitDivider: {
-    height: 1,
-    backgroundColor: colors.border,
   },
   archiveButton: {
     height: 48,
