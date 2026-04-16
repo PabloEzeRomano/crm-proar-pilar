@@ -1,24 +1,28 @@
 /**
  * app/(tabs)/users.tsx — User management screen (admin / root only)
  *
- * EP-048
+ * EP-048, EP-052
  *
  * Features:
  *  - Lists all users in the company with name, email and role badge
+ *  - Pending invites shown with email + amber "Pendiente" badge
  *  - Shows seat usage counter: X / MAX
  *  - "Invitar usuario" button (disabled when seat limit is reached)
  *  - Invite modal: email + role picker (user | admin), Zod-validated
- *  - Refreshes user list after a successful invite
+ *  - Deactivate button (trash icon) on active non-admin/non-root rows
+ *  - Back button in header via useLayoutEffect
+ *  - Refreshes user list after a successful invite or deactivation
  *  - Access-guarded: non-admin/root users see an "Sin acceso" screen
  *
  * All data flows through useUsersStore. No direct Supabase calls.
  * All visual values reference constants/theme.ts tokens.
  */
 
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 import { z } from 'zod'
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -29,6 +33,7 @@ import {
   TextInput,
   View,
 } from 'react-native'
+import { useNavigation, useRouter } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 
 import {
@@ -41,7 +46,7 @@ import {
 } from '@/constants/theme'
 import { useAuthStore } from '@/stores/authStore'
 import { useUsersStore } from '@/stores/usersStore'
-import type { Profile, UserRole } from '@/types'
+import type { UserListItem, UserRole } from '@/types'
 
 // ---------------------------------------------------------------------------
 // Validation
@@ -85,12 +90,34 @@ function RoleBadge({ role }: { role: UserRole }) {
   )
 }
 
+function PendingBadge() {
+  return (
+    <View style={[styles.roleBadge, { backgroundColor: colors.warningLight }]}>
+      <Text style={[styles.roleBadgeText, { color: colors.warning }]}>
+        Pendiente
+      </Text>
+    </View>
+  )
+}
+
 // ---------------------------------------------------------------------------
 // User row
 // ---------------------------------------------------------------------------
 
-function UserRow({ user }: { user: Profile }) {
-  const initial = (user.full_name ?? user.id).charAt(0).toUpperCase()
+interface UserRowProps {
+  user: UserListItem
+  onDeactivate: (user: UserListItem) => void
+}
+
+function UserRow({ user, onDeactivate }: UserRowProps) {
+  const isPending = user.status === 'pending'
+  const displayName = isPending ? user.email : (user.full_name ?? '—')
+  const initial = displayName.charAt(0).toUpperCase()
+
+  const canDeactivate =
+    user.status === 'active' &&
+    user.role !== 'admin' &&
+    user.role !== 'root'
 
   return (
     <View style={styles.row}>
@@ -99,13 +126,36 @@ function UserRow({ user }: { user: Profile }) {
       </View>
       <View style={styles.rowContent}>
         <Text style={styles.rowName} numberOfLines={1}>
-          {user.full_name ?? '—'}
+          {displayName}
         </Text>
-        <Text style={styles.rowSub} numberOfLines={1}>
-          {user.id}
-        </Text>
+        {!isPending && (
+          <Text style={styles.rowSub} numberOfLines={1}>
+            {user.email}
+          </Text>
+        )}
       </View>
-      <RoleBadge role={user.role} />
+
+      {isPending ? (
+        <PendingBadge />
+      ) : user.role ? (
+        <RoleBadge role={user.role} />
+      ) : null}
+
+      {canDeactivate && (
+        <Pressable
+          onPress={() => onDeactivate(user)}
+          style={styles.deactivateButton}
+          accessibilityRole="button"
+          accessibilityLabel={`Dar de baja a ${user.full_name ?? user.email}`}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MaterialCommunityIcons
+            name="trash-can-outline"
+            size={20}
+            color={colors.error}
+          />
+        </Pressable>
+      )}
     </View>
   )
 }
@@ -116,6 +166,8 @@ function UserRow({ user }: { user: Profile }) {
 
 export default function UsersScreen() {
   const profile = useAuthStore((s) => s.profile)
+  const navigation = useNavigation()
+  const router = useRouter()
 
   const users = useUsersStore((s) => s.users)
   const companyConfig = useUsersStore((s) => s.companyConfig)
@@ -126,6 +178,7 @@ export default function UsersScreen() {
   const fetchUsers = useUsersStore((s) => s.fetchUsers)
   const fetchCompanyConfig = useUsersStore((s) => s.fetchCompanyConfig)
   const inviteUser = useUsersStore((s) => s.inviteUser)
+  const deactivateUser = useUsersStore((s) => s.deactivateUser)
   const clearInviteError = useUsersStore((s) => s.clearInviteError)
 
   const [modalVisible, setModalVisible] = useState(false)
@@ -139,8 +192,30 @@ export default function UsersScreen() {
   const isRoot = profile?.role === 'root'
 
   const maxUsers = companyConfig?.max_users ?? null
-  const currentCount = users.length
+  const currentCount = users.filter((u) => u.status !== 'banned').length
   const atLimit = maxUsers !== null && currentCount >= maxUsers && !isRoot
+
+  // ── Back button ───────────────────────────────────────────────────────────
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <Pressable
+          onPress={() => router.back()}
+          style={styles.headerButton}
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MaterialCommunityIcons
+            name="arrow-left"
+            size={24}
+            color={colors.primary}
+          />
+        </Pressable>
+      ),
+    })
+  }, [navigation, router])
 
   // ── Bootstrap ─────────────────────────────────────────────────────────────
 
@@ -149,6 +224,26 @@ export default function UsersScreen() {
     fetchUsers()
     fetchCompanyConfig()
   }, [])
+
+  // ── Deactivate handler ────────────────────────────────────────────────────
+
+  const handleDeactivate = useCallback((user: UserListItem) => {
+    Alert.alert(
+      'Dar de baja usuario',
+      '¿Dar de baja a este usuario? Se archivarán sus clientes y gestiones.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Dar de baja',
+          style: 'destructive',
+          onPress: async () => {
+            await deactivateUser(user.id)
+            fetchUsers()
+          },
+        },
+      ],
+    )
+  }, [deactivateUser, fetchUsers])
 
   // ── Invite handlers ───────────────────────────────────────────────────────
 
@@ -181,7 +276,6 @@ export default function UsersScreen() {
 
     if (!err) {
       setSuccessMessage(`Invitación enviada a ${result.data.email}`)
-      // Refresh list so the new pending profile appears
       fetchUsers()
       setTimeout(() => {
         setModalVisible(false)
@@ -265,7 +359,9 @@ export default function UsersScreen() {
         <FlatList
           data={users}
           keyExtractor={(u) => u.id}
-          renderItem={({ item }) => <UserRow user={item} />}
+          renderItem={({ item }) => (
+            <UserRow user={item} onDeactivate={handleDeactivate} />
+          )}
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={
@@ -404,6 +500,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
 
+  // ── Header button ─────────────────────────────────────────────────────────
+  headerButton: {
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+
   // ── Counter row ───────────────────────────────────────────────────────────
   counterRow: {
     flexDirection: 'row',
@@ -500,6 +604,13 @@ const styles = StyleSheet.create({
   rowSub: {
     fontSize: fontSize.xs,
     color: colors.textDisabled,
+  },
+  deactivateButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
 
   // ── Role badge ────────────────────────────────────────────────────────────
