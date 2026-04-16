@@ -31,7 +31,12 @@ export interface AuthState {
   updateEmailConfig: (config: import('../types').EmailConfig) => Promise<void>;
   completeTour: () => Promise<void>;
   resetTour: () => Promise<void>;
-  invokeWeeklyEmail: (recipientsOverride?: string[]) => Promise<void>;
+  invokeWeeklyEmail: (
+    recipientsOverride?: string[],
+    dateFrom?: string,
+    dateTo?: string,
+    targetUserId?: string,
+  ) => Promise<void>;
   setInviteSetup: (value: boolean) => void;
 }
 
@@ -321,13 +326,20 @@ export const useAuthStore = create<AuthState>()((set) => ({
     }
   },
 
-  invokeWeeklyEmail: async (recipientsOverride?: string[]) => {
+  invokeWeeklyEmail: async (
+    recipientsOverride?: string[],
+    dateFrom?: string,
+    dateTo?: string,
+    targetUserId?: string,
+  ) => {
     set({ error: null });
 
-    const userId = useAuthStore.getState().user?.id;
+    const userId = targetUserId ?? useAuthStore.getState().user?.id;
     const body: Record<string, unknown> = {};
     if (userId) body.userId = userId;
     if (recipientsOverride) body.recipients = recipientsOverride;
+    if (dateFrom) body.dateFrom = dateFrom;
+    if (dateTo) body.dateTo = dateTo;
 
     const { data, error } = await supabase.functions.invoke('weekly-email', {
       body: Object.keys(body).length > 0 ? body : undefined,

@@ -35,7 +35,9 @@ import {
 } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import TourStep from '@/components/tour/TourStep'
+import AppDatePicker from '@/components/ui/AppDatePicker'
 
+import dayjs from '@/lib/dayjs'
 import { brand } from '@/constants/brand'
 import {
   borderRadius,
@@ -47,6 +49,7 @@ import {
 import type { EmailConfig } from '@/types'
 import { useAuthStore } from '@/stores/authStore'
 import { useClientsStore } from '@/stores/clientsStore'
+import { useUsersStore } from '@/stores/usersStore'
 import { useImportStore } from '@/stores/importStore'
 import { useTodayStore } from '@/stores/todayStore'
 import { useVisitsStore } from '@/stores/visitsStore'
@@ -87,6 +90,9 @@ function SettingsScreenContent() {
   const deleteAllVisits = useVisitsStore((s) => s.deleteAllUserVisits)
   const deleteAllClients = useClientsStore((s) => s.deleteAllUserClients)
 
+  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root'
+  const teamUsers = useUsersStore((s) => s.users)
+
   // -------------------------------------------------------------------------
   // Local state
   // -------------------------------------------------------------------------
@@ -108,6 +114,9 @@ function SettingsScreenContent() {
   const [modalAdHocEmails, setModalAdHocEmails] = useState<string[]>([])
   const [modalAdHocInput, setModalAdHocInput] = useState('')
   const [modalAdHocError, setModalAdHocError] = useState<string | null>(null)
+  const [modalDateFrom, setModalDateFrom] = useState<Date>(() => dayjs().subtract(1, 'week').startOf('week').add(1, 'day').toDate())
+  const [modalDateTo, setModalDateTo] = useState<Date>(() => dayjs().subtract(1, 'week').endOf('week').add(1, 'day').toDate())
+  const [modalTargetUserId, setModalTargetUserId] = useState<string | undefined>(undefined)
   const [notificationsEnabled, setNotificationsEnabled] = useState(true)
   const [testingNotification, setTestingNotification] = useState(false)
   const [notificationFeedback, setNotificationFeedback] = useState<{ ok: boolean; message: string } | null>(null)
@@ -283,6 +292,15 @@ function SettingsScreenContent() {
     setModalAdHocInput('')
     setModalAdHocError(null)
     setReportFeedback(null)
+    // Default date range: last week (Mon–Sun in local time)
+    const today = dayjs()
+    // dayjs().day() — 0=Sun…6=Sat; convert to Mon-based: Mon=0…Sun=6
+    const dayOfWeek = today.day() === 0 ? 6 : today.day() - 1
+    const lastMonday = today.subtract(dayOfWeek + 7, 'day').startOf('day')
+    const lastSunday = lastMonday.add(6, 'day').endOf('day')
+    setModalDateFrom(lastMonday.toDate())
+    setModalDateTo(lastSunday.toDate())
+    setModalTargetUserId(undefined)
     setShowSendModal(true)
   }
 
@@ -314,7 +332,12 @@ function SettingsScreenContent() {
     setSendingReport(true)
     setReportFeedback(null)
     try {
-      await invokeWeeklyEmail(allRecipients.length > 0 ? allRecipients : undefined)
+      await invokeWeeklyEmail(
+        allRecipients.length > 0 ? allRecipients : undefined,
+        dayjs(modalDateFrom).startOf('day').toISOString(),
+        dayjs(modalDateTo).endOf('day').toISOString(),
+        modalTargetUserId,
+      )
       const error = useAuthStore.getState().error
       if (error) throw new Error(error)
       setReportFeedback({ ok: true, message: 'Enviado correctamente' })
@@ -873,8 +896,86 @@ function SettingsScreenContent() {
               {modalAdHocError && (
                 <Text style={styles.fieldError}>{modalAdHocError}</Text>
               )}
-              {/* <View style={{ height: spacing[8] }} /> */}
             </View>
+
+            {/* Date range */}
+            <View style={styles.modalSection}>
+              <Text style={styles.modalSectionLabel}>Período</Text>
+              <View style={styles.dateRangeRow}>
+                <View style={styles.dateRangeField}>
+                  <Text style={styles.dateRangeFieldLabel}>Desde</Text>
+                  <AppDatePicker
+                    value={modalDateFrom}
+                    onChange={setModalDateFrom}
+                    mode="date"
+                    maxDate={modalDateTo}
+                  />
+                </View>
+                <View style={styles.dateRangeSeparator} />
+                <View style={styles.dateRangeField}>
+                  <Text style={styles.dateRangeFieldLabel}>Hasta</Text>
+                  <AppDatePicker
+                    value={modalDateTo}
+                    onChange={setModalDateTo}
+                    mode="date"
+                    minDate={modalDateFrom}
+                  />
+                </View>
+              </View>
+            </View>
+
+            {/* User selector (admin/root only) */}
+            {isAdminOrRoot && teamUsers.length > 0 && (
+              <View style={styles.modalSection}>
+                <Text style={styles.modalSectionLabel}>Usuario</Text>
+                <Text style={styles.rowSubtitle}>Por defecto: tu propio reporte</Text>
+                <View style={styles.userPickerList}>
+                  <Pressable
+                    style={[
+                      styles.userPickerRow,
+                      modalTargetUserId === undefined && styles.userPickerRowActive,
+                    ]}
+                    onPress={() => setModalTargetUserId(undefined)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: modalTargetUserId === undefined }}
+                  >
+                    <Text style={[
+                      styles.userPickerRowText,
+                      modalTargetUserId === undefined && styles.userPickerRowTextActive,
+                    ]}>
+                      Mi reporte
+                    </Text>
+                    {modalTargetUserId === undefined && (
+                      <MaterialCommunityIcons name="check" size={16} color={colors.primary} />
+                    )}
+                  </Pressable>
+                  {teamUsers
+                    .filter((u) => u.status === 'active')
+                    .map((u) => (
+                      <Pressable
+                        key={u.id}
+                        style={[
+                          styles.userPickerRow,
+                          modalTargetUserId === u.id && styles.userPickerRowActive,
+                        ]}
+                        onPress={() => setModalTargetUserId(u.id)}
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked: modalTargetUserId === u.id }}
+                      >
+                        <Text style={[
+                          styles.userPickerRowText,
+                          modalTargetUserId === u.id && styles.userPickerRowTextActive,
+                        ]} numberOfLines={1}>
+                          {u.full_name ?? u.email}
+                        </Text>
+                        {modalTargetUserId === u.id && (
+                          <MaterialCommunityIcons name="check" size={16} color={colors.primary} />
+                        )}
+                      </Pressable>
+                    ))}
+                </View>
+              </View>
+            )}
 
             {/* Error feedback inside modal */}
             {reportFeedback && !reportFeedback.ok && (
@@ -1306,6 +1407,60 @@ const styles = StyleSheet.create({
   },
   modalSendButton: {
     flex: 1,
+  },
+
+  // ── Date range picker ─────────────────────────────────────────────────────
+  dateRangeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing[2],
+  },
+  dateRangeField: {
+    flex: 1,
+    gap: spacing[1],
+  },
+  dateRangeFieldLabel: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    fontWeight: fontWeight.medium as '500',
+  },
+  dateRangeSeparator: {
+    width: 1,
+    backgroundColor: colors.border,
+    alignSelf: 'stretch',
+    marginTop: spacing[6],
+  },
+
+  // ── User picker ───────────────────────────────────────────────────────────
+  userPickerList: {
+    gap: spacing[1],
+    marginTop: spacing[1],
+  },
+  userPickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 44,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  userPickerRowActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight ?? '#EFF6FF',
+  },
+  userPickerRowText: {
+    flex: 1,
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    fontWeight: fontWeight.medium as '500',
+  },
+  userPickerRowTextActive: {
+    color: colors.primary,
+    fontWeight: fontWeight.semibold as '600',
   },
 
   // ── Floating save bar ─────────────────────────────────────────────────────
