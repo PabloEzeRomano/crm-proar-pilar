@@ -10,13 +10,16 @@
  *   - EP-039: "Completed only" toggle + date range filter
  */
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { borderRadius, colors, fontSize, fontWeight, shadows, spacing } from '@/constants/theme'
 import { useVisitStats } from '@/hooks/useVisitStats'
 import AppDatePicker from '@/components/ui/AppDatePicker'
 import dayjs from '@/lib/dayjs'
+import { useAuthStore } from '@/stores/authStore'
+import { useVisitsStore } from '@/stores/visitsStore'
+import { useUsersStore } from '@/stores/usersStore'
 
 interface StatsModalProps {
   visible: boolean
@@ -156,12 +159,30 @@ export function StatsModal({ visible, onClose }: StatsModalProps) {
   const [dateTo, setDateTo] = useState<Date | null>(() => dayjs().toDate())
   const [showFromPicker, setShowFromPicker] = useState(false)
   const [showToPicker, setShowToPicker] = useState(false)
+  // null = all users (admin default); string = specific user; undefined = own data (regular user)
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+
+  const profile = useAuthStore((s) => s.profile)
+  const { allVisits, fetchAllVisitsForAdmin } = useVisitsStore()
+  const { users, fetchUsers } = useUsersStore()
+
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'root'
+
+  // Fetch all-users data when admin opens the modal
+  useEffect(() => {
+    if (!visible || !isAdmin) return
+    if (allVisits.length === 0) fetchAllVisitsForAdmin()
+    if (users.length === 0) fetchUsers()
+  }, [visible])
 
   const datesActive = !!(dateFrom && dateTo)
   const clearDates = () => { setDateFrom(null); setDateTo(null) }
   const resetDates = () => { setDateFrom(dayjs().startOf('month').toDate()); setDateTo(dayjs().toDate()) }
 
-  const stats = useVisitStats({ completedOnly, dateFrom, dateTo })
+  // For admin: pass selectedUserId (null = all, string = specific user)
+  // For regular user: pass undefined (uses own visits store)
+  const statsUserId = isAdmin ? selectedUserId : undefined
+  const stats = useVisitStats({ completedOnly, dateFrom, dateTo, userId: statsUserId })
   const { hasDateFilter } = stats
   const rangeDateLabel = datesActive
     ? `${dayjs(dateFrom).format('DD/MM')} – ${dayjs(dateTo).format('DD/MM')}`
@@ -209,6 +230,62 @@ export function StatsModal({ visible, onClose }: StatsModalProps) {
         >
           {/* ── Filters ─────────────────────────────────────────────── */}
           <View style={styles.filtersSection}>
+            {/* Admin user selector — visible only for admin/root */}
+            {isAdmin && (
+              <View style={styles.userSelectorSection}>
+                <Text style={styles.userSelectorLabel}>Usuario</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.userPillsRow}
+                >
+                  {/* "Todos" pill */}
+                  <Pressable
+                    style={[
+                      styles.userPill,
+                      selectedUserId === null && styles.userPillSelected,
+                    ]}
+                    onPress={() => setSelectedUserId(null)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Ver todos los usuarios"
+                    hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                  >
+                    <Text style={[
+                      styles.userPillText,
+                      selectedUserId === null && styles.userPillTextSelected,
+                    ]}>
+                      Todos
+                    </Text>
+                  </Pressable>
+
+                  {/* One pill per active user */}
+                  {users.filter((u) => u.status === 'active').map((u) => (
+                    <Pressable
+                      key={u.id}
+                      style={[
+                        styles.userPill,
+                        selectedUserId === u.id && styles.userPillSelected,
+                      ]}
+                      onPress={() => setSelectedUserId(u.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Ver estadísticas de ${u.full_name ?? u.email}`}
+                      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                    >
+                      <Text
+                        style={[
+                          styles.userPillText,
+                          selectedUserId === u.id && styles.userPillTextSelected,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {u.full_name ?? u.email}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
             {/* Completed only toggle */}
             <View style={styles.toggleRow}>
               <Text style={styles.toggleLabel}>Solo completadas</Text>
@@ -581,5 +658,45 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
+  },
+
+  // Admin user selector
+  userSelectorSection: {
+    gap: spacing[2],
+  },
+  userSelectorLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  userPillsRow: {
+    flexDirection: 'row',
+    gap: spacing[2],
+    paddingBottom: spacing[1],
+  },
+  userPill: {
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    minHeight: 36,
+    justifyContent: 'center',
+  },
+  userPillSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  userPillText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textSecondary,
+    maxWidth: 120,
+  },
+  userPillTextSelected: {
+    color: colors.textOnPrimary,
   },
 })

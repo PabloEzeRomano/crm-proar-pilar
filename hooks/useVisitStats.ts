@@ -11,6 +11,7 @@
 import { useMemo } from 'react'
 import dayjs from '../lib/dayjs'
 import { useVisitsStore } from '../stores/visitsStore'
+import type { VisitWithClient } from '../types'
 
 export interface PeriodStats {
   total: number
@@ -38,19 +39,38 @@ export interface VisitStatsFilters {
   completedOnly?: boolean
   dateFrom?: Date | null
   dateTo?: Date | null
+  /**
+   * userId param controls which visits are used as source:
+   *   undefined → own data only (uses visitsStore.visits — regular user, unchanged behavior)
+   *   null      → all users (uses visitsStore.allVisits — admin aggregate view)
+   *   string    → specific user (filters visitsStore.allVisits by owner_user_id)
+   */
+  userId?: string | null
 }
 
 export function useVisitStats(filters?: VisitStatsFilters): VisitStats {
   const visits = useVisitsStore((s) => s.visits)
+  const allVisits = useVisitsStore((s) => s.allVisits)
   const completedOnly = filters?.completedOnly ?? false
   const dateFrom = filters?.dateFrom ?? null
   const dateTo = filters?.dateTo ?? null
+  const userId = filters?.userId  // undefined | null | string
 
   return useMemo(() => {
     const now = dayjs()
 
+    // Select source based on userId param
+    let sourceVisits: VisitWithClient[]
+    if (userId === undefined) {
+      sourceVisits = visits
+    } else if (userId === null) {
+      sourceVisits = allVisits
+    } else {
+      sourceVisits = allVisits.filter((v) => v.owner_user_id === userId)
+    }
+
     // Apply global filters first
-    let baseVisits = visits.filter((v) => {
+    let baseVisits = sourceVisits.filter((v) => {
       if (v.status === 'canceled') return false
       if (completedOnly && v.status !== 'completed') return false
       const scheduled = dayjs(v.scheduled_at)
@@ -60,7 +80,7 @@ export function useVisitStats(filters?: VisitStatsFilters): VisitStats {
     })
 
     // Same as baseVisits but without the completedOnly filter — used to compute totalAll
-    const allBaseVisits = visits.filter((v) => {
+    const allBaseVisits = sourceVisits.filter((v) => {
       if (v.status === 'canceled') return false
       const scheduled = dayjs(v.scheduled_at)
       if (dateFrom && scheduled.isBefore(dayjs(dateFrom).startOf('day'))) return false
@@ -106,5 +126,5 @@ export function useVisitStats(filters?: VisitStatsFilters): VisitStats {
       hasDateFilter,
       topClients,
     }
-  }, [visits, completedOnly, dateFrom, dateTo])
+  }, [visits, allVisits, completedOnly, dateFrom, dateTo, userId])
 }

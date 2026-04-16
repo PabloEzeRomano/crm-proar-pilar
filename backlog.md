@@ -655,6 +655,25 @@
 
 ---
 
+## EP-052 — CORS Fix, Pending Invites, Deactivate User, Owner-Gated Buttons
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 52.1 | Fix CORS: add `...corsHeaders()` to `jsonResponse` in `invite-user`; redeploy | backend | `done` |
+| 52.2a | Edge Function `list-users`: admin lists users with pending/active/banned status; fix root exclusion via metaRole + fix pending via confirmed_at | backend | `done` |
+| 52.2b | Edge Function `deactivate-user`: ban user + soft-delete their clients | backend | `done` |
+| 52.2c | Add `UserListItem` to `types/index.ts` | state | `done` |
+| 52.2d | `usersStore`: swap `Profile[]` → `UserListItem[]`, add `deactivateUser` | state | `done` |
+| 52.2e | `users.tsx`: pending badge, deactivate button, back button | frontend | `done` |
+| 52.3 | `clients/[id].tsx`: hide archive/edit/visit buttons for non-owner clients | frontend | `done` |
+| 52.4 | Team drill-down `[userId].tsx`: tabbed Visitas + Clientes with search + type filters | frontend | `done` |
+| 52.5a | `weekly-email`: add `dateFrom`/`dateTo`/`userId` role validation; redeploy | backend | `done` |
+| 52.5b | `authStore.invokeWeeklyEmail`: add `dateFrom`, `dateTo`, `targetUserId` params | state | `done` |
+| 52.5c | `settings.tsx` send report modal: date range pickers + user selector (admin/root) | frontend | `done` |
+| 52.6 | Stats modal: admin sees all-users aggregate by default + user selector pills to filter by individual user | frontend + state | `done` |
+
+---
+
 ## Pending
 
 > All stories across all EPs that are not yet `done`.
@@ -700,3 +719,4 @@
 | 2026-04-09 | Seat limit enforced server-side in `invite-user` Edge Function, not only in UI (EP-048) | UI checks can be bypassed; authoritative enforcement must be in backend. Root role bypasses limit by design for super-admin operations. `company_config.max_users` is managed directly in DB by root — no in-app UI for seat management at MVP. |
 | 2026-04-09 | Invite flow uses static HTML intermediate page + separate Expo `/auth/callback` screen (EP-048b) | Supabase's default invite confirmation page logs users in with no password. Static HTML page (served outside the Expo app) exchanges `token_hash` for a session, prompts password setup, then redirects using URL fragment tokens. Native and web take different URL schemes but share the same session-transfer mechanism (`access_token` + `refresh_token` in fragment). `isInviteSetup` flag in authStore prevents auth guard from interfering while session is established. |
 | 2026-04-13 | Quote/sale status uses existing VisitStatus values remapped via `getStatusLabel(status, type)` helper — no DB changes (EP-050) | `canceled` = red across all types for semantic consistency. Helper lives in `lib/visitStatus.ts`; `StatusBadge` gains optional `type` prop with `'visit'` fallback so all existing callers remain valid. |
+| 2026-04-16 | Stats modal shows all-users aggregate for admin by default. `useVisitStats` userId param: `null`=all users (allVisits), `string`=specific user (filtered allVisits), `undefined`=own data (visits). Admin default is `null`; selecting a user pill passes their id; regular users receive `undefined` so behavior is unchanged. | EP-052 story 52.6. Keeps regular-user path identical — no regression risk. Admin sees team-wide stats on open without an extra tap. |
