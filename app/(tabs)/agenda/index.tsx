@@ -14,7 +14,10 @@
  *   - Today's date as subtitle in header
  */
 
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
+import TourStep from '@/components/tour/TourStep'
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
+import { useFocusEffect, useNavigation, useRouter } from 'expo-router'
+import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
@@ -25,15 +28,9 @@ import {
   Text,
   View,
 } from 'react-native'
-import { useFocusEffect, useNavigation, useRouter } from 'expo-router'
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
-import TourStep from '@/components/tour/TourStep'
 
-import { useToday } from '@/hooks/useToday'
-import { useTodayStore } from '@/stores/todayStore'
-import { TodaySpan } from '@/stores/todayStore'
-import { useAuthStore } from '@/stores/authStore'
 import { StatsModal } from '@/components/today/StatsCard'
+import { VisitRow } from '@/components/visits/VisitRow'
 import {
   borderRadius,
   colors,
@@ -42,9 +39,11 @@ import {
   shadows,
   spacing,
 } from '@/constants/theme'
-import { VisitWithClient } from '@/types'
+import { useToday } from '@/hooks/useToday'
 import dayjs from '@/lib/dayjs'
-import { VisitRow } from '@/components/visits/VisitRow'
+import { useAuthStore } from '@/stores/authStore'
+import { TodaySpan, useTodayStore } from '@/stores/todayStore'
+import { VisitWithClient } from '@/types'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -72,7 +71,7 @@ function TodayScreenContent() {
   const [sortLoading, setSortLoading] = useState(false)
   const [statsVisible, setStatsVisible] = useState(false)
   const profile = useAuthStore((state) => state.profile)
-  const isAdmin = profile?.role === 'admin'
+  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root'
 
   const {
     visits,
@@ -83,7 +82,7 @@ function TodayScreenContent() {
     isStale,
     lastFetched,
     fetchTodayVisits,
-  } = useToday(isAdmin)
+  } = useToday(isAdminOrRoot)
 
   const sortedByDistance = useTodayStore((s) => s.sortedByDistance)
   const sortByDistance = useTodayStore((s) => s.sortByDistance)
@@ -306,7 +305,7 @@ function TodayScreenContent() {
         key={visit.id}
         visit={visit}
         onPress={() => handleVisitPress(visit)}
-        showOwner={isAdmin && !!visit.owner}
+        showOwner={isAdminOrRoot && !!visit.owner}
       />
     )
   }

@@ -159,6 +159,6 @@ export function useClients(
     updateClient,
     deleteClient,
     ownerProfiles,
-    isAdminMode: profile?.role === 'admin',
+    isAdminMode: profile?.role === 'admin' || profile?.role === 'root',
   }
 }

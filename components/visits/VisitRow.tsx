@@ -40,7 +40,7 @@ export function VisitRow({ visit, onPress, showOwner, showAmount }: VisitRowProp
   const clientName = visit.client?.name ?? 'Cliente desconocido'
   const ownerName =
     showOwner && visit.owner?.full_name
-      ? visit.owner.full_name.split(' ')[0]
+      ? visit.owner.full_name
       : null
 
   return (
