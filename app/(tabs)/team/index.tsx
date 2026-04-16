@@ -33,7 +33,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useUsersStore } from '@/stores/usersStore'
 import { useVisitsStore } from '@/stores/visitsStore'
 import { VisitRow } from '@/components/visits/VisitRow'
-import type { Profile, UserRole } from '@/types'
+import type { UserListItem, UserRole } from '@/types'
 import dayjs from '@/lib/dayjs'
 
 // ---------------------------------------------------------------------------
@@ -127,16 +127,15 @@ export default function TeamIndexScreen() {
   // Render helpers
   // ---------------------------------------------------------------------------
 
-  function renderUserItem({ item }: { item: Profile }) {
-    const initial = (item.full_name ?? item.id).charAt(0).toUpperCase()
-    const emailDisplay = item.email_config?.sender ?? '—'
+  function renderUserItem({ item }: { item: UserListItem }) {
+    const initial = (item.full_name ?? item.email).charAt(0).toUpperCase()
 
     return (
       <Pressable
         style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
         onPress={() => router.push(`/(tabs)/team/${item.id}`)}
         accessibilityRole="button"
-        accessibilityLabel={`Ver actividad de ${item.full_name ?? item.id}`}
+        accessibilityLabel={`Ver actividad de ${item.full_name ?? item.email}`}
       >
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{initial}</Text>
@@ -146,10 +145,10 @@ export default function TeamIndexScreen() {
             {item.full_name ?? '—'}
           </Text>
           <Text style={styles.rowSub} numberOfLines={1}>
-            {emailDisplay}
+            {item.email}
           </Text>
         </View>
-        <RoleBadge role={item.role} />
+        {item.role ? <RoleBadge role={item.role} /> : null}
         <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
       </Pressable>
     )
