@@ -38,6 +38,7 @@ import {
 } from '@/constants/theme'
 import { useVisits } from '@/hooks/useVisits'
 import dayjs from '@/lib/dayjs'
+import { useAuthStore } from '@/stores/authStore'
 import { useClientsStore } from '@/stores/clientsStore'
 import { useVisitsStore } from '@/stores/visitsStore'
 import { useTodayStore } from '@/stores/todayStore'
@@ -85,6 +86,8 @@ export default function ClientDetailScreen() {
   const router = useRouter()
   const navigation = useNavigation()
 
+  const profile = useAuthStore((state) => state.profile)
+
   const client = useClientsStore((state) =>
     state.clients.find((c) => c.id === id),
   )
@@ -106,12 +109,14 @@ export default function ClientDetailScreen() {
     }
   }, [id, client, fetchClient])
 
-  // Set "Editar" button in the header
+  const isOwner = client?.owner_user_id === profile?.id
+
+  // Set "Editar" button in the header — only for the owner
   useLayoutEffect(() => {
     if (!client) return
 
     navigation.setOptions({
-      headerRight: () => (
+      headerRight: isOwner ? () => (
         <Pressable
           onPress={() => router.push(`/clients/form?clientId=${id}`)}
           style={styles.headerButton}
@@ -121,9 +126,9 @@ export default function ClientDetailScreen() {
         >
           <Text style={styles.headerButtonText}>Editar</Text>
         </Pressable>
-      ),
+      ) : undefined,
     })
-  }, [client, id, navigation, router])
+  }, [client, id, isOwner, navigation, router])
 
   // "Visitar hoy" button state
   const [visitarHoyLoading, setVisitarHoyLoading] = useState(false)
@@ -358,38 +363,41 @@ export default function ClientDetailScreen() {
       <View style={styles.section}>
         <SectionHeader title="Historial de visitas" />
 
-        {/* Visitar hoy / Ver visita de hoy button */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.newVisitButton,
-            pressed && styles.newVisitButtonPressed,
-          ]}
-          onPress={todayVisit ? () => router.push(`/visits/${todayVisit.id}`) : handleVisitarHoy}
-          disabled={visitarHoyLoading}
-          accessibilityRole="button"
-          accessibilityLabel={todayVisit ? 'Ver visita de hoy' : 'Visitar hoy'}
-        >
-          {visitarHoyLoading ? (
-            <ActivityIndicator size="small" color={colors.primary} />
-          ) : (
-            <Text style={styles.newVisitButtonText}>
-              {todayVisit ? 'Ver visita de hoy' : 'Visitar hoy'}
-            </Text>
-          )}
-        </Pressable>
+        {/* Visitar hoy / Ver visita de hoy + Nueva visita — owner only */}
+        {isOwner && (
+          <>
+            <Pressable
+              style={({ pressed }) => [
+                styles.newVisitButton,
+                pressed && styles.newVisitButtonPressed,
+              ]}
+              onPress={todayVisit ? () => router.push(`/visits/${todayVisit.id}`) : handleVisitarHoy}
+              disabled={visitarHoyLoading}
+              accessibilityRole="button"
+              accessibilityLabel={todayVisit ? 'Ver visita de hoy' : 'Visitar hoy'}
+            >
+              {visitarHoyLoading ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Text style={styles.newVisitButtonText}>
+                  {todayVisit ? 'Ver visita de hoy' : 'Visitar hoy'}
+                </Text>
+              )}
+            </Pressable>
 
-        {/* Nueva visita button */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.newVisitButton,
-            pressed && styles.newVisitButtonPressed,
-          ]}
-          onPress={() => router.push(`/visits/form?clientId=${id}`)}
-          accessibilityRole="button"
-          accessibilityLabel="Agregar nueva visita"
-        >
-          <Text style={styles.newVisitButtonText}>Nueva visita</Text>
-        </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                styles.newVisitButton,
+                pressed && styles.newVisitButtonPressed,
+              ]}
+              onPress={() => router.push(`/visits/form?clientId=${id}`)}
+              accessibilityRole="button"
+              accessibilityLabel="Agregar nueva visita"
+            >
+              <Text style={styles.newVisitButtonText}>Nueva visita</Text>
+            </Pressable>
+          </>
+        )}
 
         {/* Visit list — up to 10 most recent (already sorted DESC by store) */}
         {visits.length === 0 ? (
@@ -407,21 +415,25 @@ export default function ClientDetailScreen() {
         )}
       </View>
 
-      {/* ── Archivar cliente ─────────────────────────────────────────────── */}
-      <View style={styles.divider} />
-      <View style={styles.section}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.archiveButton,
-            pressed && styles.archiveButtonPressed,
-          ]}
-          onPress={handleArchiveClient}
-          accessibilityRole="button"
-          accessibilityLabel="Archivar cliente"
-        >
-          <Text style={styles.archiveButtonText}>Archivar cliente</Text>
-        </Pressable>
-      </View>
+      {/* ── Archivar cliente — owner only ────────────────────────────────── */}
+      {isOwner && (
+        <>
+          <View style={styles.divider} />
+          <View style={styles.section}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.archiveButton,
+                pressed && styles.archiveButtonPressed,
+              ]}
+              onPress={handleArchiveClient}
+              accessibilityRole="button"
+              accessibilityLabel="Archivar cliente"
+            >
+              <Text style={styles.archiveButtonText}>Archivar cliente</Text>
+            </Pressable>
+          </View>
+        </>
+      )}
     </ScrollView>
   )
 }
