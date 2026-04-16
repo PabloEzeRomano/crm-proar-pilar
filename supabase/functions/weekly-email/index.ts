@@ -2,12 +2,22 @@
  * supabase/functions/weekly-email/index.ts — Weekly visit summary email
  *
  * Triggered every Monday at 08:00 UTC by pg_cron (see migration 0006).
+ * Can also be triggered manually via POST with optional body params.
  *
  * For each user with email_config.enabled = true:
  *  1. Query visits from the previous Monday 00:00 → Sunday 23:59 (UTC)
+ *     (or custom dateFrom/dateTo range if provided)
  *  2. Skip if no visits that week
  *  3. Generate an HTML email with visits grouped by date
  *  4. Send via Resend API
+ *
+ * Optional body params:
+ *   recipients?: string[]  — override recipient list for this send
+ *   dateFrom?: string      — ISO date string for custom range start
+ *   dateTo?: string        — ISO date string for custom range end
+ *   userId?: string        — target a specific user (admin/root only)
+ *
+ * When userId is provided, caller must supply Bearer JWT with admin/root role.
  *
  * Sender address and name are extracted from each user's auth email at signup
  * and stored in profiles.email_config (e.g., gvega@proarpilar.com → gvega@send.gemm-apps.com).
@@ -93,6 +103,17 @@ interface Visit {
  * Returns the ISO strings for last week's Monday 00:00 UTC and Sunday 23:59:59 UTC.
  * "Last week" relative to the date this function runs (Monday morning).
  */
+function getCustomRangeLabel(from: string, to: string): string {
+  const fmt = (d: Date): string =>
+    d.toLocaleDateString('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      timeZone: 'America/Argentina/Buenos_Aires',
+    });
+  return `${fmt(new Date(from))} al ${fmt(new Date(to))}`;
+}
+
 function getLastWeekRange(): { from: string; to: string; label: string } {
   const now = new Date();
 
@@ -388,21 +409,65 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     // Parse optional body params
     let bodyUserId: string | undefined;
     let bodyRecipients: string[] | undefined;
+    let bodyDateFrom: string | undefined;
+    let bodyDateTo: string | undefined;
     try {
       const body = await req.json();
       if (typeof body.userId === 'string') bodyUserId = body.userId;
       if (Array.isArray(body.recipients)) bodyRecipients = body.recipients;
+      if (typeof body.dateFrom === 'string') bodyDateFrom = body.dateFrom;
+      if (typeof body.dateTo === 'string') bodyDateTo = body.dateTo;
     } catch {
       // no body — fine
     }
 
-    const { from, to, label } = getLastWeekRange();
+    // If targeting a specific user, verify caller is admin/root
+    if (bodyUserId) {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader?.startsWith('Bearer ')) {
+        return new Response(JSON.stringify({ ok: false, error: 'Authorization required to target a specific user' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const callerJwt = authHeader.slice(7);
+      const callerClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: `Bearer ${callerJwt}` } },
+      });
+      const { data: { user: callerUser }, error: userErr } = await callerClient.auth.getUser();
+      if (userErr || !callerUser) {
+        return new Response(JSON.stringify({ ok: false, error: 'Invalid or expired token' }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const { data: callerProfile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', callerUser.id)
+        .single<{ role: string }>();
+      if (callerProfile?.role !== 'admin' && callerProfile?.role !== 'root') {
+        return new Response(JSON.stringify({ ok: false, error: 'admin or root role required to target a specific user' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // Determine date range
+    const defaultRange = getLastWeekRange();
+    const from = bodyDateFrom ?? defaultRange.from;
+    const to = bodyDateTo ?? defaultRange.to;
+    const label = (bodyDateFrom && bodyDateTo)
+      ? getCustomRangeLabel(bodyDateFrom, bodyDateTo)
+      : defaultRange.label;
 
     // Fetch profiles with email enabled — scope to requesting user if provided
     let profilesQuery = supabase
