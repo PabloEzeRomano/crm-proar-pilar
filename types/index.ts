@@ -45,6 +45,16 @@ export interface CompanyConfig {
   max_users: number
 }
 
+export interface UserListItem {
+  id: string
+  email: string
+  full_name: string | null
+  role: UserRole | null
+  status: 'active' | 'pending' | 'banned'
+  invited_at: string | null
+  company_id: string | null
+}
+
 export interface ContactInfo {
   name?: string
   phone?: string

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
-import type { Profile, CompanyConfig } from '../types';
+import type { CompanyConfig, UserListItem } from '../types';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -12,16 +12,19 @@ export interface InviteUserInput {
 }
 
 export interface UsersState {
-  users: Profile[];
+  users: UserListItem[];
   companyConfig: CompanyConfig | null;
   loading: boolean;
   error: string | null;
   inviteLoading: boolean;
   inviteError: string | null;
+  deactivateLoading: boolean;
+  deactivateError: string | null;
 
   fetchUsers: () => Promise<void>;
   fetchCompanyConfig: () => Promise<void>;
   inviteUser: (input: InviteUserInput) => Promise<{ error: string | null }>;
+  deactivateUser: (userId: string) => Promise<{ error: string | null }>;
   clearInviteError: () => void;
 }
 
@@ -36,22 +39,20 @@ export const useUsersStore = create<UsersState>()((set) => ({
   error: null,
   inviteLoading: false,
   inviteError: null,
+  deactivateLoading: false,
+  deactivateError: null,
 
   fetchUsers: async () => {
     set({ loading: true, error: null });
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .neq('role', 'root')
-      .order('created_at', { ascending: true });
+    const { data, error } = await supabase.functions.invoke('list-users');
 
     if (error) {
       set({ loading: false, error: error.message });
       return;
     }
 
-    set({ users: (data as Profile[]) ?? [], loading: false });
+    set({ users: (data as UserListItem[]) ?? [], loading: false });
   },
 
   fetchCompanyConfig: async () => {
@@ -73,7 +74,6 @@ export const useUsersStore = create<UsersState>()((set) => ({
     });
 
     if (error) {
-      // supabase.functions.invoke wraps non-2xx as an error with a message
       let msg = 'Error al enviar la invitación';
       if (error && typeof error === 'object' && 'message' in error) {
         msg = (error as { message: string }).message;
@@ -83,6 +83,26 @@ export const useUsersStore = create<UsersState>()((set) => ({
     }
 
     set({ inviteLoading: false });
+    return { error: null };
+  },
+
+  deactivateUser: async (userId: string) => {
+    set({ deactivateLoading: true, deactivateError: null });
+
+    const { error } = await supabase.functions.invoke('deactivate-user', {
+      body: { userId },
+    });
+
+    if (error) {
+      let msg = 'Error al dar de baja al usuario';
+      if (error && typeof error === 'object' && 'message' in error) {
+        msg = (error as { message: string }).message;
+      }
+      set({ deactivateLoading: false, deactivateError: msg });
+      return { error: msg };
+    }
+
+    set({ deactivateLoading: false });
     return { error: null };
   },
 
