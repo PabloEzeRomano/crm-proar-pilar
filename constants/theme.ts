@@ -72,6 +72,21 @@ export const colors = {
 } as const
 
 // ---------------------------------------------------------------------------
+// Visit type colors
+// ---------------------------------------------------------------------------
+
+export const visitTypeColors = {
+  visit: brand.primaryColor,
+  visitLight: brand.primaryColorLight,
+  call: '#0D9488',
+  callLight: '#CCFBF1',
+  quote: '#7C3AED',
+  quoteLight: '#EDE9FE',
+  sale: '#EA580C',
+  saleLight: '#FFEDD5',
+} as const
+
+// ---------------------------------------------------------------------------
 // Typography
 // ---------------------------------------------------------------------------
 
@@ -168,6 +183,7 @@ export const shadows = {
 
 export const theme = {
   colors,
+  visitTypeColors,
   typography,
   fontSize,
   fontWeight,

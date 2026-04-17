@@ -674,6 +674,19 @@
 
 ---
 
+## EP-053 — VisitRow Grid Layout + Visit Type Colors
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 53.1 | `theme.ts`: add `visitTypeColors` token map (visit/call/quote/sale + light variants) | ui-ux | `done` |
+| 53.2 | Replace `StatusBadge` with `StatusTypeBadge` (combined status + type rendering); delete `StatusBadge.tsx` | frontend + ui-ux | `done` |
+| 53.3 | Refactor `VisitRow` into a 4-column grid: time / client+owner / notes (web only) / type chip + status | frontend + ui-ux | `done` |
+| 53.4 | Add `showType` and `showNotes` optional props to `VisitRow` (both default false, backward compatible) | frontend | `done` |
+| 53.5 | Notes column (col 3) not rendered on mobile — no space allocated, not just hidden | frontend | `done` |
+| 53.6 | Layout tuning: card padding → `spacing[2]`, minHeight → 56, rightColumn `alignItems: flex-start`, col widths `flex 0.4/1.4` on web | ui-ux | `done` |
+
+---
+
 ## Pending
 
 > All stories across all EPs that are not yet `done`.

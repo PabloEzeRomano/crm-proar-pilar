@@ -23,9 +23,16 @@ const STATUS_LABELS: Record<VisitType, Record<VisitStatus, string>> = {
   },
 }
 
+const TYPE_LABELS: Record<VisitType, string> = {
+  visit: 'Visita',
+  call: 'Llamada',
+  quote: 'Cotización',
+  sale: 'Venta',
+}
+
 export function getStatusLabel(
-  status: VisitStatus,
-  type: VisitType = 'visit',
+  type: VisitType,
+  status?: VisitStatus,
 ): string {
-  return STATUS_LABELS[type]?.[status] ?? STATUS_LABELS.visit[status]
+  return status ? STATUS_LABELS[type][status] : TYPE_LABELS[type];
 }

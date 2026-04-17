@@ -24,8 +24,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { useLocalSearchParams, useNavigation, usePathname, useRouter } from 'expo-router'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 
-import { StatusBadge } from '@/components/ui/StatusBadge'
-import { VisitType } from '@/types'
+import { StatusTypeBadge } from '@/components/ui/StatusTypeBadge'
 
 import { useVisitsStore } from '@/stores/visitsStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -197,14 +196,6 @@ export default function VisitDetailView() {
   const rawDate = dayjs(visit.scheduled_at).format('dddd D [de] MMMM · HH:mm')
   const formattedDate = rawDate.charAt(0).toUpperCase() + rawDate.slice(1)
 
-  const TYPE_LABEL: Record<VisitType, string> = {
-    visit: 'Visita',
-    call: 'Llamada',
-    sale: 'Venta',
-    quote: 'Cotización / Propuesta',
-  }
-  const typeLabel = TYPE_LABEL[visit.type ?? 'visit']
-
   // -------------------------------------------------------------------------
   // Root render
   // -------------------------------------------------------------------------
@@ -254,13 +245,11 @@ export default function VisitDetailView() {
         <View style={styles.statusTypeRow}>
           <View style={styles.statusTypeItem}>
             <SectionLabel title="Estado" />
-            <StatusBadge status={visit.status} type={visit.type} />
+            <StatusTypeBadge status={visit.status} type={visit.type} />
           </View>
           <View style={styles.statusTypeItem}>
             <SectionLabel title="Tipo" />
-            <View style={styles.typeBadge}>
-              <Text style={styles.typeBadgeText}>{typeLabel}</Text>
-            </View>
+            <StatusTypeBadge type={visit.type} />
           </View>
         </View>
       </View>
@@ -324,7 +313,7 @@ export default function VisitDetailView() {
                       ${sale.amount.toLocaleString('es-AR')} ARS
                     </Text>
                   ) : null}
-                  <StatusBadge status={sale.status} type="sale" />
+                  <StatusTypeBadge status={sale.status} type="sale" />
                 </View>
                 <MaterialCommunityIcons
                   name="chevron-right"

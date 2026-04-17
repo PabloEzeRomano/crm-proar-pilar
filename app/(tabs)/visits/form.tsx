@@ -31,7 +31,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import AppDatePicker from '@/components/ui/AppDatePicker'
-import { StatusBadge } from '@/components/ui/StatusBadge'
+import { StatusTypeBadge } from '@/components/ui/StatusTypeBadge'
 import { useVisitsStore } from '@/stores/visitsStore'
 import { useClientsStore } from '@/stores/clientsStore'
 import {
@@ -576,7 +576,7 @@ export default function VisitFormScreen() {
                       ${q.amount.toLocaleString('es-AR')} ARS
                     </Text>
                   )}
-                  <StatusBadge status={q.status} type="quote" />
+                  <StatusTypeBadge status={q.status} type="quote" />
                 </Pressable>
               )
             })
@@ -728,7 +728,7 @@ export default function VisitFormScreen() {
                 { value: 'canceled', icon: 'close-circle-outline', color: colors.statusCanceled },
               ] as { value: VisitStatus; icon: string; color: string }[]
             ).map(({ value, icon, color }) => {
-              const label = getStatusLabel(value, visitType)
+              const label = getStatusLabel(visitType, value)
               const active = status === value
               return (
                 <Pressable
