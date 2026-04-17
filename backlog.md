@@ -687,6 +687,16 @@
 
 ---
 
+## EP-054 — Visits List: Search, Filter Modal, Owner Data
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 54.1 | `useVisits`: admin/root reads from `allVisits`; add `ownerFilter?: string[]` and `typeFilter?: VisitType[]` params; expose `isAdminOrRoot`; route `fetchVisits()` to `fetchAllVisitsForAdmin()` for admin/root | state | `done` |
+| 54.2 | `fetchAllVisitsForAdmin`: after main fetch, query `profiles` for all unique `owner_user_id`s and merge `owner` data onto each visit (same pattern as `todayStore`) | state | `done` |
+| 54.3 | `visits/index.tsx`: replace status pills + header calendar button with search bar + filter button (active count badge); filter modal with TIPO DE GESTIÓN / ESTADO / FECHA / VENDEDOR (admin/root) sections; draft/apply pattern; active filter chips below search bar; `showType` always on, `showOwner` for admin/root | frontend | `done` |
+
+---
+
 ## Pending
 
 > All stories across all EPs that are not yet `done`.

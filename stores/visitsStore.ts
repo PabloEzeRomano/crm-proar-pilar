@@ -161,7 +161,26 @@ export const useVisitsStore = create<VisitsState>()(
           .select('*, client:clients(*)')
           .order('scheduled_at', { ascending: false })
           .limit(500)
-        if (!error && data) set({ allVisits: data as VisitWithClient[] })
+
+        if (!error && data) {
+          let visits = data as VisitWithClient[]
+
+          const ownerIds = Array.from(new Set(visits.map((v) => v.owner_user_id)))
+          if (ownerIds.length > 0) {
+            const { data: profiles } = await supabase
+              .from('profiles')
+              .select('id, full_name, email_config')
+              .in('id', ownerIds)
+
+            if (profiles) {
+              const profileMap = Object.fromEntries(profiles.map((p) => [p.id, p]))
+              visits = visits.map((v) => ({ ...v, owner: profileMap[v.owner_user_id] }))
+            }
+          }
+
+          set({ allVisits: visits })
+        }
+
         set({ allVisitsLoading: false })
       },
 
