@@ -9,7 +9,9 @@
  * No direct Supabase calls.
  */
 
-import React, { useEffect, useState } from 'react'
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -17,10 +19,9 @@ import {
   StyleSheet,
   Text,
   View,
-} from 'react-native'
-import { useRouter } from 'expo-router'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+} from 'react-native';
 
+import { VisitRow } from '@/components/visits/VisitRow';
 import {
   borderRadius,
   colors,
@@ -28,13 +29,12 @@ import {
   fontWeight,
   shadows,
   spacing,
-} from '@/constants/theme'
-import { useAuthStore } from '@/stores/authStore'
-import { useUsersStore } from '@/stores/usersStore'
-import { useVisitsStore } from '@/stores/visitsStore'
-import { VisitRow } from '@/components/visits/VisitRow'
-import type { UserListItem, UserRole } from '@/types'
-import dayjs from '@/lib/dayjs'
+} from '@/constants/theme';
+import dayjs from '@/lib/dayjs';
+import { useAuthStore } from '@/stores/authStore';
+import { useUsersStore } from '@/stores/usersStore';
+import { useVisitsStore } from '@/stores/visitsStore';
+import type { UserRole } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Role badge
@@ -44,19 +44,19 @@ const ROLE_LABEL: Record<UserRole, string> = {
   user: 'Usuario',
   admin: 'Admin',
   root: 'Root',
-}
+};
 
 const ROLE_COLOR: Record<UserRole, string> = {
   user: colors.textSecondary,
   admin: colors.primary,
   root: colors.error,
-}
+};
 
 const ROLE_BG: Record<UserRole, string> = {
   user: colors.surface,
   admin: colors.primaryLight ?? '#EFF6FF',
   root: '#FEE2E2',
-}
+};
 
 function RoleBadge({ role }: { role: UserRole }) {
   return (
@@ -65,7 +65,7 @@ function RoleBadge({ role }: { role: UserRole }) {
         {ROLE_LABEL[role]}
       </Text>
     </View>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -73,119 +73,77 @@ function RoleBadge({ role }: { role: UserRole }) {
 // ---------------------------------------------------------------------------
 
 export default function TeamIndexScreen() {
-  const router = useRouter()
-  const profile = useAuthStore((s) => s.profile)
+  const router = useRouter();
+  const profile = useAuthStore((s) => s.profile);
 
-  const users = useUsersStore((s) => s.users)
-  const loading = useUsersStore((s) => s.loading)
-  const error = useUsersStore((s) => s.error)
-  const fetchUsers = useUsersStore((s) => s.fetchUsers)
+  const users = useUsersStore((s) => s.users);
+  const loading = useUsersStore((s) => s.loading);
+  const error = useUsersStore((s) => s.error);
+  const fetchUsers = useUsersStore((s) => s.fetchUsers);
 
-  const allVisits = useVisitsStore((s) => s.allVisits)
-  const allVisitsLoading = useVisitsStore((s) => s.allVisitsLoading)
-  const fetchAllVisitsForAdmin = useVisitsStore((s) => s.fetchAllVisitsForAdmin)
+  const allVisits = useVisitsStore((s) => s.allVisits);
+  const allVisitsLoading = useVisitsStore((s) => s.allVisitsLoading);
+  const fetchAllVisitsForAdmin = useVisitsStore(
+    (s) => s.fetchAllVisitsForAdmin,
+  );
 
-  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root'
+  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root';
 
-  const [selectedType, setSelectedType] = useState<'quote' | 'sale'>('quote')
+  const [selectedType, setSelectedType] = useState<'quote' | 'sale'>('quote');
 
   useEffect(() => {
-    if (!isAdminOrRoot) return
-    fetchUsers()
-    fetchAllVisitsForAdmin()
-  }, [])
+    if (!isAdminOrRoot) return;
+    fetchUsers();
+    fetchAllVisitsForAdmin();
+  }, []);
 
   if (!isAdminOrRoot) {
     return (
       <View style={styles.guardContainer}>
-        <MaterialCommunityIcons name="lock-outline" size={48} color={colors.textDisabled} />
+        <MaterialCommunityIcons
+          name="lock-outline"
+          size={48}
+          color={colors.textDisabled}
+        />
         <Text style={styles.guardText}>No tenés acceso a esta sección</Text>
       </View>
-    )
+    );
   }
 
   // ---------------------------------------------------------------------------
   // Summary stats (current month)
   // ---------------------------------------------------------------------------
 
-  const now = dayjs()
+  const now = dayjs();
   const thisMonthVisits = allVisits.filter((v) =>
-    dayjs(v.scheduled_at).isSame(now, 'month')
-  )
-  const quotesThisMonth = thisMonthVisits.filter((v) => v.type === 'quote')
-  const salesThisMonth = thisMonthVisits.filter((v) => v.type === 'sale')
-  const quoteAmountTotal = quotesThisMonth.reduce((s, v) => s + (v.amount ?? 0), 0)
-  const saleAmountTotal = salesThisMonth.reduce((s, v) => s + (v.amount ?? 0), 0)
+    dayjs(v.scheduled_at).isSame(now, 'month'),
+  );
+  const quotesThisMonth = thisMonthVisits.filter((v) => v.type === 'quote');
+  const salesThisMonth = thisMonthVisits.filter((v) => v.type === 'sale');
+  const quoteAmountTotal = quotesThisMonth.reduce(
+    (s, v) => s + (v.amount ?? 0),
+    0,
+  );
+  const saleAmountTotal = salesThisMonth.reduce(
+    (s, v) => s + (v.amount ?? 0),
+    0,
+  );
 
   // ---------------------------------------------------------------------------
   // Filtered visit list
   // ---------------------------------------------------------------------------
 
-  const filteredVisits = allVisits.filter((v) => v.type === selectedType)
-
-  // ---------------------------------------------------------------------------
-  // Render helpers
-  // ---------------------------------------------------------------------------
-
-  function renderUserItem({ item }: { item: UserListItem }) {
-    const initial = (item.full_name ?? item.email).charAt(0).toUpperCase()
-
-    return (
-      <Pressable
-        style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-        onPress={() => router.push(`/(tabs)/team/${item.id}`)}
-        accessibilityRole="button"
-        accessibilityLabel={`Ver actividad de ${item.full_name ?? item.email}`}
-      >
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initial}</Text>
-        </View>
-        <View style={styles.rowContent}>
-          <Text style={styles.rowName} numberOfLines={1}>
-            {item.full_name ?? '—'}
-          </Text>
-          <Text style={styles.rowSub} numberOfLines={1}>
-            {item.email}
-          </Text>
-        </View>
-        {item.role ? <RoleBadge role={item.role} /> : null}
-        <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textSecondary} />
-      </Pressable>
-    )
-  }
+  const filteredVisits = allVisits.filter((v) => v.type === selectedType);
 
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-
-      {/* ── User list section ─────────────────────────────────────────── */}
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      ) : error ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      ) : (
-        <>
-          {users.map((user, index) => (
-            <React.Fragment key={user.id}>
-              {renderUserItem({ item: user })}
-              {index < users.length - 1 && <View style={styles.separator} />}
-            </React.Fragment>
-          ))}
-          {users.length === 0 && (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No hay usuarios en el equipo</Text>
-            </View>
-          )}
-        </>
-      )}
-
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+    >
       {/* ── Summary cards (current month) ─────────────────────────────── */}
       {!allVisitsLoading && (
         <>
@@ -263,7 +221,8 @@ export default function TeamIndexScreen() {
           {filteredVisits.length === 0 ? (
             <View style={styles.emptyVisitsContainer}>
               <Text style={styles.emptyText}>
-                No hay {selectedType === 'quote' ? 'cotizaciones' : 'ventas'} registradas
+                No hay {selectedType === 'quote' ? 'cotizaciones' : 'ventas'}{' '}
+                registradas
               </Text>
             </View>
           ) : (
@@ -287,9 +246,8 @@ export default function TeamIndexScreen() {
           <ActivityIndicator size="small" color={colors.primary} />
         </View>
       )}
-
     </ScrollView>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -318,9 +276,6 @@ const styles = StyleSheet.create({
     gap: spacing[3],
     ...shadows.subtle,
     minHeight: 64,
-  },
-  rowPressed: {
-    backgroundColor: colors.background,
   },
   avatar: {
     width: 40,
@@ -492,4 +447,4 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[8],
     alignItems: 'center',
   },
-})
+});

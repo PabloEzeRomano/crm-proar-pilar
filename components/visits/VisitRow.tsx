@@ -63,7 +63,7 @@ export function VisitRow({
   const ownerName =
     showOwner && visit.owner?.full_name ? visit.owner.full_name : null;
 
-  // const chip = showType && visit.type ? getTypeChip(visit.type) : null;
+  console.log(visit);
 
   const notesSnippet =
     showNotes && Platform.OS === 'web' && visit.notes
@@ -125,9 +125,7 @@ export function VisitRow({
 
       {/* Col 4: type chip + amount + status badge */}
       <View style={styles.rightColumn}>
-        {showType ? (
-          <StatusTypeBadge type={visit.type} />
-        ) : null}
+        {showType ? <StatusTypeBadge type={visit.type} /> : null}
 
         <StatusTypeBadge status={visit.status} type={visit.type} />
       </View>

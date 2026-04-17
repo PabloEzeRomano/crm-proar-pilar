@@ -707,6 +707,16 @@
 
 ---
 
+## EP-056 — Team Tab Simplification
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 56.1 | Remove `[userId]` Stack.Screen from `team/_layout.tsx`; only `index` remains | frontend | `done` |
+| 56.2 | `team/index.tsx`: user rows non-navigable (View, no chevron); remove segmented control + VisitRow list; keep user list + monthly stats cards | frontend | `done` |
+| 56.3 | Delete `app/(tabs)/team/[userId].tsx` — per-user drill-down replaced by Visits/Clients filters | frontend | `done` |
+
+---
+
 ## Pending
 
 > All stories across all EPs that are not yet `done`.

@@ -1,11 +1,3 @@
-/**
- * app/(tabs)/team/_layout.tsx — Stack layout for the Equipo (Team) tab
- *
- * Screens:
- *   index     — User list (admin/root sees all company users)
- *   [userId]  — Per-user drill-down (visits + clients for that user)
- */
-
 import { Stack } from 'expo-router'
 
 import { colors, fontSize } from '@/constants/theme'
@@ -26,7 +18,6 @@ export default function TeamStackLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: 'Equipo' }} />
-      <Stack.Screen name="[userId]" options={{ title: 'Actividad' }} />
     </Stack>
   )
 }
