@@ -1,10 +1,9 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo } from 'react'
 import dayjs from '../lib/dayjs'
-import { supabase } from '../lib/supabase'
 import { useClientsStore } from '../stores/clientsStore'
 import { useVisitsStore } from '../stores/visitsStore'
 import { useAuthStore } from '../stores/authStore'
-import { Client, Profile, VisitType } from '../types'
+import { Client, VisitType } from '../types'
 import { CreateClientInput, UpdateClientInput } from '../validators/client'
 
 export type ClientSortOrder =
@@ -21,50 +20,31 @@ export function useClients(
   staleDays?: number | null,
   sortOrder?: ClientSortOrder,
   visitTypeFilter?: VisitType | null,
+  ownerFilter?: string[],
 ) {
   const clients = useClientsStore((state) => state.clients)
   const loading = useClientsStore((state) => state.loading)
   const error = useClientsStore((state) => state.error)
-  const fetchClients = useClientsStore((state) => state.fetchClients)
+  const fetchClientsAction = useClientsStore((state) => state.fetchClients)
+  const fetchAllClientsForAdmin = useClientsStore((state) => state.fetchAllClientsForAdmin)
+  const allClients = useClientsStore((state) => state.allClients)
+  const allClientsLoading = useClientsStore((state) => state.allClientsLoading)
+  const ownerProfiles = useClientsStore((state) => state.ownerProfiles)
   const createClient = useClientsStore((state) => state.createClient)
   const updateClient = useClientsStore((state) => state.updateClient)
   const deleteClient = useClientsStore((state) => state.deleteClient)
   const profile = useAuthStore((state) => state.profile)
   const allVisits = useVisitsStore((state) => state.visits)
 
-  // Owner profiles map for admin view
-  const [ownerProfiles, setOwnerProfiles] = useState<Record<string, Profile | null>>({})
-
-  // Fetch owner profiles when in admin mode
-  useEffect(() => {
-    if (profile?.role !== 'admin' || clients.length === 0) return
-
-    const ownerIds = Array.from(new Set(clients.map((c) => c.owner_user_id)))
-    if (ownerIds.length === 0) return
-
-    const fetchOwnerProfiles = async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', ownerIds)
-
-      if (!error && data) {
-        const map = data.reduce(
-          (acc, p) => {
-            acc[p.id] = p
-            return acc
-          },
-          {} as Record<string, Partial<Profile>>,
-        )
-        setOwnerProfiles(map as Record<string, Profile | null>)
-      }
-    }
-
-    fetchOwnerProfiles()
-  }, [profile?.role, clients])
+  const isAdminMode = profile?.role === 'admin' || profile?.role === 'root'
+  const baseClients = isAdminMode ? allClients : clients
 
   const filteredClients = useMemo<Client[]>(() => {
-    let result = clients
+    let result = baseClients
+
+    if (ownerFilter?.length) {
+      result = result.filter((c) => ownerFilter.includes(c.owner_user_id))
+    }
 
     const trimmed = searchQuery?.trim()
     if (trimmed) {
@@ -74,7 +54,6 @@ export function useClients(
           client.name.toLowerCase().includes(query) ||
           (client.city?.toLowerCase().includes(query) ?? false) ||
           (client.industry?.toLowerCase().includes(query) ?? false) ||
-          // Search in contact names and phone numbers
           (client.contacts?.some((c) =>
             (c.name?.toLowerCase().includes(query) ?? false) ||
             (c.phone?.toLowerCase().includes(query) ?? false) ||
@@ -100,7 +79,6 @@ export function useClients(
       )
     }
 
-    // Filter by visit type: keep only clients with at least one visit of that type
     if (visitTypeFilter) {
       const clientIdsWithType = new Set(
         allVisits
@@ -110,7 +88,6 @@ export function useClients(
       result = result.filter((c) => clientIdsWithType.has(c.id))
     }
 
-    // Sort
     const sorted = [...result]
     switch (sortOrder) {
       case 'name-asc':
@@ -135,30 +112,28 @@ export function useClients(
         break
       case 'stale-first':
         sorted.sort((a, b) => {
-          // null/undefined last_visited_at = never visited = highest priority
           const aDays = a.last_visited_at ? dayjs().diff(dayjs(a.last_visited_at), 'day') : Infinity
           const bDays = b.last_visited_at ? dayjs().diff(dayjs(b.last_visited_at), 'day') : Infinity
           return bDays - aDays
         })
         break
       default:
-        // default: name A-Z
         sorted.sort((a, b) => a.name.localeCompare(b.name, 'es'))
         break
     }
 
     return sorted
-  }, [clients, searchQuery, rubroFilter, localidadFilter, staleDays, sortOrder, visitTypeFilter, allVisits])
+  }, [baseClients, ownerFilter, searchQuery, rubroFilter, localidadFilter, staleDays, sortOrder, visitTypeFilter, allVisits])
 
   return {
     clients: filteredClients,
-    loading,
+    loading: isAdminMode ? allClientsLoading : loading,
     error,
-    fetchClients,
+    fetchClients: () => isAdminMode ? fetchAllClientsForAdmin() : fetchClientsAction(),
     createClient,
     updateClient,
     deleteClient,
     ownerProfiles,
-    isAdminMode: profile?.role === 'admin' || profile?.role === 'root',
+    isAdminMode,
   }
 }

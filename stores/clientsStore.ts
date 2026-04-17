@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '../lib/supabase'
-import { Client } from '../types'
+import { Client, Profile } from '../types'
 import { CreateClientInput, UpdateClientInput } from '../validators/client'
 
 interface ClientsState {
@@ -12,6 +12,10 @@ interface ClientsState {
   error: string | null
   teamClients: Client[]
   teamClientsLoading: boolean
+  allClients: Client[]
+  allClientsLoading: boolean
+  ownerProfiles: Record<string, Profile | null>
+  fetchAllClientsForAdmin: () => Promise<void>
   fetchClients: () => Promise<void>
   fetchInactiveClients: () => Promise<void>
   fetchClient: (id: string) => Promise<Client | null>
@@ -46,6 +50,42 @@ export const useClientsStore = create<ClientsState>()(
   error: null,
   teamClients: [],
   teamClientsLoading: false,
+  allClients: [],
+  allClientsLoading: false,
+  ownerProfiles: {},
+
+  fetchAllClientsForAdmin: async () => {
+    set({ allClientsLoading: true })
+
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .is('deleted_at', null)
+      .order('name', { ascending: true })
+
+    if (!error && data) {
+      const clients = data as Client[]
+      const ownerIds = Array.from(new Set(clients.map((c) => c.owner_user_id)))
+
+      let ownerProfiles: Record<string, Profile | null> = {}
+      if (ownerIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', ownerIds)
+
+        if (profiles) {
+          ownerProfiles = Object.fromEntries(
+            profiles.map((p) => [p.id, p as unknown as Profile]),
+          )
+        }
+      }
+
+      set({ allClients: clients, ownerProfiles })
+    }
+
+    set({ allClientsLoading: false })
+  },
 
   fetchClients: async () => {
     set({ loading: true, error: null })

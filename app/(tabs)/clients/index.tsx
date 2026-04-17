@@ -4,7 +4,7 @@
  * EP-019: Added rn-tourguide chapter "clients" (3 steps)
  */
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -16,173 +16,208 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native'
-import { useRouter } from 'expo-router'
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import TourStep from '@/components/tour/TourStep'
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import TourStep from '@/components/tour/TourStep';
 
-import { useClients, ClientSortOrder } from '@/hooks/useClients'
-import { useClientsStore } from '@/stores/clientsStore'
-import { useLookupsStore } from '@/stores/lookupsStore'
-import SearchableSelect from '@/components/ui/SearchableSelect'
-import dayjs from '@/lib/dayjs'
+import { useClients, ClientSortOrder } from '@/hooks/useClients';
+import { useClientsStore } from '@/stores/clientsStore';
+import { useLookupsStore } from '@/stores/lookupsStore';
+import SearchableSelect from '@/components/ui/SearchableSelect';
+import dayjs from '@/lib/dayjs';
 import {
   borderRadius,
   colors,
   fontSize,
   fontWeight,
   spacing,
-} from '@/constants/theme'
-import { Client, VisitType } from '@/types'
+} from '@/constants/theme';
+import { Client, VisitType } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Sort configuration
 // ---------------------------------------------------------------------------
 
-const SORT_KEY = 'clients-sort-order'
+const SORT_KEY = 'clients-sort-order';
 
 const SORT_OPTIONS: { key: ClientSortOrder; label: string; icon: string }[] = [
   { key: 'name-asc', label: 'Nombre A–Z', icon: 'sort-alphabetical-ascending' },
-  { key: 'name-desc', label: 'Nombre Z–A', icon: 'sort-alphabetical-descending' },
-  { key: 'last-visited-recent', label: 'Última visita (reciente)', icon: 'clock-outline' },
-  { key: 'last-visited-oldest', label: 'Última visita (antiguo)', icon: 'clock-fast' },
-  { key: 'stale-first', label: 'Sin visita (primero)', icon: 'alert-circle-outline' },
-]
+  {
+    key: 'name-desc',
+    label: 'Nombre Z–A',
+    icon: 'sort-alphabetical-descending',
+  },
+  {
+    key: 'last-visited-recent',
+    label: 'Última visita (reciente)',
+    icon: 'clock-outline',
+  },
+  {
+    key: 'last-visited-oldest',
+    label: 'Última visita (antiguo)',
+    icon: 'clock-fast',
+  },
+  {
+    key: 'stale-first',
+    label: 'Sin visita (primero)',
+    icon: 'alert-circle-outline',
+  },
+];
 
 const VISIT_TYPE_OPTIONS: { value: VisitType; label: string }[] = [
   { value: 'visit', label: 'Visita' },
   { value: 'call', label: 'Llamada' },
   { value: 'sale', label: 'Venta' },
   { value: 'quote', label: 'Cotización' },
-]
+];
 
 // ---------------------------------------------------------------------------
 // Inner screen component (needs to be inside TourGuideProvider)
 // ---------------------------------------------------------------------------
 
 function ClientsScreenContent() {
-  const router = useRouter()
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedRubros, setSelectedRubros] = useState<string[]>([])
-  const [selectedLocalidades, setSelectedLocalidades] = useState<string[]>([])
-  const [selectedStaleDays, setSelectedStaleDays] = useState<number | null>(null)
-  const [selectedVisitType, setSelectedVisitType] = useState<VisitType | null>(null)
-  const [sortOrder, setSortOrder] = useState<ClientSortOrder>('name-asc')
-  const [filterVisible, setFilterVisible] = useState(false)
-  const [sortVisible, setSortVisible] = useState(false)
-  const [showInactive, setShowInactive] = useState(false)
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRubros, setSelectedRubros] = useState<string[]>([]);
+  const [selectedLocalidades, setSelectedLocalidades] = useState<string[]>([]);
+  const [selectedStaleDays, setSelectedStaleDays] = useState<number | null>(
+    null,
+  );
+  const [selectedVisitType, setSelectedVisitType] = useState<VisitType | null>(
+    null,
+  );
+  const [sortOrder, setSortOrder] = useState<ClientSortOrder>('name-asc');
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [sortVisible, setSortVisible] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
 
   // Draft state inside the filter modal (applied only on "Aplicar")
-  const [draftRubros, setDraftRubros] = useState<string[]>([])
-  const [draftLocalidades, setDraftLocalidades] = useState<string[]>([])
-  const [draftStaleDays, setDraftStaleDays] = useState<number | null>(null)
-  const [draftVisitType, setDraftVisitType] = useState<VisitType | null>(null)
+  const [selectedVendedores, setSelectedVendedores] = useState<string[]>([]);
+  const [draftRubros, setDraftRubros] = useState<string[]>([]);
+  const [draftLocalidades, setDraftLocalidades] = useState<string[]>([]);
+  const [draftStaleDays, setDraftStaleDays] = useState<number | null>(null);
+  const [draftVisitType, setDraftVisitType] = useState<VisitType | null>(null);
+  const [draftVendedores, setDraftVendedores] = useState<string[]>([]);
 
-  const { clients, loading, error, fetchClients, ownerProfiles, isAdminMode } = useClients(
-    searchQuery,
-    selectedRubros,
-    selectedLocalidades,
-    selectedStaleDays,
-    sortOrder,
-    selectedVisitType,
-  )
-  const inactiveClients = useClientsStore((s) => s.inactiveClients)
-  const fetchInactiveClients = useClientsStore((s) => s.fetchInactiveClients)
-  const restoreClient = useClientsStore((s) => s.restoreClient)
-  const rubros = useLookupsStore((s) => s.rubros)
-  const localidades = useLookupsStore((s) => s.localidades)
+  const { clients, loading, error, fetchClients, ownerProfiles, isAdminMode } =
+    useClients(
+      searchQuery,
+      selectedRubros,
+      selectedLocalidades,
+      selectedStaleDays,
+      sortOrder,
+      selectedVisitType,
+      selectedVendedores,
+    );
+  const inactiveClients = useClientsStore((s) => s.inactiveClients);
+  const fetchInactiveClients = useClientsStore((s) => s.fetchInactiveClients);
+  const restoreClient = useClientsStore((s) => s.restoreClient);
+  const rubros = useLookupsStore((s) => s.rubros);
+  const localidades = useLookupsStore((s) => s.localidades);
 
   const activeFilterCount =
     selectedRubros.length +
     selectedLocalidades.length +
     (selectedStaleDays ? 1 : 0) +
-    (selectedVisitType ? 1 : 0)
+    (selectedVisitType ? 1 : 0) +
+    selectedVendedores.length;
 
   // Load persisted sort order on mount
   useEffect(() => {
     AsyncStorage.getItem(SORT_KEY).then((val) => {
-      if (val) setSortOrder(val as ClientSortOrder)
-    })
-  }, [])
+      if (val) setSortOrder(val as ClientSortOrder);
+    });
+  }, []);
 
   useEffect(() => {
-    fetchClients()
-  }, [])
+    fetchClients();
+  }, []);
 
   useEffect(() => {
     if (showInactive) {
-      fetchInactiveClients()
+      fetchInactiveClients();
     }
-  }, [showInactive])
+  }, [showInactive]);
 
   // ── Filter modal handlers ────────────────────────────────────────────────
 
   function openFilter() {
-    // Copy current selection into draft
-    setDraftRubros([...selectedRubros])
-    setDraftLocalidades([...selectedLocalidades])
-    setDraftStaleDays(selectedStaleDays)
-    setDraftVisitType(selectedVisitType)
-    setFilterVisible(true)
+    setDraftRubros([...selectedRubros]);
+    setDraftLocalidades([...selectedLocalidades]);
+    setDraftStaleDays(selectedStaleDays);
+    setDraftVisitType(selectedVisitType);
+    setDraftVendedores([...selectedVendedores]);
+    setFilterVisible(true);
   }
 
   function applyFilter() {
-    setSelectedRubros(draftRubros)
-    setSelectedLocalidades(draftLocalidades)
-    setSelectedStaleDays(draftStaleDays)
-    setSelectedVisitType(draftVisitType)
-    setFilterVisible(false)
+    setSelectedRubros(draftRubros);
+    setSelectedLocalidades(draftLocalidades);
+    setSelectedStaleDays(draftStaleDays);
+    setSelectedVisitType(draftVisitType);
+    setSelectedVendedores(draftVendedores);
+    setFilterVisible(false);
   }
 
   function clearFilter() {
-    setDraftRubros([])
-    setDraftLocalidades([])
-    setDraftStaleDays(null)
-    setDraftVisitType(null)
+    setDraftRubros([]);
+    setDraftLocalidades([]);
+    setDraftStaleDays(null);
+    setDraftVisitType(null);
+    setDraftVendedores([]);
   }
 
   function handleSortSelect(order: ClientSortOrder) {
-    setSortOrder(order)
-    AsyncStorage.setItem(SORT_KEY, order)
-    setSortVisible(false)
+    setSortOrder(order);
+    AsyncStorage.setItem(SORT_KEY, order);
+    setSortVisible(false);
   }
 
-  function toggleDraft(list: string[], value: string, setter: (v: string[]) => void) {
-    setter(list.includes(value) ? list.filter((v) => v !== value) : [...list, value])
+  function toggleDraft(
+    list: string[],
+    value: string,
+    setter: (v: string[]) => void,
+  ) {
+    setter(
+      list.includes(value) ? list.filter((v) => v !== value) : [...list, value],
+    );
   }
 
   // ── List helpers ─────────────────────────────────────────────────────────
 
   function daysSince(iso: string | null | undefined): number | null {
-    if (!iso) return null
-    return dayjs().diff(dayjs(iso), 'day')
+    if (!iso) return null;
+    return dayjs().diff(dayjs(iso), 'day');
   }
 
   function getLastVisitedColor(days: number | null): string {
-    if (days === null) return colors.textDisabled
-    if (days < 30) return colors.statusCompleted
-    if (days <= 60) return colors.statusPending
-    return colors.error
+    if (days === null) return colors.textDisabled;
+    if (days < 30) return colors.statusCompleted;
+    if (days <= 60) return colors.statusPending;
+    return colors.error;
   }
 
   function getLastVisitedLabel(days: number | null): string {
-    if (days === null) return 'Sin visitas'
-    return `Hace ${days}d`
+    if (days === null) return 'Sin visitas';
+    return `Hace ${days}d`;
   }
 
   function handleRowPress(client: Client) {
-    router.push(`/clients/${client.id}`)
+    router.push(`/clients/${client.id}`);
   }
 
   function renderItem({ item }: { item: Client }) {
-    const subtitle = [item.industry, item.city].filter(Boolean).join(' · ')
-    const days = daysSince(item.last_visited_at)
-    const badgeColor = getLastVisitedColor(days)
-    const badgeLabel = getLastVisitedLabel(days)
+    const subtitle = [item.industry, item.city].filter(Boolean).join(' · ');
+    const days = daysSince(item.last_visited_at);
+    const badgeColor = getLastVisitedColor(days);
+    const badgeLabel = getLastVisitedLabel(days);
 
     // Get owner name for admin mode
-    const ownerName = isAdminMode ? ownerProfiles[item.owner_user_id]?.full_name : null
+    const ownerName = isAdminMode
+      ? ownerProfiles[item.owner_user_id]?.full_name
+      : null;
 
     return (
       <Pressable
@@ -192,15 +227,15 @@ function ClientsScreenContent() {
         accessibilityLabel={`Ver cliente ${item.name}`}
       >
         <View style={styles.rowContent}>
-          <Text style={styles.rowTitle} numberOfLines={1}>{item.name}</Text>
+          <Text style={styles.rowTitle} numberOfLines={1}>
+            {item.name}
+          </Text>
           {subtitle ? (
-            <Text style={styles.rowSubtitle} numberOfLines={1}>{subtitle}</Text>
-          ) : null}
-          {ownerName && (
-            <Text style={styles.ownerLabel} numberOfLines={1}>
-              por: {ownerName}
+            <Text style={styles.rowSubtitle} numberOfLines={1}>
+              {subtitle}
             </Text>
-          )}
+          ) : null}
+
           <View style={styles.badgeRow}>
             <MaterialCommunityIcons
               name="calendar-clock"
@@ -210,26 +245,39 @@ function ClientsScreenContent() {
             <Text style={[styles.badgeText, { color: badgeColor }]}>
               {badgeLabel}
             </Text>
+            {ownerName && (
+              <Text style={styles.ownerLabel} numberOfLines={1}>
+                {ownerName}
+              </Text>
+            )}
           </View>
         </View>
-        <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+        <Ionicons
+          name="chevron-forward"
+          size={20}
+          color={colors.textSecondary}
+        />
       </Pressable>
-    )
+    );
   }
 
   function renderInactiveItem({ item }: { item: Client }) {
-    const subtitle = [item.industry, item.city].filter(Boolean).join(' · ')
+    const subtitle = [item.industry, item.city].filter(Boolean).join(' · ');
     return (
       <View style={styles.inactiveRow}>
         <View style={styles.rowContent}>
           <View style={styles.inactiveRowHeader}>
-            <Text style={styles.inactiveRowTitle} numberOfLines={1}>{item.name}</Text>
+            <Text style={styles.inactiveRowTitle} numberOfLines={1}>
+              {item.name}
+            </Text>
             <View style={styles.inactiveBadge}>
               <Text style={styles.inactiveBadgeText}>Inactivo</Text>
             </View>
           </View>
           {subtitle ? (
-            <Text style={styles.rowSubtitle} numberOfLines={1}>{subtitle}</Text>
+            <Text style={styles.rowSubtitle} numberOfLines={1}>
+              {subtitle}
+            </Text>
           ) : null}
         </View>
         <Pressable
@@ -245,7 +293,7 @@ function ClientsScreenContent() {
           <Text style={styles.restoreButtonText}>Restaurar</Text>
         </Pressable>
       </View>
-    )
+    );
   }
 
   function renderEmpty() {
@@ -254,27 +302,26 @@ function ClientsScreenContent() {
         <View style={styles.emptyContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      )
+      );
     }
     if (error) {
       return (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyTextError}>{error}</Text>
         </View>
-      )
+      );
     }
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>No hay clientes</Text>
       </View>
-    )
+    );
   }
 
   // ── Root render ──────────────────────────────────────────────────────────
 
   return (
     <View style={styles.container}>
-
       {/* ── Tour steps 4 (search bar) + 5 (filter button) ── */}
       <View style={styles.searchWrapper}>
         <View style={styles.searchBarZone}>
@@ -286,7 +333,12 @@ function ClientsScreenContent() {
             wrapperStyle={{ flex: 1 }}
           >
             <View style={styles.searchBar}>
-              <Ionicons name="search" size={18} color={colors.textSecondary} style={styles.searchIcon} />
+              <Ionicons
+                name="search"
+                size={18}
+                color={colors.textSecondary}
+                style={styles.searchIcon}
+              />
               <TextInput
                 style={styles.searchInput}
                 value={searchQuery}
@@ -309,7 +361,11 @@ function ClientsScreenContent() {
           accessibilityRole="button"
           accessibilityLabel="Ordenar clientes"
         >
-          <MaterialCommunityIcons name="sort" size={20} color={colors.textSecondary} />
+          <MaterialCommunityIcons
+            name="sort"
+            size={20}
+            color={colors.textSecondary}
+          />
         </Pressable>
 
         <TourStep
@@ -318,7 +374,10 @@ function ClientsScreenContent() {
           routePath="/(tabs)/clients"
         >
           <Pressable
-            style={[styles.filterButton, activeFilterCount > 0 && styles.filterButtonActive]}
+            style={[
+              styles.filterButton,
+              activeFilterCount > 0 && styles.filterButtonActive,
+            ]}
             onPress={openFilter}
             accessibilityRole="button"
             accessibilityLabel={`Filtros${activeFilterCount > 0 ? `, ${activeFilterCount} activos` : ''}`}
@@ -326,7 +385,11 @@ function ClientsScreenContent() {
             <MaterialCommunityIcons
               name="tune-variant"
               size={20}
-              color={activeFilterCount > 0 ? colors.textOnPrimary : colors.textSecondary}
+              color={
+                activeFilterCount > 0
+                  ? colors.textOnPrimary
+                  : colors.textSecondary
+              }
             />
             {activeFilterCount > 0 && (
               <View style={styles.filterBadge}>
@@ -338,7 +401,10 @@ function ClientsScreenContent() {
 
         {/* Inactivos toggle */}
         <Pressable
-          style={[styles.filterButton, showInactive && styles.filterButtonActive]}
+          style={[
+            styles.filterButton,
+            showInactive && styles.filterButtonActive,
+          ]}
           onPress={() => setShowInactive(!showInactive)}
           accessibilityRole="switch"
           accessibilityState={{ checked: showInactive }}
@@ -355,29 +421,51 @@ function ClientsScreenContent() {
       {/* Active filter chips summary */}
       {activeFilterCount > 0 && (
         <View style={styles.activeFiltersBar}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.activeFiltersScroll}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.activeFiltersScroll}
+          >
             {selectedRubros.map((r) => (
               <Pressable
                 key={r}
                 style={styles.activeChip}
-                onPress={() => setSelectedRubros(selectedRubros.filter((v) => v !== r))}
+                onPress={() =>
+                  setSelectedRubros(selectedRubros.filter((v) => v !== r))
+                }
                 accessibilityLabel={`Quitar filtro ${r}`}
                 hitSlop={{ top: 10, bottom: 10, left: 0, right: 0 }}
               >
-                <Text style={styles.activeChipText} numberOfLines={1}>{r}</Text>
-                <MaterialCommunityIcons name="close" size={14} color={colors.primary} />
+                <Text style={styles.activeChipText} numberOfLines={1}>
+                  {r}
+                </Text>
+                <MaterialCommunityIcons
+                  name="close"
+                  size={14}
+                  color={colors.primary}
+                />
               </Pressable>
             ))}
             {selectedLocalidades.map((l) => (
               <Pressable
                 key={l}
                 style={styles.activeChip}
-                onPress={() => setSelectedLocalidades(selectedLocalidades.filter((v) => v !== l))}
+                onPress={() =>
+                  setSelectedLocalidades(
+                    selectedLocalidades.filter((v) => v !== l),
+                  )
+                }
                 accessibilityLabel={`Quitar filtro ${l}`}
                 hitSlop={{ top: 10, bottom: 10, left: 0, right: 0 }}
               >
-                <Text style={styles.activeChipText} numberOfLines={1}>{l}</Text>
-                <MaterialCommunityIcons name="close" size={14} color={colors.primary} />
+                <Text style={styles.activeChipText} numberOfLines={1}>
+                  {l}
+                </Text>
+                <MaterialCommunityIcons
+                  name="close"
+                  size={14}
+                  color={colors.primary}
+                />
               </Pressable>
             ))}
             {selectedStaleDays && (
@@ -390,7 +478,11 @@ function ClientsScreenContent() {
                 <Text style={styles.activeChipText} numberOfLines={1}>
                   Sin visita {selectedStaleDays}d
                 </Text>
-                <MaterialCommunityIcons name="close" size={14} color={colors.primary} />
+                <MaterialCommunityIcons
+                  name="close"
+                  size={14}
+                  color={colors.primary}
+                />
               </Pressable>
             )}
             {selectedVisitType && (
@@ -401,17 +493,48 @@ function ClientsScreenContent() {
                 hitSlop={{ top: 10, bottom: 10, left: 0, right: 0 }}
               >
                 <Text style={styles.activeChipText} numberOfLines={1}>
-                  {VISIT_TYPE_OPTIONS.find((o) => o.value === selectedVisitType)?.label}
+                  {
+                    VISIT_TYPE_OPTIONS.find(
+                      (o) => o.value === selectedVisitType,
+                    )?.label
+                  }
                 </Text>
-                <MaterialCommunityIcons name="close" size={14} color={colors.primary} />
+                <MaterialCommunityIcons
+                  name="close"
+                  size={14}
+                  color={colors.primary}
+                />
               </Pressable>
             )}
+            {selectedVendedores.map((id) => (
+              <Pressable
+                key={id}
+                style={styles.activeChip}
+                onPress={() =>
+                  setSelectedVendedores(
+                    selectedVendedores.filter((v) => v !== id),
+                  )
+                }
+                accessibilityLabel={`Quitar filtro vendedor ${ownerProfiles[id]?.full_name ?? id}`}
+                hitSlop={{ top: 10, bottom: 10, left: 0, right: 0 }}
+              >
+                <Text style={styles.activeChipText} numberOfLines={1}>
+                  {ownerProfiles[id]?.full_name ?? id}
+                </Text>
+                <MaterialCommunityIcons
+                  name="close"
+                  size={14}
+                  color={colors.primary}
+                />
+              </Pressable>
+            ))}
             <Pressable
               onPress={() => {
-                setSelectedRubros([])
-                setSelectedLocalidades([])
-                setSelectedStaleDays(null)
-                setSelectedVisitType(null)
+                setSelectedRubros([]);
+                setSelectedLocalidades([]);
+                setSelectedStaleDays(null);
+                setSelectedVisitType(null);
+                setSelectedVendedores([]);
               }}
               accessibilityLabel="Limpiar todos los filtros"
             >
@@ -422,7 +545,8 @@ function ClientsScreenContent() {
       )}
 
       {/* List */}
-      {loading && (showInactive ? inactiveClients.length === 0 : clients.length === 0) ? (
+      {loading &&
+      (showInactive ? inactiveClients.length === 0 : clients.length === 0) ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -437,7 +561,9 @@ function ClientsScreenContent() {
               <Text style={styles.emptyText}>No hay clientes inactivos</Text>
             </View>
           )}
-          contentContainerStyle={inactiveClients.length === 0 ? styles.listEmptyContent : undefined}
+          contentContainerStyle={
+            inactiveClients.length === 0 ? styles.listEmptyContent : undefined
+          }
         />
       ) : (
         <FlatList
@@ -446,7 +572,9 @@ function ClientsScreenContent() {
           renderItem={renderItem}
           ItemSeparatorComponent={() => <View style={styles.divider} />}
           ListEmptyComponent={renderEmpty}
-          contentContainerStyle={clients.length === 0 ? styles.listEmptyContent : undefined}
+          contentContainerStyle={
+            clients.length === 0 ? styles.listEmptyContent : undefined
+          }
         />
       )}
 
@@ -480,7 +608,10 @@ function ClientsScreenContent() {
         transparent
         onRequestClose={() => setSortVisible(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setSortVisible(false)} />
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setSortVisible(false)}
+        />
         <View style={styles.modalSheet}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Ordenar por</Text>
@@ -489,15 +620,22 @@ function ClientsScreenContent() {
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityLabel="Cerrar orden"
             >
-              <MaterialCommunityIcons name="close" size={22} color={colors.textSecondary} />
+              <MaterialCommunityIcons
+                name="close"
+                size={22}
+                color={colors.textSecondary}
+              />
             </Pressable>
           </View>
           {SORT_OPTIONS.map(({ key, label, icon }) => {
-            const selected = sortOrder === key
+            const selected = sortOrder === key;
             return (
               <Pressable
                 key={key}
-                style={({ pressed }) => [styles.checkRow, pressed && styles.checkRowPressed]}
+                style={({ pressed }) => [
+                  styles.checkRow,
+                  pressed && styles.checkRowPressed,
+                ]}
                 onPress={() => handleSortSelect(key)}
                 accessibilityRole="radio"
                 accessibilityState={{ selected }}
@@ -508,14 +646,23 @@ function ClientsScreenContent() {
                   size={20}
                   color={selected ? colors.primary : colors.textSecondary}
                 />
-                <Text style={[styles.checkLabel, selected && styles.checkLabelSelected]}>
+                <Text
+                  style={[
+                    styles.checkLabel,
+                    selected && styles.checkLabelSelected,
+                  ]}
+                >
                   {label}
                 </Text>
                 {selected && (
-                  <MaterialCommunityIcons name="check" size={18} color={colors.primary} />
+                  <MaterialCommunityIcons
+                    name="check"
+                    size={18}
+                    color={colors.primary}
+                  />
                 )}
               </Pressable>
-            )
+            );
           })}
         </View>
       </Modal>
@@ -527,7 +674,10 @@ function ClientsScreenContent() {
         transparent
         onRequestClose={() => setFilterVisible(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setFilterVisible(false)} />
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setFilterVisible(false)}
+        />
 
         <View style={styles.modalSheet}>
           {/* Header */}
@@ -538,12 +688,18 @@ function ClientsScreenContent() {
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityLabel="Cerrar filtros"
             >
-              <MaterialCommunityIcons name="close" size={22} color={colors.textSecondary} />
+              <MaterialCommunityIcons
+                name="close"
+                size={22}
+                color={colors.textSecondary}
+              />
             </Pressable>
           </View>
 
-          <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-
+          <ScrollView
+            style={styles.modalScroll}
+            showsVerticalScrollIndicator={false}
+          >
             {/* Rubro section */}
             {rubros.length > 0 && (
               <View style={styles.filterSection}>
@@ -586,22 +742,38 @@ function ClientsScreenContent() {
                 { label: '60 días', value: 60 },
                 { label: '90 días', value: 90 },
               ].map(({ label, value }) => {
-                const checked = draftStaleDays === value
+                const checked = draftStaleDays === value;
                 return (
                   <Pressable
                     key={value}
-                    style={({ pressed }) => [styles.checkRow, pressed && styles.checkRowPressed]}
+                    style={({ pressed }) => [
+                      styles.checkRow,
+                      pressed && styles.checkRowPressed,
+                    ]}
                     onPress={() => setDraftStaleDays(checked ? null : value)}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: checked }}
                     accessibilityLabel={label}
                   >
-                    <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-                      {checked && <MaterialCommunityIcons name="check" size={14} color={colors.textOnPrimary} />}
+                    <View
+                      style={[
+                        styles.checkbox,
+                        checked && styles.checkboxChecked,
+                      ]}
+                    >
+                      {checked && (
+                        <MaterialCommunityIcons
+                          name="check"
+                          size={14}
+                          color={colors.textOnPrimary}
+                        />
+                      )}
                     </View>
-                    <Text style={styles.checkLabel} numberOfLines={1}>{label}</Text>
+                    <Text style={styles.checkLabel} numberOfLines={1}>
+                      {label}
+                    </Text>
                   </Pressable>
-                )
+                );
               })}
             </View>
 
@@ -609,25 +781,85 @@ function ClientsScreenContent() {
             <View style={styles.filterSection}>
               <Text style={styles.filterSectionTitle}>TIPO DE GESTIÓN</Text>
               {VISIT_TYPE_OPTIONS.map(({ value, label }) => {
-                const checked = draftVisitType === value
+                const checked = draftVisitType === value;
                 return (
                   <Pressable
                     key={value}
-                    style={({ pressed }) => [styles.checkRow, pressed && styles.checkRowPressed]}
+                    style={({ pressed }) => [
+                      styles.checkRow,
+                      pressed && styles.checkRowPressed,
+                    ]}
                     onPress={() => setDraftVisitType(checked ? null : value)}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: checked }}
                     accessibilityLabel={label}
                   >
-                    <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-                      {checked && <MaterialCommunityIcons name="check" size={14} color={colors.textOnPrimary} />}
+                    <View
+                      style={[
+                        styles.checkbox,
+                        checked && styles.checkboxChecked,
+                      ]}
+                    >
+                      {checked && (
+                        <MaterialCommunityIcons
+                          name="check"
+                          size={14}
+                          color={colors.textOnPrimary}
+                        />
+                      )}
                     </View>
-                    <Text style={styles.checkLabel} numberOfLines={1}>{label}</Text>
+                    <Text style={styles.checkLabel} numberOfLines={1}>
+                      {label}
+                    </Text>
                   </Pressable>
-                )
+                );
               })}
             </View>
 
+            {/* Vendedor section — admin/root only */}
+            {isAdminMode && Object.keys(ownerProfiles).length > 0 && (
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>VENDEDOR</Text>
+                {Object.entries(ownerProfiles)
+                  .filter(([, p]) => p !== null)
+                  .map(([id, p]) => {
+                    const checked = draftVendedores.includes(id);
+                    return (
+                      <Pressable
+                        key={id}
+                        style={({ pressed }) => [
+                          styles.checkRow,
+                          pressed && styles.checkRowPressed,
+                        ]}
+                        onPress={() =>
+                          toggleDraft(draftVendedores, id, setDraftVendedores)
+                        }
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked }}
+                        accessibilityLabel={p!.full_name ?? id}
+                      >
+                        <View
+                          style={[
+                            styles.checkbox,
+                            checked && styles.checkboxChecked,
+                          ]}
+                        >
+                          {checked && (
+                            <MaterialCommunityIcons
+                              name="check"
+                              size={14}
+                              color={colors.textOnPrimary}
+                            />
+                          )}
+                        </View>
+                        <Text style={styles.checkLabel} numberOfLines={1}>
+                          {p!.full_name ?? '—'}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+              </View>
+            )}
           </ScrollView>
 
           {/* Footer actions */}
@@ -648,8 +880,13 @@ function ClientsScreenContent() {
             >
               <Text style={styles.applyButtonText}>
                 {(() => {
-                  const count = draftRubros.length + draftLocalidades.length + (draftStaleDays ? 1 : 0) + (draftVisitType ? 1 : 0)
-                  return count > 0 ? `Aplicar (${count})` : 'Aplicar'
+                  const count =
+                    draftRubros.length +
+                    draftLocalidades.length +
+                    (draftStaleDays ? 1 : 0) +
+                    (draftVisitType ? 1 : 0) +
+                    draftVendedores.length;
+                  return count > 0 ? `Aplicar (${count})` : 'Aplicar';
                 })()}
               </Text>
             </Pressable>
@@ -657,10 +894,10 @@ function ClientsScreenContent() {
         </View>
       </Modal>
     </View>
-  )
+  );
 }
 
-export default ClientsScreenContent
+export default ClientsScreenContent;
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -810,7 +1047,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     fontWeight: fontWeight.regular as '400',
     color: colors.textDisabled,
-    marginTop: spacing[1],
+    marginLeft: spacing[1],
   },
   badgeRow: {
     flexDirection: 'row',
@@ -1049,4 +1286,4 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold as '600',
     color: colors.primary,
   },
-})
+});

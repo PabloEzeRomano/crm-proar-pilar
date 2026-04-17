@@ -697,6 +697,16 @@
 
 ---
 
+## EP-055 — Clients List: Admin All-Clients, Owner Profiles, Vendedor Filter
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 55.1 | `clientsStore`: add `allClients`, `allClientsLoading`, `ownerProfiles` state + `fetchAllClientsForAdmin()` action — fetches all company clients (no owner filter) then resolves `profiles(id, full_name)` for each unique owner | state | `done` |
+| 55.2 | `useClients`: admin/root reads from `allClients`; add `ownerFilter?: string[]` param; route `fetchClients()` to `fetchAllClientsForAdmin()` for admin/root; remove direct Supabase call for ownerProfiles (now from store) | state | `done` |
+| 55.3 | `clients/index.tsx`: add VENDEDOR multiselect section to filter modal (admin/root only, populated from `ownerProfiles`); draft/apply pattern; active chips + "Limpiar todo"; `activeFilterCount` includes vendedores | frontend | `done` |
+
+---
+
 ## Pending
 
 > All stories across all EPs that are not yet `done`.
