@@ -164,6 +164,16 @@ export default function TabsLayout() {
         }}
       />
 
+      {/* Products — navigated to from Settings; hidden from tab bar */}
+      <Tabs.Screen
+        name="products"
+        options={{
+          title: 'Productos',
+          href: null, // hide from tab bar; navigated to from Settings
+          headerShown: false, // nested Stack owns the header
+        }}
+      />
+
       {/* Settings is accessible from the Today header; hide its tab entry */}
       <Tabs.Screen
         name="settings"

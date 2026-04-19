@@ -717,6 +717,33 @@
 
 ---
 
+## EP-057 — Products & Presentations Data Layer + Admin CRUD
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 57.1 | Migrations `0027_products.sql` (products, product_presentations, client_products tables + RLS) + `0028_visits_amount_usd.sql` (add `items JSONB` column to visits) | backend | `done` |
+| 57.2 | Types: `ProductType`, `Product`, `ProductPresentation`, `ClientProduct`, `QuoteItem`; add `items?: QuoteItem[] \| null` to `Visit`; validators: `quoteItemSchema`, `createProductSchema`, `createPresentationSchema`, `updateProductSchema`, `updatePresentationSchema` in `validators/product.ts`; add `items` to create/update visit schemas | state | `done` |
+| 57.3 | `productsStore`: `fetchProducts` (joins presentations), CRUD for products + presentations, `fetchClientProducts`/`addClientProduct`/`removeClientProduct`; persist products to AsyncStorage | state | `done` |
+| 57.4 | Products screens: `products/_layout.tsx` (Stack), `products/index.tsx` (list + search + type tabs + FAB), `products/[id].tsx` (detail + edit + presentation CRUD), `products/new.tsx` (create form); register as hidden tab in `_layout.tsx`; "Gestión de productos" row in settings (admin/root) | frontend | `done` |
+| 57.5 | Bootstrap `fetchProducts()` in `app/_layout.tsx` `Promise.all` block | state | `done` |
+| 57.6 | Visit form: product line items section for quote/sale; `QuoteItemRow` component; product picker modal (search + type filter + expandable presentations); auto-computed amount; pre-populate from client habitual products; remove manual amount input | frontend + state | `done` |
+| 57.7 | visitsStore: verify `items` and `amount` pass through `createVisit`/`updateVisit` automatically; `getMonthlySalesTotal` uses `v.amount` (USD, no conversion) | state | `done` |
+| 57.8 | `syncClientProducts` in productsStore; called after successful quote save in form.tsx | state + frontend | `done` |
+| 57.9 | Visit detail: `QuoteItem` table for quote/sale; amount label changed from ARS to USD; en-US locale formatting throughout | frontend | `done` |
+| 57.10 | Edge Function `send-quote`: authenticate caller, fetch visit+client, validate quote ownership, generate HTML items table, send via Resend with `--no-verify-jwt` | backend | `done` |
+| 57.11 | `authStore.sendQuote` action: invokes `send-quote` Edge Function, returns `{ error }` | state | `done` |
+| 57.12 | Visit form: "Destinatario del mail" field (quote only) pre-populated from client contact email; `sendQuote` called after `createVisit` (non-blocking); "Reenviar cotización" button in edit mode | frontend | `done` |
+| 57.13 | Global USD: replaced all `toLocaleString('es-AR')` amount displays with `en-US` + USD label across VisitRow, team/index, form, weekly-email, products/[id] | frontend | `done` |
+
+**Decisions:**
+- Products are company-wide (no `owner_user_id`) — all authenticated users can read, only admin/root can write.
+- `client_products` RLS mirrors clients RLS (owner or admin).
+- `QuoteItem` stores price/name snapshots to preserve historical quote accuracy.
+- Migration 0026 was already taken by `0026_visits_amount_quote_link.sql` → used 0027/0028.
+- Products screen hidden from tab bar; accessed via Settings → "Gestión de productos".
+
+---
+
 ## Pending
 
 > All stories across all EPs that are not yet `done`.
@@ -763,3 +790,4 @@
 | 2026-04-09 | Invite flow uses static HTML intermediate page + separate Expo `/auth/callback` screen (EP-048b) | Supabase's default invite confirmation page logs users in with no password. Static HTML page (served outside the Expo app) exchanges `token_hash` for a session, prompts password setup, then redirects using URL fragment tokens. Native and web take different URL schemes but share the same session-transfer mechanism (`access_token` + `refresh_token` in fragment). `isInviteSetup` flag in authStore prevents auth guard from interfering while session is established. |
 | 2026-04-13 | Quote/sale status uses existing VisitStatus values remapped via `getStatusLabel(status, type)` helper — no DB changes (EP-050) | `canceled` = red across all types for semantic consistency. Helper lives in `lib/visitStatus.ts`; `StatusBadge` gains optional `type` prop with `'visit'` fallback so all existing callers remain valid. |
 | 2026-04-16 | Stats modal shows all-users aggregate for admin by default. `useVisitStats` userId param: `null`=all users (allVisits), `string`=specific user (filtered allVisits), `undefined`=own data (visits). Admin default is `null`; selecting a user pill passes their id; regular users receive `undefined` so behavior is unchanged. | EP-052 story 52.6. Keeps regular-user path identical — no regression risk. Admin sees team-wide stats on open without an extra tap. |
+| 2026-04-18 | All amounts in USD. Quote email sent via `send-quote` Edge Function using Resend. Recipient pre-populated from client contact email. Email send is non-blocking — quote saves regardless of email status. | EP-057 stories 57.10–57.13. `es-AR` locale retained for date/time display only; amount formatting uses `en-US` (dot decimal, comma thousands) + USD label globally. |

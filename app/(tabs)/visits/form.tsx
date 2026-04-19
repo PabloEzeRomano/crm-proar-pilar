@@ -14,12 +14,15 @@
  *   - Header: Cancel (left) + Guardar (right, disabled when invalid)
  */
 
-import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
+  Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -32,8 +35,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import AppDatePicker from '@/components/ui/AppDatePicker'
 import { StatusTypeBadge } from '@/components/ui/StatusTypeBadge'
+import QuoteItemRow from '@/components/visits/QuoteItemRow'
 import { useVisitsStore } from '@/stores/visitsStore'
 import { useClientsStore } from '@/stores/clientsStore'
+import { useProductsStore } from '@/stores/productsStore'
+import { useAuthStore } from '@/stores/authStore'
 import {
   borderRadius,
   colors,
@@ -41,7 +47,7 @@ import {
   fontWeight,
   spacing,
 } from '@/constants/theme'
-import { Client, VisitStatus, VisitType } from '@/types'
+import { Client, Product, ProductPresentation, QuoteItem, VisitStatus, VisitType } from '@/types'
 import dayjs from '@/lib/dayjs'
 import { getStatusLabel } from '@/lib/visitStatus'
 
@@ -66,6 +72,14 @@ const GAP_OPTIONS = [
   { label: '1 hora', value: 60 },
   { label: '1 h 30', value: 90 },
   { label: '2 horas', value: 120 },
+]
+
+type ProductFilterType = 'all' | 'formulated' | 'commodity'
+
+const PRODUCT_FILTER_OPTIONS: { value: ProductFilterType; label: string }[] = [
+  { value: 'all', label: 'Todos' },
+  { value: 'formulated', label: 'Formulados' },
+  { value: 'commodity', label: 'Commodities' },
 ]
 
 // ---------------------------------------------------------------------------
@@ -130,11 +144,26 @@ export default function VisitFormScreen() {
   const [status, setStatus] = useState<VisitStatus>('pending')
   const [visitType, setVisitType] = useState<VisitType>('visit')
   const [gapMinutes, setGapMinutes] = useState<number>(DEFAULT_GAP)
-  const [amount, setAmount] = useState<string>('')
   const [quoteId, setQuoteId] = useState<string | null>(null)
   const clientQuotes = useVisitsStore((s) => s.clientQuotes)
   const fetchQuotesByClient = useVisitsStore((s) => s.fetchQuotesByClient)
   const clearClientQuotes = useVisitsStore((s) => s.clearClientQuotes)
+
+  // Product line items (quote/sale only)
+  const [items, setItems] = useState<QuoteItem[]>([])
+  const [showProductPicker, setShowProductPicker] = useState(false)
+  const [productSearch, setProductSearch] = useState('')
+  const [productTypeFilter, setProductTypeFilter] = useState<ProductFilterType>('all')
+  const [expandedProductIds, setExpandedProductIds] = useState<Set<string>>(new Set())
+  const products = useProductsStore((s) => s.products)
+  const fetchClientProducts = useProductsStore((s) => s.fetchClientProducts)
+  const syncClientProducts = useProductsStore((s) => s.syncClientProducts)
+
+  const sendQuote = useAuthStore((s) => s.sendQuote)
+
+  // Recipient email for quote send
+  const [recipientEmail, setRecipientEmail] = useState('')
+  const [sendingQuote, setSendingQuote] = useState(false)
 
   // Date/time picker visibility (Android needs explicit show/hide)
   const [showDatePicker, setShowDatePicker] = useState(false)
@@ -181,14 +210,22 @@ export default function VisitFormScreen() {
       setNotes(existingVisit.notes ?? '')
       setStatus(existingVisit.status)
       setVisitType(existingVisit.type ?? 'visit')
-      setAmount(existingVisit.amount != null ? String(existingVisit.amount) : '')
+      setItems(existingVisit.items ?? [])
       setQuoteId(existingVisit.quote_id ?? null)
 
       const visitClient = clients.find((c) => c.id === existingVisit.client_id)
-      if (visitClient) setSelectedClient(visitClient)
+      if (visitClient) {
+        setSelectedClient(visitClient)
+        const firstEmail = visitClient.contacts?.find((c) => c.email)?.email ?? ''
+        setRecipientEmail(firstEmail)
+      }
     } else if (paramClientId) {
       const preFilledClient = clients.find((c) => c.id === paramClientId)
-      if (preFilledClient) setSelectedClient(preFilledClient)
+      if (preFilledClient) {
+        setSelectedClient(preFilledClient)
+        const firstEmail = preFilledClient.contacts?.find((c) => c.email)?.email ?? ''
+        setRecipientEmail(firstEmail)
+      }
     }
   }, [isEditMode, existingVisit?.id, paramClientId, clients])
 
@@ -199,6 +236,43 @@ export default function VisitFormScreen() {
       clearClientQuotes()
     }
     return () => clearClientQuotes()
+  }, [visitType, selectedClient?.id])
+
+  // Pre-populate items from client habitual products (quote, create mode only)
+  useEffect(() => {
+    if (visitType === 'quote' && selectedClient && !isEditMode) {
+      fetchClientProducts(selectedClient.id).then(() => {
+        const clientProds = useProductsStore.getState().clientProducts
+        const allProducts = useProductsStore.getState().products
+        const prePopulated: QuoteItem[] = []
+
+        for (const cp of clientProds) {
+          const product = allProducts.find((p) => p.id === cp.product_id)
+          if (!product) continue
+          const presentation = product.presentations.find((p) => p.id === cp.product_presentation_id)
+          if (!presentation) continue
+
+          prePopulated.push({
+            product_id: product.id,
+            product_name: product.name,
+            product_code: product.code,
+            presentation_id: presentation.id,
+            presentation_label: presentation.label,
+            unit: presentation.unit,
+            quantity: 1,
+            unit_price_usd: presentation.price_usd,
+            margin_pct: 0,
+            total_usd: presentation.price_usd,
+          })
+        }
+
+        if (prePopulated.length > 0) {
+          setItems(prePopulated)
+        }
+      })
+    } else if (visitType !== 'quote' && visitType !== 'sale') {
+      setItems([])
+    }
   }, [visitType, selectedClient?.id])
 
   // -------------------------------------------------------------------------
@@ -251,12 +325,63 @@ export default function VisitFormScreen() {
   // Handlers
   // -------------------------------------------------------------------------
 
+  function computeTotal(quoteItems: QuoteItem[]): number {
+    return quoteItems.reduce((sum, item) => sum + item.total_usd, 0)
+  }
+
+  function updateItem(index: number, changes: Partial<QuoteItem>) {
+    setItems((prev) =>
+      prev.map((item, i) => {
+        if (i !== index) return item
+        const updated = { ...item, ...changes }
+        updated.total_usd = updated.quantity * updated.unit_price_usd * (1 + updated.margin_pct / 100)
+        return updated
+      }),
+    )
+  }
+
+  function removeItem(index: number) {
+    setItems((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  function toggleProductExpanded(id: string) {
+    setExpandedProductIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function addItemFromPresentation(product: Product, presentation: ProductPresentation) {
+    setItems((prev) => [
+      ...prev,
+      {
+        product_id: product.id,
+        product_name: product.name,
+        product_code: product.code,
+        presentation_id: presentation.id,
+        presentation_label: presentation.label,
+        unit: presentation.unit,
+        quantity: 1,
+        unit_price_usd: presentation.price_usd,
+        margin_pct: 0,
+        total_usd: presentation.price_usd,
+      },
+    ])
+    setShowProductPicker(false)
+    setProductSearch('')
+    setExpandedProductIds(new Set())
+  }
+
   async function handleSave() {
     if (!isValid || saving) return
 
     setSaving(true)
     const isoString = combineDateAndTime(selectedDate, selectedTime)
-    const parsedAmount = amount ? Number(amount) : null
+    const isQuoteOrSale = visitType === 'quote' || visitType === 'sale'
+    const computedAmount = isQuoteOrSale && items.length > 0 ? computeTotal(items) : null
+    const itemsPayload = isQuoteOrSale && items.length > 0 ? items : null
 
     if (isEditMode && visitId) {
       await updateVisit(visitId, {
@@ -264,23 +389,39 @@ export default function VisitFormScreen() {
         notes: notes || undefined,
         status,
         type: visitType,
-        amount: parsedAmount,
+        amount: computedAmount,
         quote_id: quoteId,
+        items: itemsPayload,
       })
     } else {
       if (!selectedClient) {
         setSaving(false)
         return
       }
-      await createVisit({
+      const newVisit = await createVisit({
         client_id: selectedClient.id,
         scheduled_at: isoString,
         notes: notes || undefined,
         status,
         type: visitType,
-        amount: parsedAmount,
+        amount: computedAmount,
         quote_id: quoteId,
+        items: itemsPayload,
       })
+
+      // Sync client products after successful quote save
+      if (newVisit && visitType === 'quote' && items.length > 0) {
+        await syncClientProducts(selectedClient.id, items)
+      }
+
+      // Send quote email (non-blocking — don't prevent navigation on failure)
+      if (newVisit && visitType === 'quote' && recipientEmail.trim()) {
+        const recipientName = selectedClient.contacts?.find((c) => c.email === recipientEmail.trim())?.name
+        const { error: emailErr } = await sendQuote(newVisit.id, recipientEmail.trim(), recipientName)
+        if (emailErr) {
+          Alert.alert('Email no enviado', `La cotización se guardó pero el email falló: ${emailErr}`)
+        }
+      }
     }
 
     setSaving(false)
@@ -332,11 +473,24 @@ export default function VisitFormScreen() {
     setSelectedClient(client)
     setShowClientPicker(false)
     setClientSearch('')
+    const firstEmail = client.contacts?.find((c) => c.email)?.email ?? ''
+    if (firstEmail) setRecipientEmail(firstEmail)
   }
 
   // -------------------------------------------------------------------------
   // Filtered clients for picker
   // -------------------------------------------------------------------------
+
+  const pickerProducts = useMemo(() => {
+    return products
+      .filter((p) => productTypeFilter === 'all' || p.type === productTypeFilter)
+      .filter(
+        (p) =>
+          !productSearch ||
+          p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+          (p.code && p.code.toLowerCase().includes(productSearch.toLowerCase())),
+      )
+  }, [products, productTypeFilter, productSearch])
 
   const filteredClients = clientSearch.trim()
     ? clients.filter((c) =>
@@ -362,6 +516,7 @@ export default function VisitFormScreen() {
   // -------------------------------------------------------------------------
 
   return (
+    <>
     <KeyboardAwareScrollView
       style={styles.scroll}
       contentContainerStyle={styles.scrollContent}
@@ -534,20 +689,95 @@ export default function VisitFormScreen() {
         </View>
       </View>
 
-      {/* ── Monto ───────────────────────────────────────────────────────── */}
+      {/* ── Productos ───────────────────────────────────────────────────── */}
       {(visitType === 'quote' || visitType === 'sale') && (
         <View style={styles.fieldGroup}>
-          <FieldLabel label="Monto (ARS, opcional)" />
+          <FieldLabel label="Productos" />
+
+          {items.map((item, index) => (
+            <QuoteItemRow
+              key={`${item.presentation_id}-${index}`}
+              item={item}
+              onChangeQuantity={(qty) => updateItem(index, { quantity: qty })}
+              onChangeMargin={(pct) => updateItem(index, { margin_pct: pct })}
+              onRemove={() => removeItem(index)}
+            />
+          ))}
+
+          <Pressable
+            style={styles.addProductButton}
+            onPress={() => {
+              setProductSearch('')
+              setProductTypeFilter('all')
+              setExpandedProductIds(new Set())
+              setShowProductPicker(true)
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Agregar producto"
+          >
+            <MaterialCommunityIcons name="plus" size={18} color={colors.primary} />
+            <Text style={styles.addProductButtonText}>Agregar producto</Text>
+          </Pressable>
+
+          {items.length > 0 && (
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Total</Text>
+              <Text style={styles.totalAmount}>
+                ${computeTotal(items).toLocaleString('en-US', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })} USD
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* ── Destinatario del mail (quote only) ──────────────────────────── */}
+      {visitType === 'quote' && (
+        <View style={styles.fieldGroup}>
+          <FieldLabel label="Destinatario del mail" />
           <TextInput
-            style={styles.fieldDisplay}
-            value={amount}
-            onChangeText={(text) => setAmount(text.replace(/[^0-9]/g, ''))}
-            keyboardType="numeric"
-            placeholder="Ej: 150000"
+            style={styles.notesInput}
+            value={recipientEmail}
+            onChangeText={setRecipientEmail}
+            placeholder="email@empresa.com"
             placeholderTextColor={colors.textDisabled}
-            editable={!saving}
-            accessibilityLabel="Monto en pesos"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            accessibilityLabel="Email del destinatario de la cotización"
           />
+          {isEditMode && visitId && (
+            <Pressable
+              style={({ pressed }) => [
+                styles.resendButton,
+                pressed && styles.resendButtonPressed,
+                sendingQuote && styles.resendButtonDisabled,
+              ]}
+              disabled={sendingQuote || !recipientEmail.trim()}
+              onPress={async () => {
+                if (!recipientEmail.trim()) return
+                setSendingQuote(true)
+                const recipientName = selectedClient?.contacts?.find((c) => c.email === recipientEmail.trim())?.name
+                const { error: emailErr } = await sendQuote(visitId, recipientEmail.trim(), recipientName)
+                setSendingQuote(false)
+                if (emailErr) {
+                  Alert.alert('Error', `No se pudo enviar el email: ${emailErr}`)
+                } else {
+                  Alert.alert('Enviado', 'Cotización enviada correctamente.')
+                }
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Reenviar cotización por email"
+            >
+              {sendingQuote ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Text style={styles.resendButtonText}>Reenviar cotización</Text>
+              )}
+            </Pressable>
+          )}
         </View>
       )}
 
@@ -573,7 +803,7 @@ export default function VisitFormScreen() {
                   </Text>
                   {q.amount != null && (
                     <Text style={styles.quoteOptionAmount}>
-                      ${q.amount.toLocaleString('es-AR')} ARS
+                      ${q.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
                     </Text>
                   )}
                   <StatusTypeBadge status={q.status} type="quote" />
@@ -770,6 +1000,145 @@ export default function VisitFormScreen() {
       </View>
 
     </KeyboardAwareScrollView>
+
+    {/* ── Product picker modal ─────────────────────────────────────────── */}
+    <Modal
+      visible={showProductPicker}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => setShowProductPicker(false)}
+    >
+      <View style={styles.pickerModal}>
+        {/* Header */}
+        <View style={styles.pickerHeader}>
+          <Text style={styles.pickerTitle}>Seleccionar producto</Text>
+          <Pressable
+            onPress={() => setShowProductPicker(false)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Cerrar"
+          >
+            <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
+          </Pressable>
+        </View>
+
+        {/* Search */}
+        <View style={styles.pickerSearch}>
+          <MaterialCommunityIcons name="magnify" size={18} color={colors.textSecondary} />
+          <TextInput
+            style={styles.pickerSearchInput}
+            value={productSearch}
+            onChangeText={setProductSearch}
+            placeholder="Buscar producto..."
+            placeholderTextColor={colors.textDisabled}
+            autoCorrect={false}
+            autoCapitalize="none"
+          />
+          {productSearch.length > 0 && (
+            <Pressable onPress={() => setProductSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <MaterialCommunityIcons name="close-circle" size={16} color={colors.textSecondary} />
+            </Pressable>
+          )}
+        </View>
+
+        {/* Type filter pills */}
+        <View style={styles.pickerFilters}>
+          {PRODUCT_FILTER_OPTIONS.map(({ value, label }) => {
+            const active = productTypeFilter === value
+            return (
+              <Pressable
+                key={value}
+                style={[styles.pickerFilterPill, active && styles.pickerFilterPillActive]}
+                onPress={() => setProductTypeFilter(value)}
+              >
+                <Text style={[styles.pickerFilterPillText, active && styles.pickerFilterPillTextActive]}>
+                  {label}
+                </Text>
+              </Pressable>
+            )
+          })}
+        </View>
+
+        {/* Product list */}
+        <ScrollView style={styles.pickerList} keyboardShouldPersistTaps="handled">
+          {pickerProducts.length === 0 ? (
+            <View style={styles.pickerEmpty}>
+              <Text style={styles.pickerEmptyText}>No hay productos</Text>
+            </View>
+          ) : (
+            pickerProducts.map((product) => {
+              const expanded = expandedProductIds.has(product.id)
+              return (
+                <View key={product.id}>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.pickerProductRow,
+                      pressed && styles.pickerProductRowPressed,
+                    ]}
+                    onPress={() => toggleProductExpanded(product.id)}
+                    accessibilityRole="button"
+                  >
+                    <View style={styles.pickerProductInfo}>
+                      <Text style={styles.pickerProductName} numberOfLines={1}>
+                        {product.code ? `[${product.code}] ` : ''}{product.name}
+                      </Text>
+                      <Text style={styles.pickerProductType}>
+                        {product.type === 'formulated' ? 'Formulado' : 'Commodity'}
+                        {' · '}{product.presentations.length} presentación{product.presentations.length !== 1 ? 'es' : ''}
+                      </Text>
+                    </View>
+                    <MaterialCommunityIcons
+                      name={expanded ? 'chevron-up' : 'chevron-down'}
+                      size={20}
+                      color={colors.textSecondary}
+                    />
+                  </Pressable>
+
+                  {expanded && product.presentations.map((pres) => {
+                    const alreadyAdded = items.some((i) => i.presentation_id === pres.id)
+                    return (
+                      <Pressable
+                        key={pres.id}
+                        style={[styles.pickerPresRow, alreadyAdded && styles.pickerPresRowDimmed]}
+                        onPress={() => {
+                          if (!alreadyAdded) addItemFromPresentation(product, pres)
+                        }}
+                        disabled={alreadyAdded}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Agregar ${pres.label}`}
+                        accessibilityState={{ disabled: alreadyAdded }}
+                      >
+                        <View style={styles.pickerPresInfo}>
+                          <Text style={[styles.pickerPresLabel, alreadyAdded && styles.pickerPresLabelDimmed]}>
+                            {pres.label}
+                          </Text>
+                          <Text style={styles.pickerPresUnit}>
+                            {pres.unit}{pres.quantity ? ` · ${pres.quantity}` : ''}
+                          </Text>
+                        </View>
+                        <View style={styles.pickerPresRight}>
+                          <Text style={[styles.pickerPresPrice, alreadyAdded && styles.pickerPresLabelDimmed]}>
+                            ${pres.price_usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                          </Text>
+                          {alreadyAdded ? (
+                            <MaterialCommunityIcons name="check" size={16} color={colors.textDisabled} />
+                          ) : (
+                            <MaterialCommunityIcons name="plus-circle-outline" size={16} color={colors.primary} />
+                          )}
+                        </View>
+                      </Pressable>
+                    )
+                  })}
+
+                  <View style={styles.pickerDivider} />
+                </View>
+              )
+            })
+          )}
+        </ScrollView>
+      </View>
+    </Modal>
+    </>
   )
 }
 
@@ -1037,6 +1406,208 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     color: colors.textPrimary,
     textAlignVertical: 'top',
+  },
+
+  // Product line items section
+  addProductButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    height: 48,
+    paddingHorizontal: spacing[3],
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderRadius: borderRadius.md,
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+  },
+  addProductButtonText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.primary,
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: spacing[2],
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  totalLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textSecondary,
+  },
+  totalAmount: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.bold as '700',
+    color: colors.textPrimary,
+  },
+
+  // Product picker modal
+  pickerModal: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  pickerTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textPrimary,
+  },
+  pickerSearch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    margin: spacing[3],
+    height: 48,
+    paddingHorizontal: spacing[3],
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+  },
+  pickerSearchInput: {
+    flex: 1,
+    fontSize: fontSize.base,
+    color: colors.textPrimary,
+    height: 48,
+  },
+  pickerFilters: {
+    flexDirection: 'row',
+    gap: spacing[2],
+    paddingHorizontal: spacing[3],
+    marginBottom: spacing[2],
+  },
+  pickerFilterPill: {
+    height: 36,
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  pickerFilterPillActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  pickerFilterPillText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textSecondary,
+  },
+  pickerFilterPillTextActive: {
+    color: colors.primary,
+  },
+  pickerList: {
+    flex: 1,
+  },
+  pickerEmpty: {
+    padding: spacing[8],
+    alignItems: 'center',
+  },
+  pickerEmptyText: {
+    fontSize: fontSize.base,
+    color: colors.textSecondary,
+  },
+  pickerProductRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    minHeight: 56,
+    backgroundColor: colors.surface,
+  },
+  pickerProductRowPressed: {
+    backgroundColor: colors.background,
+  },
+  pickerProductInfo: {
+    flex: 1,
+    gap: spacing[1],
+  },
+  pickerProductName: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textPrimary,
+  },
+  pickerProductType: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+  },
+  pickerPresRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[4],
+    paddingLeft: spacing[6],
+    paddingVertical: spacing[2],
+    minHeight: 48,
+    backgroundColor: colors.background,
+  },
+  pickerPresRowDimmed: {
+    opacity: 0.4,
+  },
+  pickerPresInfo: {
+    flex: 1,
+    gap: spacing[1],
+  },
+  pickerPresLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textPrimary,
+  },
+  pickerPresLabelDimmed: {
+    color: colors.textDisabled,
+  },
+  pickerPresUnit: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+  },
+  pickerPresRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  pickerPresPrice: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textPrimary,
+  },
+  pickerDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+  },
+
+  // Resend quote button
+  resendButton: {
+    height: 48,
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  resendButtonPressed: {
+    opacity: 0.75,
+  },
+  resendButtonDisabled: {
+    opacity: 0.4,
+  },
+  resendButtonText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.primary,
   },
 
   // Quote picker

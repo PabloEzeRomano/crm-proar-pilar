@@ -118,7 +118,7 @@ export function VisitRow({
         ) : null}
         {visit.amount != null ? (
           <Text style={styles.amountText}>
-            ${visit.amount.toLocaleString('es-AR')}
+            ${visit.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
           </Text>
         ) : null}
       </View>

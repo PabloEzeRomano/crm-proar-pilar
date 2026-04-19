@@ -261,8 +261,46 @@ export default function VisitDetailView() {
           <View style={styles.section}>
             <SectionLabel title="Monto" />
             <Text style={styles.amountText}>
-              ${visit.amount.toLocaleString('es-AR')} ARS
+              ${visit.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
             </Text>
+          </View>
+        </>
+      ) : null}
+
+      {/* ── Productos (cotizaciones y ventas con items) ────────────────── */}
+      {visit.items && visit.items.length > 0 && (visit.type === 'quote' || visit.type === 'sale') ? (
+        <>
+          <View style={styles.divider} />
+          <View style={styles.section}>
+            <SectionLabel title="Productos" />
+            {visit.items.map((item, index) => (
+              <View key={index} style={styles.itemRow}>
+                <View style={styles.itemLeft}>
+                  <Text style={styles.itemName}>
+                    {item.product_code ? `[${item.product_code}] ` : ''}{item.product_name}
+                  </Text>
+                  <Text style={styles.itemSub}>
+                    {item.presentation_label} · {item.quantity} {item.unit}
+                    {item.margin_pct > 0 ? ` · +${item.margin_pct}%` : ''}
+                  </Text>
+                </View>
+                <Text style={styles.itemTotal}>
+                  ${item.total_usd.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })} USD
+                </Text>
+              </View>
+            ))}
+            <View style={styles.itemsTotalRow}>
+              <Text style={styles.itemsTotalLabel}>Total</Text>
+              <Text style={styles.itemsTotalAmount}>
+                ${visit.amount?.toLocaleString('en-US', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })} USD
+              </Text>
+            </View>
           </View>
         </>
       ) : null}
@@ -310,7 +348,7 @@ export default function VisitDetailView() {
                   </Text>
                   {sale.amount != null ? (
                     <Text style={styles.linkedRowAmount}>
-                      ${sale.amount.toLocaleString('es-AR')} ARS
+                      ${sale.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
                     </Text>
                   ) : null}
                   <StatusTypeBadge status={sale.status} type="sale" />
@@ -574,6 +612,51 @@ const styles = StyleSheet.create({
   amountText: {
     fontSize: fontSize.xl,
     fontWeight: fontWeight.semibold as '600',
+    color: colors.textPrimary,
+  },
+
+  // Items table
+  itemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: spacing[2],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  itemLeft: {
+    flex: 1,
+    gap: spacing[1],
+    paddingRight: spacing[3],
+  },
+  itemName: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textPrimary,
+  },
+  itemSub: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+  },
+  itemTotal: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textPrimary,
+  },
+  itemsTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: spacing[3],
+  },
+  itemsTotalLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textSecondary,
+  },
+  itemsTotalAmount: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.bold as '700',
     color: colors.textPrimary,
   },
 

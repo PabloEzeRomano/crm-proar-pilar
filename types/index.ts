@@ -89,9 +89,60 @@ export interface Visit {
   notification_id?: string | null
   amount?: number | null
   quote_id?: string | null
+  items?: QuoteItem[] | null
   created_at: string
   updated_at: string
 }
+
+// ---------------------------------------------------------------------------
+// Products
+// ---------------------------------------------------------------------------
+
+export type ProductType = 'commodity' | 'formulated'
+
+export interface ProductPresentation {
+  id: string
+  product_id: string
+  label: string
+  unit: string
+  quantity: number | null
+  price_usd: number
+  created_at: string
+  updated_at: string
+}
+
+export interface Product {
+  id: string
+  name: string
+  code: string | null
+  type: ProductType
+  notes: string | null
+  presentations: ProductPresentation[]
+  created_at: string
+  updated_at: string
+}
+
+export interface ClientProduct {
+  id: string
+  client_id: string
+  product_id: string
+  product_presentation_id: string
+}
+
+export interface QuoteItem {
+  product_id: string
+  product_name: string
+  product_code: string | null
+  presentation_id: string
+  presentation_label: string
+  unit: string
+  quantity: number
+  unit_price_usd: number
+  margin_pct: number
+  total_usd: number
+}
+
+// ---------------------------------------------------------------------------
 
 // Visit with client data joined
 export interface VisitWithClient extends Visit {

@@ -246,7 +246,7 @@ function generateHtml(
               padding:2px 8px;
               border-radius:9999px;
             ">${statusLabel[status] ?? status}</span>
-            ${(visit.type === 'quote' || visit.type === 'sale') && visit.amount != null ? `<span style="font-size:12px;color:#6B7280;margin-left:6px;">$${visit.amount.toLocaleString('es-AR')} ARS</span>` : ''}
+            ${(visit.type === 'quote' || visit.type === 'sale') && visit.amount != null ? `<span style="font-size:12px;color:#6B7280;margin-left:6px;">$${visit.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</span>` : ''}
           </td>
         </tr>`;
     }
@@ -310,13 +310,13 @@ function generateHtml(
                   <td style="background:#F5F3FF;border-radius:8px;padding:10px 20px;text-align:center;">
                     <div style="font-size:22px;font-weight:700;color:#7C3AED;">${quotes.length}</div>
                     <div style="font-size:12px;color:#6B7280;">cotización${quotes.length !== 1 ? 'es' : ''}</div>
-                    ${quoteTotal > 0 ? `<div style="font-size:11px;color:#7C3AED;">$${quoteTotal.toLocaleString('es-AR')}</div>` : ''}
+                    ${quoteTotal > 0 ? `<div style="font-size:11px;color:#7C3AED;">$${quoteTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</div>` : ''}
                   </td>
                   <td style="width:12px;"></td>
                   <td style="background:#FFF7ED;border-radius:8px;padding:10px 20px;text-align:center;">
                     <div style="font-size:22px;font-weight:700;color:#EA580C;">${sales.length}</div>
                     <div style="font-size:12px;color:#6B7280;">venta${sales.length !== 1 ? 's' : ''}</div>
-                    ${saleTotal > 0 ? `<div style="font-size:11px;color:#EA580C;">$${saleTotal.toLocaleString('es-AR')}</div>` : ''}
+                    ${saleTotal > 0 ? `<div style="font-size:11px;color:#EA580C;">$${saleTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</div>` : ''}
                   </td>` : ''}
                 </tr>
               </table>

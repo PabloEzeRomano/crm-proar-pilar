@@ -26,6 +26,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { useClientsStore } from '@/stores/clientsStore';
 import { useLookupsStore } from '@/stores/lookupsStore';
+import { useProductsStore } from '@/stores/productsStore';
 import { useTodayStore } from '@/stores/todayStore';
 import { useVisitsStore } from '@/stores/visitsStore';
 import { useTourStore } from '@/stores/tourStore';
@@ -331,6 +332,7 @@ export default function RootLayout() {
   const fetchVisits = useVisitsStore((s) => s.fetchVisits);
   const fetchTodayVisits = useTodayStore((s) => s.fetchTodayVisits);
   const fetchLookups = useLookupsStore((s) => s.fetchLookups);
+  const fetchProducts = useProductsStore((s) => s.fetchProducts);
   const startTour = useTourStore((s) => s.startTour);
   const router = useRouter();
 
@@ -347,6 +349,7 @@ export default function RootLayout() {
       fetchVisits(),
       fetchTodayVisits(),
       fetchLookups(),
+      fetchProducts(),
     ]);
   }, [userId]);
 

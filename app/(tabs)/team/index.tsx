@@ -161,7 +161,7 @@ export default function TeamIndexScreen() {
                 {quotesThisMonth.length}
               </Text>
               <Text style={[styles.statCardAmount, styles.statCardAmountQuote]}>
-                ${quoteAmountTotal.toLocaleString('es-AR')} ARS
+                ${quoteAmountTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
               </Text>
             </View>
 
@@ -172,7 +172,7 @@ export default function TeamIndexScreen() {
                 {salesThisMonth.length}
               </Text>
               <Text style={[styles.statCardAmount, styles.statCardAmountSale]}>
-                ${saleAmountTotal.toLocaleString('es-AR')} ARS
+                ${saleAmountTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
               </Text>
             </View>
           </View>

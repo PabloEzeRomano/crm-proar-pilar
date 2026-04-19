@@ -37,6 +37,11 @@ export interface AuthState {
     dateTo?: string,
     targetUserId?: string,
   ) => Promise<void>;
+  sendQuote: (
+    visitId: string,
+    recipientEmail: string,
+    recipientName?: string,
+  ) => Promise<{ error: string | null }>;
   setInviteSetup: (value: boolean) => void;
 }
 
@@ -353,5 +358,19 @@ export const useAuthStore = create<AuthState>()((set) => ({
       });
       console.error('[weekly-email] error:', error);
     }
+  },
+
+  sendQuote: async (visitId, recipientEmail, recipientName) => {
+    const { data, error } = await supabase.functions.invoke('send-quote', {
+      body: { visitId, recipientEmail, recipientName },
+    });
+    if (error) {
+      const msg = typeof error === 'string' ? error : (error as Error)?.message ?? 'Error sending quote email';
+      return { error: msg };
+    }
+    if (data && !data.ok) {
+      return { error: data.error ?? 'Error sending quote email' };
+    }
+    return { error: null };
   },
 }));
