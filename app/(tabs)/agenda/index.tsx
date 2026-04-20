@@ -84,6 +84,8 @@ function TodayScreenContent() {
     fetchTodayVisits,
   } = useToday(isAdminOrRoot)
 
+  console.log('TodayScreenContent', visits.map((v) => v.owner))
+
   const sortedByDistance = useTodayStore((s) => s.sortedByDistance)
   const sortByDistance = useTodayStore((s) => s.sortByDistance)
   const resetDistanceSort = useTodayStore((s) => s.resetDistanceSort)

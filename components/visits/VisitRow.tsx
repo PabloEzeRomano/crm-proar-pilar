@@ -3,14 +3,13 @@
  *
  * 4-column grid:
  *   Col 1 (fixed 48px) — date + time
- *   Col 2 (flex)       — client name + owner name
- *   Col 3 (flex)       — notes preview, web only, opt-in via showNotes
- *   Col 4 (fixed)      — type chip + amount + status badge
+ *   Col 2 (flex)       — client name + owner name (+ amount on mobile)
+ *   Col 3 (flex, web)  — notes preview + amount
+ *   Col 4 (fixed)      — type chip + status badge
  */
 
 import React from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import dayjs from '@/lib/dayjs';
 import {
   borderRadius,
@@ -23,10 +22,6 @@ import {
 import { StatusTypeBadge } from '@/components/ui/StatusTypeBadge';
 import { VisitWithClient } from '@/types';
 
-// ---------------------------------------------------------------------------
-// Props
-// ---------------------------------------------------------------------------
-
 export interface VisitRowProps {
   visit: VisitWithClient;
   onPress: () => void;
@@ -37,10 +32,6 @@ export interface VisitRowProps {
 }
 
 const webStyle = { cursor: 'pointer' };
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 export function VisitRow({
   visit,
@@ -63,10 +54,10 @@ export function VisitRow({
   const ownerName =
     showOwner && visit.owner?.full_name ? visit.owner.full_name : null;
 
-  console.log(visit);
+  const isWeb = Platform.OS === 'web';
 
   const notesSnippet =
-    showNotes && Platform.OS === 'web' && visit.notes
+    showNotes && isWeb && visit.notes
       ? visit.notes.length > 80
         ? visit.notes.slice(0, 100) + '...'
         : visit.notes
@@ -78,13 +69,12 @@ export function VisitRow({
         styles.card,
         pressed && styles.cardPressed,
         { opacity: rowOpacity },
-        Platform.OS === 'web' && (webStyle as object),
+        isWeb && (webStyle as object),
       ]}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Ver visita a ${clientName}`}
     >
-      {/* Col 1: date + time */}
       <View style={styles.timeColumn}>
         <Text style={styles.dateText}>{scheduledDayjs.format('DD/MM')}</Text>
         <Text style={[styles.timeText, { color: timeColor }]}>
@@ -93,12 +83,7 @@ export function VisitRow({
       </View>
 
       {/* Col 2: client name + owner — narrower on web so col 3 has more room */}
-      <View
-        style={[
-          styles.clientColumn,
-          Platform.OS === 'web' && styles.clientColumnWeb,
-        ]}
-      >
+      <View style={[styles.clientColumn, isWeb && styles.clientColumnWeb]}>
         <Text style={styles.clientName} numberOfLines={1}>
           {clientName}
         </Text>
@@ -107,35 +92,37 @@ export function VisitRow({
             {ownerName}
           </Text>
         ) : null}
-      </View>
-
-      {/* Col 3: notes preview — web only, no space allocated on mobile */}
-      <View style={styles.notesColumn}>
-        {Platform.OS === 'web' && notesSnippet ? (
-          <Text style={styles.notesText} numberOfLines={2}>
-            {notesSnippet}
-          </Text>
-        ) : null}
-        {visit.amount != null ? (
+        {!isWeb && visit.amount != null ? (
           <Text style={styles.amountText}>
             ${visit.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
           </Text>
         ) : null}
       </View>
 
-      {/* Col 4: type chip + amount + status badge */}
+      {/* Col 3: notes + amount — web only */}
+      {isWeb && (
+        <View style={styles.notesColumn}>
+          {notesSnippet ? (
+            <Text style={styles.notesText} numberOfLines={2}>
+              {notesSnippet}
+            </Text>
+          ) : null}
+          {visit.amount != null ? (
+            <Text style={styles.amountText}>
+              ${visit.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+            </Text>
+          ) : null}
+        </View>
+      )}
+
+      {/* Col 4: type chip + status badge */}
       <View style={styles.rightColumn}>
         {showType ? <StatusTypeBadge type={visit.type} /> : null}
-
         <StatusTypeBadge status={visit.status} type={visit.type} />
       </View>
     </Pressable>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
 
 const styles = StyleSheet.create({
   card: {
@@ -152,7 +139,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
 
-  // Col 1
   timeColumn: {
     width: 48,
     flexShrink: 0,
@@ -168,7 +154,6 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold as '700',
   },
 
-  // Col 2 — mobile: flex 1 (col 3 absent); web: narrower via clientColumnWeb
   clientColumn: {
     flex: 1,
     gap: spacing[1],
@@ -186,7 +171,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 
-  // Col 3 — web only
   notesColumn: {
     flex: 1.4,
   },
@@ -196,25 +180,10 @@ const styles = StyleSheet.create({
     lineHeight: fontSize.xs * 1.5,
   },
 
-  // Col 4
   rightColumn: {
-    flex: 0.15,
     flexShrink: 0,
-    alignItems: 'flex-start',
-    gap: spacing[3],
-  },
-  typeChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    borderWidth: 1,
-    borderRadius: borderRadius.full,
-    paddingHorizontal: spacing[2],
-    paddingVertical: 2,
-  },
-  typeChipLabel: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.medium as '500',
+    alignItems: 'flex-end',
+    gap: spacing[2],
   },
   amountText: {
     fontSize: fontSize.sm,
