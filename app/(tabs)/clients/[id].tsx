@@ -19,13 +19,16 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
 
 import { VisitRow } from '@/components/visits/VisitRow'
 
@@ -42,7 +45,8 @@ import { useAuthStore } from '@/stores/authStore'
 import { useClientsStore } from '@/stores/clientsStore'
 import { useVisitsStore } from '@/stores/visitsStore'
 import { useTodayStore } from '@/stores/todayStore'
-import { VisitWithClient } from '@/types'
+import { useProductsStore } from '@/stores/productsStore'
+import { ClientProduct, Product, VisitWithClient } from '@/types'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -98,8 +102,49 @@ export default function ClientDetailScreen() {
   // Visits for this client — fetch directly by client_id to bypass global pagination
   const { visits, fetchVisitsByClient } = useVisits(id)
 
+  // Products store
+  const products = useProductsStore((s) => s.products)
+  const clientProducts = useProductsStore((s) => s.clientProducts)
+  const clientProductsLoading = useProductsStore((s) => s.clientProductsLoading)
+  const fetchClientProducts = useProductsStore((s) => s.fetchClientProducts)
+  const addClientProduct = useProductsStore((s) => s.addClientProduct)
+  const removeClientProduct = useProductsStore((s) => s.removeClientProduct)
+
+  // Product picker state
+  const [showProductPicker, setShowProductPicker] = useState(false)
+  const [productSearch, setProductSearch] = useState('')
+  const [productTypeFilter, setProductTypeFilter] = useState<'all' | 'formulated' | 'commodity'>('all')
+  const [expandedProductIds, setExpandedProductIds] = useState<Set<string>>(new Set())
+
+  // Resolve habitual products for this client
+  const resolvedClientProducts = clientProducts
+    .filter((cp) => cp.client_id === id)
+    .map((cp) => {
+      const product = products.find((p) => p.id === cp.product_id)
+      const presentation = product?.presentations.find(
+        (pr) => pr.id === cp.product_presentation_id,
+      )
+      return { cp, product, presentation }
+    })
+    .filter(
+      (r): r is { cp: ClientProduct; product: Product; presentation: NonNullable<typeof r.presentation> } =>
+        r.product != null && r.presentation != null,
+    )
+
+  const pickerProducts = products
+    .filter((p) => productTypeFilter === 'all' || p.type === productTypeFilter)
+    .filter(
+      (p) =>
+        !productSearch ||
+        p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+        (p.code && p.code.toLowerCase().includes(productSearch.toLowerCase())),
+    )
+
   useEffect(() => {
-    if (id) fetchVisitsByClient(id)
+    if (id) {
+      fetchVisitsByClient(id)
+      fetchClientProducts(id)
+    }
   }, [id])
 
   // Fetch client if not in store
@@ -259,11 +304,36 @@ export default function ClientDetailScreen() {
     return <Text style={styles.sectionHeader}>{title}</Text>
   }
 
+  function handleRemoveClientProduct(clientProductId: string) {
+    Alert.alert(
+      'Quitar producto',
+      '¿Quitar este producto de los habituales del cliente?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Quitar',
+          style: 'destructive',
+          onPress: () => removeClientProduct(clientProductId),
+        },
+      ],
+    )
+  }
+
+  function toggleProductExpanded(productId: string) {
+    setExpandedProductIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(productId)) next.delete(productId)
+      else next.add(productId)
+      return next
+    })
+  }
+
   // -------------------------------------------------------------------------
   // Root render
   // -------------------------------------------------------------------------
 
   return (
+    <>
     <ScrollView
       style={styles.scroll}
       contentContainerStyle={styles.scrollContent}
@@ -359,6 +429,61 @@ export default function ClientDetailScreen() {
 
       <View style={styles.divider} />
 
+      {/* ── Sección: Productos habituales ───────────────────────────── */}
+      <View style={styles.section}>
+        <SectionHeader title="Productos habituales" />
+
+        {clientProductsLoading ? (
+          <ActivityIndicator size="small" color={colors.primary} />
+        ) : resolvedClientProducts.length === 0 ? (
+          <Text style={styles.emptyField}>Sin productos habituales</Text>
+        ) : (
+          resolvedClientProducts.map(({ cp, product, presentation }) => (
+            <View key={cp.id} style={styles.productRow}>
+              <View style={styles.productRowContent}>
+                {product.code ? (
+                  <Text style={styles.productCode}>[{product.code}]</Text>
+                ) : null}
+                <Text style={styles.productName} numberOfLines={1}>
+                  {product.name}
+                </Text>
+                <Text style={styles.productPresentation}>
+                  {presentation.label} · {presentation.unit}
+                </Text>
+              </View>
+              {isOwner && (
+                <Pressable
+                  onPress={() => handleRemoveClientProduct(cp.id)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Quitar ${product.name}`}
+                >
+                  <MaterialCommunityIcons
+                    name="close-circle-outline"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                </Pressable>
+              )}
+            </View>
+          ))
+        )}
+
+        {isOwner && (
+          <Pressable
+            style={styles.addProductButton}
+            onPress={() => setShowProductPicker(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Agregar producto habitual"
+          >
+            <MaterialCommunityIcons name="plus" size={16} color={colors.primary} />
+            <Text style={styles.addProductButtonText}>Agregar producto</Text>
+          </Pressable>
+        )}
+      </View>
+
+      <View style={styles.divider} />
+
       {/* ── Sección: Historial de visitas ────────────────────────────── */}
       <View style={styles.section}>
         <SectionHeader title="Historial de visitas" />
@@ -435,6 +560,157 @@ export default function ClientDetailScreen() {
         </>
       )}
     </ScrollView>
+
+    {/* ── Product picker modal ─────────────────────────────────────── */}
+    <Modal
+      visible={showProductPicker}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => setShowProductPicker(false)}
+    >
+      <View style={styles.pickerModal}>
+        <View style={styles.pickerModalHeader}>
+          <Text style={styles.pickerModalTitle}>Agregar producto habitual</Text>
+          <Pressable
+            onPress={() => {
+              setShowProductPicker(false)
+              setProductSearch('')
+              setProductTypeFilter('all')
+              setExpandedProductIds(new Set())
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Cerrar"
+          >
+            <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
+          </Pressable>
+        </View>
+
+        <View style={styles.pickerSearch}>
+          <MaterialCommunityIcons name="magnify" size={18} color={colors.textSecondary} />
+          <TextInput
+            style={styles.pickerSearchInput}
+            value={productSearch}
+            onChangeText={setProductSearch}
+            placeholder="Buscar producto..."
+            placeholderTextColor={colors.textDisabled}
+            autoCorrect={false}
+            autoCapitalize="none"
+          />
+          {productSearch.length > 0 && (
+            <Pressable onPress={() => setProductSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <MaterialCommunityIcons name="close-circle" size={16} color={colors.textSecondary} />
+            </Pressable>
+          )}
+        </View>
+
+        <View style={styles.pickerFilters}>
+          {([
+            { value: 'all' as const, label: 'Todos' },
+            { value: 'formulated' as const, label: 'Formulados' },
+            { value: 'commodity' as const, label: 'Commodities' },
+          ]).map(({ value, label }) => {
+            const active = productTypeFilter === value
+            return (
+              <Pressable
+                key={value}
+                style={[styles.pickerFilterPill, active && styles.pickerFilterPillActive]}
+                onPress={() => setProductTypeFilter(value)}
+              >
+                <Text style={[styles.pickerFilterPillText, active && styles.pickerFilterPillTextActive]}>
+                  {label}
+                </Text>
+              </Pressable>
+            )
+          })}
+        </View>
+
+        <ScrollView style={styles.pickerList} keyboardShouldPersistTaps="handled">
+          {pickerProducts.length === 0 ? (
+            <View style={styles.pickerEmpty}>
+              <Text style={styles.pickerEmptyText}>No hay productos</Text>
+            </View>
+          ) : (
+            pickerProducts.map((product) => {
+              const expanded = expandedProductIds.has(product.id)
+              return (
+                <View key={product.id}>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.pickerProductRow,
+                      pressed && styles.pickerProductRowPressed,
+                    ]}
+                    onPress={() => toggleProductExpanded(product.id)}
+                    accessibilityRole="button"
+                  >
+                    <View style={styles.pickerProductInfo}>
+                      <Text style={styles.pickerProductName} numberOfLines={1}>
+                        {product.code ? `[${product.code}] ` : ''}{product.name}
+                      </Text>
+                      <Text style={styles.pickerProductType}>
+                        {product.type === 'formulated' ? 'Formulado' : 'Commodity'}
+                        {' · '}{product.presentations.length} presentación{product.presentations.length !== 1 ? 'es' : ''}
+                      </Text>
+                    </View>
+                    <MaterialCommunityIcons
+                      name={expanded ? 'chevron-up' : 'chevron-down'}
+                      size={20}
+                      color={colors.textSecondary}
+                    />
+                  </Pressable>
+
+                  {expanded && product.presentations.map((pres) => {
+                    const alreadyAdded = clientProducts.some(
+                      (cp) =>
+                        cp.client_id === id &&
+                        cp.product_id === product.id &&
+                        cp.product_presentation_id === pres.id,
+                    )
+                    return (
+                      <Pressable
+                        key={pres.id}
+                        style={[styles.pickerPresRow, alreadyAdded && styles.pickerPresRowDimmed]}
+                        onPress={async () => {
+                          if (!alreadyAdded) {
+                            await addClientProduct(id, product.id, pres.id)
+                            setShowProductPicker(false)
+                            setProductSearch('')
+                            setExpandedProductIds(new Set())
+                          }
+                        }}
+                        disabled={alreadyAdded}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Agregar ${pres.label}`}
+                        accessibilityState={{ disabled: alreadyAdded }}
+                      >
+                        <View style={styles.pickerPresInfo}>
+                          <Text style={[styles.pickerPresLabel, alreadyAdded && styles.pickerPresLabelDimmed]}>
+                            {pres.label}
+                          </Text>
+                          <Text style={styles.pickerPresUnit}>
+                            {pres.unit}{pres.quantity ? ` · ${pres.quantity}` : ''}
+                          </Text>
+                        </View>
+                        <View style={styles.pickerPresRight}>
+                          {alreadyAdded ? (
+                            <MaterialCommunityIcons name="check" size={16} color={colors.textDisabled} />
+                          ) : (
+                            <MaterialCommunityIcons name="plus-circle-outline" size={16} color={colors.primary} />
+                          )}
+                        </View>
+                      </Pressable>
+                    )
+                  })}
+
+                  <View style={styles.pickerDivider} />
+                </View>
+              )
+            })
+          )}
+        </ScrollView>
+      </View>
+    </Modal>
+    </>
   )
 }
 
@@ -617,5 +893,183 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     fontWeight: fontWeight.semibold as '600',
     color: colors.textSecondary,
+  },
+
+  // Habitual products section
+  productRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    paddingVertical: spacing[2],
+  },
+  productRowContent: {
+    flex: 1,
+    gap: spacing[1],
+  },
+  productCode: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    fontWeight: fontWeight.medium as '500',
+  },
+  productName: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textPrimary,
+  },
+  productPresentation: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+  },
+  addProductButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    minHeight: 48,
+    paddingVertical: spacing[2],
+    alignSelf: 'flex-start',
+  },
+  addProductButtonText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.primary,
+  },
+
+  // Product picker modal
+  pickerModal: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  pickerModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  pickerModalTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textPrimary,
+  },
+  pickerSearch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    margin: spacing[3],
+    height: 48,
+    paddingHorizontal: spacing[3],
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+  },
+  pickerSearchInput: {
+    flex: 1,
+    fontSize: fontSize.base,
+    color: colors.textPrimary,
+    height: 48,
+  },
+  pickerFilters: {
+    flexDirection: 'row',
+    gap: spacing[2],
+    paddingHorizontal: spacing[3],
+    marginBottom: spacing[2],
+  },
+  pickerFilterPill: {
+    height: 36,
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  pickerFilterPillActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  pickerFilterPillText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textSecondary,
+  },
+  pickerFilterPillTextActive: {
+    color: colors.primary,
+  },
+  pickerList: {
+    flex: 1,
+  },
+  pickerEmpty: {
+    padding: spacing[8],
+    alignItems: 'center',
+  },
+  pickerEmptyText: {
+    fontSize: fontSize.base,
+    color: colors.textSecondary,
+  },
+  pickerProductRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    minHeight: 56,
+    backgroundColor: colors.surface,
+  },
+  pickerProductRowPressed: {
+    backgroundColor: colors.background,
+  },
+  pickerProductInfo: {
+    flex: 1,
+    gap: spacing[1],
+  },
+  pickerProductName: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textPrimary,
+  },
+  pickerProductType: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+  },
+  pickerPresRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[4],
+    paddingLeft: spacing[6],
+    paddingVertical: spacing[2],
+    minHeight: 48,
+    backgroundColor: colors.background,
+  },
+  pickerPresRowDimmed: {
+    opacity: 0.4,
+  },
+  pickerPresInfo: {
+    flex: 1,
+    gap: spacing[1],
+  },
+  pickerPresLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textPrimary,
+  },
+  pickerPresLabelDimmed: {
+    color: colors.textDisabled,
+  },
+  pickerPresUnit: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+  },
+  pickerPresRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  pickerDivider: {
+    height: 1,
+    backgroundColor: colors.border,
   },
 })

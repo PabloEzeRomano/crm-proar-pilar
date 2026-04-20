@@ -30,6 +30,7 @@ import { ZodError } from 'zod'
 import { useClients } from '@/hooks/useClients'
 import { useClientsStore } from '@/stores/clientsStore'
 import { useLookupsStore } from '@/stores/lookupsStore'
+import { useProductsStore } from '@/stores/productsStore'
 import SearchableSelect from '@/components/ui/SearchableSelect'
 import {
   createClientSchema,
@@ -43,7 +44,7 @@ import {
   fontWeight,
   spacing,
 } from '@/constants/theme'
-import type { ContactInfo } from '@/types'
+import type { ClientProduct, ContactInfo, Product } from '@/types'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -187,6 +188,29 @@ export default function ClientFormScreen() {
   const newLocalidadRef = useRef<TextInput>(null)
 
   const { createClient, updateClient, loading } = useClients()
+
+  // Habitual products (edit mode only — read-only display)
+  const products = useProductsStore((s) => s.products)
+  const clientProducts = useProductsStore((s) => s.clientProducts)
+  const fetchClientProducts = useProductsStore((s) => s.fetchClientProducts)
+
+  useEffect(() => {
+    if (isEditMode && clientId) fetchClientProducts(clientId)
+  }, [isEditMode, clientId])
+
+  const resolvedClientProducts = clientProducts
+    .filter((cp) => cp.client_id === clientId)
+    .map((cp) => {
+      const product = products.find((p) => p.id === cp.product_id)
+      const presentation = product?.presentations.find(
+        (pr) => pr.id === cp.product_presentation_id,
+      )
+      return { cp, product, presentation }
+    })
+    .filter(
+      (r): r is { cp: ClientProduct; product: Product; presentation: NonNullable<typeof r.presentation> } =>
+        r.product != null && r.presentation != null,
+    )
 
   // Sync contacts when existingClient loads asynchronously (edit mode)
   useEffect(() => {
@@ -750,6 +774,28 @@ export default function ClientFormScreen() {
             <Text style={styles.fieldError}>{errors.notes}</Text>
           ) : null}
         </View>
+
+        {/* ── Productos habituales (edit mode, read-only) ───────────── */}
+        {isEditMode && (
+          <View style={styles.fieldWrapper}>
+            <Text style={styles.label}>Productos habituales</Text>
+            {resolvedClientProducts.length === 0 ? (
+              <Text style={styles.fieldHint}>Sin productos habituales</Text>
+            ) : (
+              resolvedClientProducts.map(({ cp, product, presentation }) => (
+                <View key={cp.id} style={styles.productChip}>
+                  <Text style={styles.productChipText} numberOfLines={1}>
+                    {product.code ? `[${product.code}] ` : ''}
+                    {product.name} · {presentation.label}
+                  </Text>
+                </View>
+              ))
+            )}
+            <Text style={styles.fieldHint}>
+              Gestioná los productos desde el detalle del cliente.
+            </Text>
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   )
@@ -1104,5 +1150,24 @@ const styles = StyleSheet.create({
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  // Read-only habitual products (edit mode)
+  fieldHint: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  productChip: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+  },
+  productChipText: {
+    fontSize: fontSize.sm,
+    color: colors.textPrimary,
   },
 })

@@ -744,6 +744,27 @@
 
 ---
 
+## EP-058 — Quote/Sale pricing model fix: price per kg/L
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 58.1 | Update `QuoteItem` type (`presentation_quantity_kg`, `custom_quantity_kg`, `total_usd` nullable) and `quoteItemSchema` in validators | state | `done` |
+| 58.2 | Update `QuoteItemRow` component: quote mode (price/kg only, no total) vs sale mode (qty × pkg_kg × price = total); `custom_quantity_kg` input for IBC/Granel | frontend + ui-ux | `done` |
+| 58.3 | Update `visits/form.tsx`: pass `visitType` to row, `updateItem` recomputes total only for sale, `computeTotal` returns null for quote, `amount` null on quote save | frontend | `done` |
+| 58.4 | Update `VisitDetailView`: quote items show price/kg only (no total row, amount hidden); sale items show qty + total | frontend | `done` |
+| 58.5 | Update `send-quote` Edge Function: quote email 2-column table (PRODUCTO + PRECIO/KG); sale email keeps existing full table; redeploy | backend | `done` |
+
+---
+
+## EP-059 — Client habitual products UI
+
+| # | Story | Agent | Status |
+|---|---|---|---|
+| 59.1 | Client detail: "Productos habituales" section — list resolved products, remove button (owner only), add product picker modal (search + type filter + expand presentations) | frontend + state | `done` |
+| 59.2 | Client form edit mode: read-only "Productos habituales" section with chip list and hint to manage from detail screen | frontend | `done` |
+
+---
+
 ## Pending
 
 > All stories across all EPs that are not yet `done`.
@@ -791,3 +812,4 @@
 | 2026-04-13 | Quote/sale status uses existing VisitStatus values remapped via `getStatusLabel(status, type)` helper — no DB changes (EP-050) | `canceled` = red across all types for semantic consistency. Helper lives in `lib/visitStatus.ts`; `StatusBadge` gains optional `type` prop with `'visit'` fallback so all existing callers remain valid. |
 | 2026-04-16 | Stats modal shows all-users aggregate for admin by default. `useVisitStats` userId param: `null`=all users (allVisits), `string`=specific user (filtered allVisits), `undefined`=own data (visits). Admin default is `null`; selecting a user pill passes their id; regular users receive `undefined` so behavior is unchanged. | EP-052 story 52.6. Keeps regular-user path identical — no regression risk. Admin sees team-wide stats on open without an extra tap. |
 | 2026-04-18 | All amounts in USD. Quote email sent via `send-quote` Edge Function using Resend. Recipient pre-populated from client contact email. Email send is non-blocking — quote saves regardless of email status. | EP-057 stories 57.10–57.13. `es-AR` locale retained for date/time display only; amount formatting uses `en-US` (dot decimal, comma thousands) + USD label globally. |
+| 2026-04-19 | `unit_price_usd` is price per kg/L (as in Excel). Quote type shows price/kg only — no totals, `amount=null`. Sale type shows `qty × pkg_kg × price × margin = total_usd`. IBC/Granel use `custom_quantity_kg` entered by vendedor since `presentation.quantity` is null for variable-size containers. | EP-058 pricing model fix. |
