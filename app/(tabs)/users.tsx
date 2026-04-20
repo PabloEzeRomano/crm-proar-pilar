@@ -18,8 +18,13 @@
  * All visual values reference constants/theme.ts tokens.
  */
 
-import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react'
-import { z } from 'zod'
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useState,
+} from 'react';
+import { z } from 'zod';
 import {
   ActivityIndicator,
   Alert,
@@ -32,9 +37,9 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native'
-import { useNavigation, useRouter } from 'expo-router'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+} from 'react-native';
+import { useNavigation, useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import {
   borderRadius,
@@ -43,10 +48,10 @@ import {
   fontWeight,
   shadows,
   spacing,
-} from '@/constants/theme'
-import { useAuthStore } from '@/stores/authStore'
-import { useUsersStore } from '@/stores/usersStore'
-import type { UserListItem, UserRole } from '@/types'
+} from '@/constants/theme';
+import { useAuthStore } from '@/stores/authStore';
+import { useUsersStore } from '@/stores/usersStore';
+import type { UserListItem, UserRole } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Validation
@@ -54,9 +59,9 @@ import type { UserListItem, UserRole } from '@/types'
 
 const inviteSchema = z.object({
   email: z.string().email('Email inválido'),
-})
+});
 
-type InviteErrors = { email?: string }
+type InviteErrors = { email?: string };
 
 // ---------------------------------------------------------------------------
 // Role badge
@@ -66,19 +71,19 @@ const ROLE_LABEL: Record<UserRole, string> = {
   user: 'Usuario',
   admin: 'Admin',
   root: 'Root',
-}
+};
 
 const ROLE_COLOR: Record<UserRole, string> = {
   user: colors.textSecondary,
   admin: colors.primary,
   root: colors.error,
-}
+};
 
 const ROLE_BG: Record<UserRole, string> = {
   user: colors.surface,
   admin: colors.primaryLight ?? '#EFF6FF',
   root: '#FEE2E2',
-}
+};
 
 function RoleBadge({ role }: { role: UserRole }) {
   return (
@@ -87,7 +92,7 @@ function RoleBadge({ role }: { role: UserRole }) {
         {ROLE_LABEL[role]}
       </Text>
     </View>
-  )
+  );
 }
 
 function PendingBadge() {
@@ -97,7 +102,7 @@ function PendingBadge() {
         Pendiente
       </Text>
     </View>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -105,19 +110,17 @@ function PendingBadge() {
 // ---------------------------------------------------------------------------
 
 interface UserRowProps {
-  user: UserListItem
-  onDeactivate: (user: UserListItem) => void
+  user: UserListItem;
+  onDeactivate: (user: UserListItem) => void;
 }
 
 function UserRow({ user, onDeactivate }: UserRowProps) {
-  const isPending = user.status === 'pending'
-  const displayName = isPending ? user.email : (user.full_name ?? '—')
-  const initial = displayName.charAt(0).toUpperCase()
+  const isPending = user.status === 'pending';
+  const displayName = isPending ? user.email : (user.full_name ?? '—');
+  const initial = displayName.charAt(0).toUpperCase();
 
   const canDeactivate =
-    user.status === 'active' &&
-    user.role !== 'admin' &&
-    user.role !== 'root'
+    user.status === 'active' && user.role !== 'admin' && user.role !== 'root';
 
   return (
     <View style={styles.row}>
@@ -157,7 +160,7 @@ function UserRow({ user, onDeactivate }: UserRowProps) {
         </Pressable>
       )}
     </View>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -165,35 +168,35 @@ function UserRow({ user, onDeactivate }: UserRowProps) {
 // ---------------------------------------------------------------------------
 
 export default function UsersScreen() {
-  const profile = useAuthStore((s) => s.profile)
-  const navigation = useNavigation()
-  const router = useRouter()
+  const profile = useAuthStore((s) => s.profile);
+  const navigation = useNavigation();
+  const router = useRouter();
 
-  const users = useUsersStore((s) => s.users)
-  const companyConfig = useUsersStore((s) => s.companyConfig)
-  const loading = useUsersStore((s) => s.loading)
-  const error = useUsersStore((s) => s.error)
-  const inviteLoading = useUsersStore((s) => s.inviteLoading)
-  const inviteError = useUsersStore((s) => s.inviteError)
-  const fetchUsers = useUsersStore((s) => s.fetchUsers)
-  const fetchCompanyConfig = useUsersStore((s) => s.fetchCompanyConfig)
-  const inviteUser = useUsersStore((s) => s.inviteUser)
-  const deactivateUser = useUsersStore((s) => s.deactivateUser)
-  const clearInviteError = useUsersStore((s) => s.clearInviteError)
+  const users = useUsersStore((s) => s.users);
+  const companyConfig = useUsersStore((s) => s.companyConfig);
+  const loading = useUsersStore((s) => s.loading);
+  const error = useUsersStore((s) => s.error);
+  const inviteLoading = useUsersStore((s) => s.inviteLoading);
+  const inviteError = useUsersStore((s) => s.inviteError);
+  const fetchUsers = useUsersStore((s) => s.fetchUsers);
+  const fetchCompanyConfig = useUsersStore((s) => s.fetchCompanyConfig);
+  const inviteUser = useUsersStore((s) => s.inviteUser);
+  const deactivateUser = useUsersStore((s) => s.deactivateUser);
+  const clearInviteError = useUsersStore((s) => s.clearInviteError);
 
-  const [modalVisible, setModalVisible] = useState(false)
-  const [email, setEmail] = useState('')
-  const [selectedRole, setSelectedRole] = useState<'user' | 'admin'>('user')
-  const [fieldErrors, setFieldErrors] = useState<InviteErrors>({})
-  const [emailFocused, setEmailFocused] = useState(false)
-  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [modalVisible, setModalVisible] = useState(false);
+  const [email, setEmail] = useState('');
+  const [selectedRole, setSelectedRole] = useState<'user' | 'admin'>('user');
+  const [fieldErrors, setFieldErrors] = useState<InviteErrors>({});
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root'
-  const isRoot = profile?.role === 'root'
+  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root';
+  const isRoot = profile?.role === 'root';
 
-  const maxUsers = companyConfig?.max_users ?? null
-  const currentCount = users.filter((u) => u.status !== 'banned').length
-  const atLimit = maxUsers !== null && currentCount >= maxUsers && !isRoot
+  const maxUsers = companyConfig?.max_users ?? null;
+  const currentCount = users.filter((u) => u.status !== 'banned').length;
+  const atLimit = maxUsers !== null && currentCount >= maxUsers && !isRoot;
 
   // ── Back button ───────────────────────────────────────────────────────────
 
@@ -214,85 +217,97 @@ export default function UsersScreen() {
           />
         </Pressable>
       ),
-    })
-  }, [navigation, router])
+    });
+  }, [navigation, router]);
 
   // ── Bootstrap ─────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (!isAdminOrRoot) return
-    fetchUsers()
-    fetchCompanyConfig()
-  }, [])
+    if (!isAdminOrRoot) return;
+    fetchUsers();
+    fetchCompanyConfig();
+  }, []);
 
   // ── Deactivate handler ────────────────────────────────────────────────────
 
-  const handleDeactivate = useCallback((user: UserListItem) => {
-    Alert.alert(
-      'Dar de baja usuario',
-      '¿Dar de baja a este usuario? Se archivarán sus clientes y gestiones.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Dar de baja',
-          style: 'destructive',
-          onPress: async () => {
-            await deactivateUser(user.id)
-            fetchUsers()
+  const handleDeactivate = useCallback(
+    (user: UserListItem) => {
+      Alert.alert(
+        'Dar de baja usuario',
+        '¿Dar de baja a este usuario? Se archivarán sus clientes y gestiones.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Dar de baja',
+            style: 'destructive',
+            onPress: async () => {
+              await deactivateUser(user.id);
+              fetchUsers();
+            },
           },
-        },
-      ],
-    )
-  }, [deactivateUser, fetchUsers])
+        ]
+      );
+    },
+    [deactivateUser, fetchUsers]
+  );
 
   // ── Invite handlers ───────────────────────────────────────────────────────
 
   function openModal() {
-    setEmail('')
-    setSelectedRole('user')
-    setFieldErrors({})
-    clearInviteError()
-    setSuccessMessage(null)
-    setModalVisible(true)
+    setEmail('');
+    setSelectedRole('user');
+    setFieldErrors({});
+    clearInviteError();
+    setSuccessMessage(null);
+    setModalVisible(true);
   }
 
   function closeModal() {
-    setModalVisible(false)
+    setModalVisible(false);
   }
 
   const handleSubmit = useCallback(async () => {
-    const result = inviteSchema.safeParse({ email: email.trim().toLowerCase() })
+    const result = inviteSchema.safeParse({
+      email: email.trim().toLowerCase(),
+    });
     if (!result.success) {
-      const errs: InviteErrors = {}
+      const errs: InviteErrors = {};
       for (const issue of result.error.issues) {
-        errs.email = issue.message
+        errs.email = issue.message;
       }
-      setFieldErrors(errs)
-      return
+      setFieldErrors(errs);
+      return;
     }
 
-    setFieldErrors({})
-    const { error: err } = await inviteUser({ email: result.data.email, role: selectedRole })
+    setFieldErrors({});
+    const { error: err } = await inviteUser({
+      email: result.data.email,
+      role: selectedRole,
+    });
 
     if (!err) {
-      setSuccessMessage(`Invitación enviada a ${result.data.email}`)
-      fetchUsers()
+      setSuccessMessage(`Invitación enviada a ${result.data.email}`);
+      fetchUsers();
       setTimeout(() => {
-        setModalVisible(false)
-        setSuccessMessage(null)
-      }, 1500)
+        setModalVisible(false);
+        setSuccessMessage(null);
+      }, 1500);
     }
-  }, [email, selectedRole, inviteUser, fetchUsers])
+  }, [email, selectedRole, inviteUser, fetchUsers]);
 
   // ── Access guard ──────────────────────────────────────────────────────────
 
   if (!isAdminOrRoot) {
     return (
       <View style={styles.guardContainer}>
-        <MaterialCommunityIcons name="lock-outline" size={48} color={colors.textDisabled} />
+        <MaterialCommunityIcons
+          name="lock-outline"
+          size={48}
+          color={colors.textDisabled}
+        />
         <Text style={styles.guardText}>No tenés acceso a esta sección</Text>
       </View>
-    )
+    );
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -300,12 +315,11 @@ export default function UsersScreen() {
   const emailBorderColor = fieldErrors.email
     ? colors.error
     : emailFocused
-    ? colors.primary
-    : colors.border
+      ? colors.primary
+      : colors.border;
 
   return (
     <View style={styles.container}>
-
       {/* ── Seat counter ──────────────────────────────────────────────────── */}
       <View style={styles.counterRow}>
         <View style={styles.counterBlock}>
@@ -334,7 +348,12 @@ export default function UsersScreen() {
             size={20}
             color={atLimit ? colors.textDisabled : colors.textOnPrimary}
           />
-          <Text style={[styles.inviteButtonLabel, atLimit && styles.inviteButtonLabelDisabled]}>
+          <Text
+            style={[
+              styles.inviteButtonLabel,
+              atLimit && styles.inviteButtonLabelDisabled,
+            ]}
+          >
             Invitar
           </Text>
         </Pressable>
@@ -342,7 +361,8 @@ export default function UsersScreen() {
 
       {atLimit && (
         <Text style={styles.limitWarning}>
-          Límite de usuarios alcanzado ({maxUsers}/{maxUsers}). Contactá a root para ampliar el plan.
+          Límite de usuarios alcanzado ({maxUsers}/{maxUsers}). Contactá a root
+          para ampliar el plan.
         </Text>
       )}
 
@@ -366,7 +386,9 @@ export default function UsersScreen() {
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No hay usuarios en esta empresa</Text>
+              <Text style={styles.emptyText}>
+                No hay usuarios en esta empresa
+              </Text>
             </View>
           }
         />
@@ -385,7 +407,6 @@ export default function UsersScreen() {
         >
           <Pressable style={styles.modalBackdrop} onPress={closeModal} />
           <View style={styles.modalSheet}>
-
             {/* Header */}
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Invitar usuario</Text>
@@ -395,14 +416,22 @@ export default function UsersScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Cerrar"
               >
-                <MaterialCommunityIcons name="close" size={22} color={colors.textSecondary} />
+                <MaterialCommunityIcons
+                  name="close"
+                  size={22}
+                  color={colors.textSecondary}
+                />
               </Pressable>
             </View>
 
             {/* Success banner */}
             {successMessage ? (
               <View style={styles.successBanner}>
-                <MaterialCommunityIcons name="check-circle-outline" size={18} color={colors.success} />
+                <MaterialCommunityIcons
+                  name="check-circle-outline"
+                  size={18}
+                  color={colors.success}
+                />
                 <Text style={styles.successText}>{successMessage}</Text>
               </View>
             ) : null}
@@ -419,9 +448,9 @@ export default function UsersScreen() {
                 style={[styles.input, { borderColor: emailBorderColor }]}
                 value={email}
                 onChangeText={(t) => {
-                  setEmail(t)
-                  if (fieldErrors.email) setFieldErrors({})
-                  clearInviteError()
+                  setEmail(t);
+                  if (fieldErrors.email) setFieldErrors({});
+                  clearInviteError();
                 }}
                 onFocus={() => setEmailFocused(true)}
                 onBlur={() => setEmailFocused(false)}
@@ -469,12 +498,18 @@ export default function UsersScreen() {
 
             {/* Submit */}
             <Pressable
-              style={[styles.submitButton, inviteLoading && styles.submitButtonDisabled]}
+              style={[
+                styles.submitButton,
+                inviteLoading && styles.submitButtonDisabled,
+              ]}
               onPress={handleSubmit}
               disabled={inviteLoading}
               accessibilityRole="button"
               accessibilityLabel="Enviar invitación"
-              accessibilityState={{ disabled: inviteLoading, busy: inviteLoading }}
+              accessibilityState={{
+                disabled: inviteLoading,
+                busy: inviteLoading,
+              }}
             >
               {inviteLoading ? (
                 <ActivityIndicator color={colors.textOnPrimary} />
@@ -482,12 +517,11 @@ export default function UsersScreen() {
                 <Text style={styles.submitButtonLabel}>Enviar invitación</Text>
               )}
             </Pressable>
-
           </View>
         </KeyboardAvoidingView>
       </Modal>
     </View>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -782,4 +816,4 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold as '600',
     color: colors.textOnPrimary,
   },
-})
+});

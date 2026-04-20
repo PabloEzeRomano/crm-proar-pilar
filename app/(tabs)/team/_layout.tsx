@@ -1,6 +1,6 @@
-import { Stack } from 'expo-router'
+import { Stack } from 'expo-router';
 
-import { colors, fontSize } from '@/constants/theme'
+import { colors, fontSize } from '@/constants/theme';
 
 export default function TeamStackLayout() {
   return (
@@ -19,5 +19,5 @@ export default function TeamStackLayout() {
     >
       <Stack.Screen name="index" options={{ title: 'Equipo' }} />
     </Stack>
-  )
+  );
 }

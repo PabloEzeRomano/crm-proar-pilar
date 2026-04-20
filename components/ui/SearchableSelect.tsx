@@ -12,7 +12,7 @@
  *                Modal stays open until user taps outside or closes.
  */
 
-import React, { useState } from 'react'
+import React, { useState } from 'react';
 import {
   FlatList,
   Modal,
@@ -22,30 +22,30 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+} from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   borderRadius,
   colors,
   fontSize,
   fontWeight,
   spacing,
-} from '@/constants/theme'
+} from '@/constants/theme';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export interface SearchableSelectProps {
-  label: string
-  options: string[]
-  selected: string[]
-  onChange: (selected: string[]) => void
-  multiple?: boolean
-  placeholder?: string
+  label: string;
+  options: string[];
+  selected: string[];
+  onChange: (selected: string[]) => void;
+  multiple?: boolean;
+  placeholder?: string;
   /** When provided, shows an "Agregar nuevo…" option at the bottom of the list.
    *  When tapped, the modal closes and this callback is invoked. */
-  onAddNew?: () => void
+  onAddNew?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -61,49 +61,49 @@ export default function SearchableSelect({
   placeholder,
   onAddNew,
 }: SearchableSelectProps) {
-  const [modalVisible, setModalVisible] = useState(false)
-  const [searchText, setSearchText] = useState('')
+  const [modalVisible, setModalVisible] = useState(false);
+  const [searchText, setSearchText] = useState('');
 
   // ── Trigger label ────────────────────────────────────────────────────────
 
   function getTriggerLabel(): string {
-    if (selected.length === 0) return placeholder ?? label
-    if (!multiple) return selected[0]
-    return `${label} (${selected.length})`
+    if (selected.length === 0) return placeholder ?? label;
+    if (!multiple) return selected[0];
+    return `${label} (${selected.length})`;
   }
 
-  const hasSelection = selected.length > 0
+  const hasSelection = selected.length > 0;
 
   // ── Modal helpers ────────────────────────────────────────────────────────
 
-  const unselectedOptions = options.filter((opt) => !selected.includes(opt))
+  const unselectedOptions = options.filter((opt) => !selected.includes(opt));
 
   const filteredOptions = searchText.trim()
     ? unselectedOptions.filter((opt) =>
-        opt.toLowerCase().includes(searchText.toLowerCase()),
+        opt.toLowerCase().includes(searchText.toLowerCase())
       )
-    : unselectedOptions
+    : unselectedOptions;
 
   function handleSelect(option: string) {
     if (multiple) {
-      onChange([...selected, option])
+      onChange([...selected, option]);
     } else {
-      onChange([option])
-      setModalVisible(false)
+      onChange([option]);
+      setModalVisible(false);
     }
   }
 
   function handleDeselect(option: string) {
-    onChange(selected.filter((s) => s !== option))
+    onChange(selected.filter((s) => s !== option));
   }
 
   function handleClearAll() {
-    onChange([])
+    onChange([]);
   }
 
   function handleClose() {
-    setSearchText('')
-    setModalVisible(false)
+    setSearchText('');
+    setModalVisible(false);
   }
 
   // ── Root render ──────────────────────────────────────────────────────────
@@ -123,7 +123,10 @@ export default function SearchableSelect({
         hitSlop={{ top: 4, bottom: 4, left: 0, right: 0 }}
       >
         <Text
-          style={[styles.triggerLabel, hasSelection && styles.triggerLabelActive]}
+          style={[
+            styles.triggerLabel,
+            hasSelection && styles.triggerLabelActive,
+          ]}
           numberOfLines={1}
         >
           {getTriggerLabel()}
@@ -153,7 +156,11 @@ export default function SearchableSelect({
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityLabel="Cerrar"
             >
-              <MaterialCommunityIcons name="close" size={22} color={colors.textSecondary} />
+              <MaterialCommunityIcons
+                name="close"
+                size={22}
+                color={colors.textSecondary}
+              />
             </Pressable>
           </View>
 
@@ -181,7 +188,11 @@ export default function SearchableSelect({
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 accessibilityLabel="Limpiar búsqueda"
               >
-                <MaterialCommunityIcons name="close-circle" size={18} color={colors.textSecondary} />
+                <MaterialCommunityIcons
+                  name="close-circle"
+                  size={18}
+                  color={colors.textSecondary}
+                />
               </Pressable>
             )}
           </View>
@@ -212,8 +223,14 @@ export default function SearchableSelect({
                     accessibilityRole="button"
                     accessibilityLabel={`Quitar ${item}`}
                   >
-                    <Text style={styles.chipText} numberOfLines={1}>{item}</Text>
-                    <MaterialCommunityIcons name="close" size={14} color={colors.primary} />
+                    <Text style={styles.chipText} numberOfLines={1}>
+                      {item}
+                    </Text>
+                    <MaterialCommunityIcons
+                      name="close"
+                      size={14}
+                      color={colors.primary}
+                    />
                   </Pressable>
                 ))}
               </ScrollView>
@@ -236,7 +253,9 @@ export default function SearchableSelect({
                 accessibilityRole="button"
                 accessibilityLabel={item}
               >
-                <Text style={styles.optionText} numberOfLines={1}>{item}</Text>
+                <Text style={styles.optionText} numberOfLines={1}>
+                  {item}
+                </Text>
                 {multiple && (
                   <MaterialCommunityIcons
                     name="plus"
@@ -250,41 +269,45 @@ export default function SearchableSelect({
             ListEmptyComponent={() => (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>
-                  {searchText.trim() ? 'Sin resultados' : 'Sin opciones disponibles'}
+                  {searchText.trim()
+                    ? 'Sin resultados'
+                    : 'Sin opciones disponibles'}
                 </Text>
               </View>
             )}
-            ListFooterComponent={onAddNew ? (
-              <>
-                <View style={styles.optionDivider} />
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.optionRow,
-                    styles.addNewRow,
-                    pressed && styles.optionRowPressed,
-                  ]}
-                  onPress={() => {
-                    handleClose()
-                    onAddNew()
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Agregar nuevo"
-                >
-                  <MaterialCommunityIcons
-                    name="plus"
-                    size={18}
-                    color={colors.primary}
-                    style={styles.addNewIcon}
-                  />
-                  <Text style={styles.addNewText}>Agregar nuevo…</Text>
-                </Pressable>
-              </>
-            ) : undefined}
+            ListFooterComponent={
+              onAddNew ? (
+                <>
+                  <View style={styles.optionDivider} />
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.optionRow,
+                      styles.addNewRow,
+                      pressed && styles.optionRowPressed,
+                    ]}
+                    onPress={() => {
+                      handleClose();
+                      onAddNew();
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Agregar nuevo"
+                  >
+                    <MaterialCommunityIcons
+                      name="plus"
+                      size={18}
+                      color={colors.primary}
+                      style={styles.addNewIcon}
+                    />
+                    <Text style={styles.addNewText}>Agregar nuevo…</Text>
+                  </Pressable>
+                </>
+              ) : undefined
+            }
           />
         </View>
       </Modal>
     </>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -475,4 +498,4 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontStyle: 'italic',
   },
-})
+});

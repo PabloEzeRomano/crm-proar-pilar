@@ -10,7 +10,7 @@
  * Back button behavior is naturally correct in each stack.
  */
 
-import React, { useEffect, useLayoutEffect, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,81 +19,88 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native'
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
-import { useLocalSearchParams, useNavigation, usePathname, useRouter } from 'expo-router'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+} from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import {
+  useLocalSearchParams,
+  useNavigation,
+  usePathname,
+  useRouter,
+} from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { StatusTypeBadge } from '@/components/ui/StatusTypeBadge'
+import { StatusTypeBadge } from '@/components/ui/StatusTypeBadge';
 
-import { useVisitsStore } from '@/stores/visitsStore'
-import { useAuthStore } from '@/stores/authStore'
+import { useVisitsStore } from '@/stores/visitsStore';
+import { useAuthStore } from '@/stores/authStore';
 import {
   borderRadius,
   colors,
   fontSize,
   fontWeight,
   spacing,
-} from '@/constants/theme'
-import dayjs from '@/lib/dayjs'
+} from '@/constants/theme';
+import dayjs from '@/lib/dayjs';
 
 // ---------------------------------------------------------------------------
 // Save indicator type
 // ---------------------------------------------------------------------------
 
-type SaveState = 'idle' | 'saving' | 'saved'
+type SaveState = 'idle' | 'saving' | 'saved';
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function VisitDetailView() {
-  const { id } = useLocalSearchParams<{ id: string }>()
-  const router = useRouter()
-  const navigation = useNavigation()
-  const pathname = usePathname()
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const navigation = useNavigation();
+  const pathname = usePathname();
 
-  const currentUser = useAuthStore((s) => s.profile)
+  const currentUser = useAuthStore((s) => s.profile);
   const editFormPath = pathname.startsWith('/agenda')
     ? `/agenda/visits/form?visitId=${id}`
-    : `/visits/form?visitId=${id}`
+    : `/visits/form?visitId=${id}`;
 
-  const visit = useVisitsStore((state) => state.visits.find((v) => v.id === id))
-  const error = useVisitsStore((state) => state.error)
-  const deleting = useVisitsStore((state) => state.deleting)
-  const deleteError = useVisitsStore((state) => state.deleteError)
-  const fetchVisit = useVisitsStore((state) => state.fetchVisit)
-  const updateVisit = useVisitsStore((state) => state.updateVisit)
-  const updateStatus = useVisitsStore((state) => state.updateStatus)
-  const deleteVisit = useVisitsStore((state) => state.deleteVisit)
+  const visit = useVisitsStore((state) =>
+    state.visits.find((v) => v.id === id)
+  );
+  const error = useVisitsStore((state) => state.error);
+  const deleting = useVisitsStore((state) => state.deleting);
+  const deleteError = useVisitsStore((state) => state.deleteError);
+  const fetchVisit = useVisitsStore((state) => state.fetchVisit);
+  const updateVisit = useVisitsStore((state) => state.updateVisit);
+  const updateStatus = useVisitsStore((state) => state.updateStatus);
+  const deleteVisit = useVisitsStore((state) => state.deleteVisit);
   // Must be declared before any early return (Rules of Hooks).
   // Selector returns the stable array reference; filter runs outside
   // the subscription to avoid a new array on every render (infinite loop).
-  const allVisits = useVisitsStore((s) => s.visits)
-  const linkedSales = allVisits.filter((v) => v.quote_id === id)
+  const allVisits = useVisitsStore((s) => s.visits);
+  const linkedSales = allVisits.filter((v) => v.quote_id === id);
 
   // If the visit isn't in the store yet (e.g. navigating from Today tab
   // before visitsStore has been populated), fetch it on demand.
   useEffect(() => {
-    if (!visit && id) fetchVisit(id)
-  }, [id])
+    if (!visit && id) fetchVisit(id);
+  }, [id]);
 
-  const [notesText, setNotesText] = useState<string>(visit?.notes ?? '')
-  const [saveState, setSaveState] = useState<SaveState>('idle')
-  const [statusLoading, setStatusLoading] = useState(false)
+  const [notesText, setNotesText] = useState<string>(visit?.notes ?? '');
+  const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [statusLoading, setStatusLoading] = useState(false);
 
   // Sync local notes when the store visit changes (e.g. after remote update)
   useEffect(() => {
     if (visit) {
-      setNotesText(visit.notes ?? '')
+      setNotesText(visit.notes ?? '');
     }
-  }, [visit?.id])
+  }, [visit?.id]);
 
-  const isOwner = visit ? visit.owner_user_id === currentUser?.id : false
+  const isOwner = visit ? visit.owner_user_id === currentUser?.id : false;
 
   // Set header: "Editar" button (only for visit owner)
   useLayoutEffect(() => {
-    if (!visit) return
+    if (!visit) return;
     navigation.setOptions({
       headerRight: isOwner
         ? () => (
@@ -109,8 +116,8 @@ export default function VisitDetailView() {
             </Pressable>
           )
         : undefined,
-    })
-  }, [visit, id, navigation, router, isOwner])
+    });
+  }, [visit, id, navigation, router, isOwner]);
 
   // -------------------------------------------------------------------------
   // Not found / loading
@@ -121,7 +128,7 @@ export default function VisitDetailView() {
       <View style={styles.notFoundContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
-    )
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -129,36 +136,36 @@ export default function VisitDetailView() {
   // -------------------------------------------------------------------------
 
   async function handleNotesBlur() {
-    const originalNotes = visit?.notes ?? ''
-    if (notesText === originalNotes) return
+    const originalNotes = visit?.notes ?? '';
+    if (notesText === originalNotes) return;
 
-    setSaveState('saving')
-    await updateVisit(id, { notes: notesText })
+    setSaveState('saving');
+    await updateVisit(id, { notes: notesText });
 
     // Check if save was successful
     if (error) {
-      setSaveState('idle')
-      return
+      setSaveState('idle');
+      return;
     }
 
-    setSaveState('saved')
+    setSaveState('saved');
 
     // Reset indicator after 2 seconds
-    setTimeout(() => setSaveState('idle'), 2000)
+    setTimeout(() => setSaveState('idle'), 2000);
   }
 
   async function handleMarkCompleted() {
-    if (statusLoading) return
-    setStatusLoading(true)
-    await updateStatus(id, 'completed')
-    setStatusLoading(false)
+    if (statusLoading) return;
+    setStatusLoading(true);
+    await updateStatus(id, 'completed');
+    setStatusLoading(false);
   }
 
   async function handleCancelVisit() {
-    if (statusLoading) return
-    setStatusLoading(true)
-    await updateStatus(id, 'canceled')
-    setStatusLoading(false)
+    if (statusLoading) return;
+    setStatusLoading(true);
+    await updateStatus(id, 'canceled');
+    setStatusLoading(false);
   }
 
   function handleDelete() {
@@ -171,14 +178,14 @@ export default function VisitDetailView() {
           text: 'Eliminar',
           style: 'destructive',
           onPress: async () => {
-            await deleteVisit(id)
+            await deleteVisit(id);
             if (!deleteError) {
-              router.back()
+              router.back();
             }
           },
         },
-      ],
-    )
+      ]
+    );
   }
 
   // -------------------------------------------------------------------------
@@ -186,15 +193,15 @@ export default function VisitDetailView() {
   // -------------------------------------------------------------------------
 
   function SectionLabel({ title }: { title: string }) {
-    return <Text style={styles.sectionLabel}>{title}</Text>
+    return <Text style={styles.sectionLabel}>{title}</Text>;
   }
 
-  const clientName = visit.client?.name ?? 'Cliente desconocido'
-  const clientIndustry = visit.client?.industry ?? null
-  const clientId = visit.client?.id ?? visit.client_id
+  const clientName = visit.client?.name ?? 'Cliente desconocido';
+  const clientIndustry = visit.client?.industry ?? null;
+  const clientId = visit.client?.id ?? visit.client_id;
 
-  const rawDate = dayjs(visit.scheduled_at).format('dddd D [de] MMMM · HH:mm')
-  const formattedDate = rawDate.charAt(0).toUpperCase() + rawDate.slice(1)
+  const rawDate = dayjs(visit.scheduled_at).format('dddd D [de] MMMM · HH:mm');
+  const formattedDate = rawDate.charAt(0).toUpperCase() + rawDate.slice(1);
 
   // -------------------------------------------------------------------------
   // Root render
@@ -208,7 +215,6 @@ export default function VisitDetailView() {
       enableOnAndroid
       extraScrollHeight={80}
     >
-
       {/* ── Sección: Cliente ───────────────────────────────────────────── */}
       <View style={styles.section}>
         <SectionLabel title="Cliente" />
@@ -255,20 +261,28 @@ export default function VisitDetailView() {
       </View>
 
       {/* ── Monto (solo cotizaciones y ventas con monto) ───────────────── */}
-      {visit.amount != null && (visit.type === 'quote' || visit.type === 'sale') ? (
+      {visit.amount != null &&
+      (visit.type === 'quote' || visit.type === 'sale') ? (
         <>
           <View style={styles.divider} />
           <View style={styles.section}>
             <SectionLabel title="Monto" />
             <Text style={styles.amountText}>
-              ${visit.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+              $
+              {visit.amount.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}{' '}
+              USD
             </Text>
           </View>
         </>
       ) : null}
 
       {/* ── Productos (cotizaciones y ventas con items) ────────────────── */}
-      {visit.items && visit.items.length > 0 && (visit.type === 'quote' || visit.type === 'sale') ? (
+      {visit.items &&
+      visit.items.length > 0 &&
+      (visit.type === 'quote' || visit.type === 'sale') ? (
         <>
           <View style={styles.divider} />
           <View style={styles.section}>
@@ -279,18 +293,26 @@ export default function VisitDetailView() {
                 <View key={index} style={styles.itemRow}>
                   <View style={styles.itemLeft}>
                     <Text style={styles.itemName}>
-                      {item.product_code ? `[${item.product_code}] ` : ''}{item.product_name}
+                      {item.product_code ? `[${item.product_code}] ` : ''}
+                      {item.product_name}
                     </Text>
                     <Text style={styles.itemSub}>
                       {item.presentation_label}
-                      {item.custom_quantity_kg ? ` · ~${item.custom_quantity_kg} ${item.unit}` : ''}
+                      {item.custom_quantity_kg
+                        ? ` · ~${item.custom_quantity_kg} ${item.unit}`
+                        : ''}
                     </Text>
                   </View>
                   <Text style={styles.itemPricePerKg}>
-                    ${(item.unit_price_usd * (1 + item.margin_pct / 100)).toLocaleString('en-US', {
+                    $
+                    {(
+                      item.unit_price_usd *
+                      (1 + item.margin_pct / 100)
+                    ).toLocaleString('en-US', {
                       minimumFractionDigits: 4,
                       maximumFractionDigits: 4,
-                    })} USD/{item.unit}
+                    })}{' '}
+                    USD/{item.unit}
                   </Text>
                 </View>
               ))
@@ -301,34 +323,42 @@ export default function VisitDetailView() {
                   <View key={index} style={styles.itemRow}>
                     <View style={styles.itemLeft}>
                       <Text style={styles.itemName}>
-                        {item.product_code ? `[${item.product_code}] ` : ''}{item.product_name}
+                        {item.product_code ? `[${item.product_code}] ` : ''}
+                        {item.product_name}
                       </Text>
                       <Text style={styles.itemSub}>
-                        {item.presentation_label} · {item.quantity} envase{item.quantity !== 1 ? 's' : ''}
+                        {item.presentation_label} · {item.quantity} envase
+                        {item.quantity !== 1 ? 's' : ''}
                         {item.margin_pct > 0 ? ` · +${item.margin_pct}%` : ''}
                       </Text>
                       <Text style={styles.itemSub}>
-                        ${item.unit_price_usd.toLocaleString('en-US', {
+                        $
+                        {item.unit_price_usd.toLocaleString('en-US', {
                           minimumFractionDigits: 4,
                           maximumFractionDigits: 4,
-                        })} USD/{item.unit}
+                        })}{' '}
+                        USD/{item.unit}
                       </Text>
                     </View>
                     <Text style={styles.itemTotal}>
-                      ${(item.total_usd ?? 0).toLocaleString('en-US', {
+                      $
+                      {(item.total_usd ?? 0).toLocaleString('en-US', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
-                      })} USD
+                      })}{' '}
+                      USD
                     </Text>
                   </View>
                 ))}
                 <View style={styles.itemsTotalRow}>
                   <Text style={styles.itemsTotalLabel}>Total</Text>
                   <Text style={styles.itemsTotalAmount}>
-                    ${visit.amount?.toLocaleString('en-US', {
+                    $
+                    {visit.amount?.toLocaleString('en-US', {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
-                    })} USD
+                    })}{' '}
+                    USD
                   </Text>
                 </View>
               </>
@@ -380,7 +410,12 @@ export default function VisitDetailView() {
                   </Text>
                   {sale.amount != null ? (
                     <Text style={styles.linkedRowAmount}>
-                      ${sale.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                      $
+                      {sale.amount.toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}{' '}
+                      USD
                     </Text>
                   ) : null}
                   <StatusTypeBadge status={sale.status} type="sale" />
@@ -405,7 +440,9 @@ export default function VisitDetailView() {
           {saveState === 'saving' ? (
             <Text style={styles.saveIndicator}>Guardando...</Text>
           ) : saveState === 'saved' ? (
-            <Text style={[styles.saveIndicator, styles.saveIndicatorSaved]}>Guardado</Text>
+            <Text style={[styles.saveIndicator, styles.saveIndicatorSaved]}>
+              Guardado
+            </Text>
           ) : null}
         </View>
 
@@ -468,7 +505,9 @@ export default function VisitDetailView() {
               {statusLoading ? (
                 <ActivityIndicator color={colors.error} />
               ) : (
-                <Text style={styles.actionButtonDangerText}>Cancelar visita</Text>
+                <Text style={styles.actionButtonDangerText}>
+                  Cancelar visita
+                </Text>
               )}
             </Pressable>
           </View>
@@ -495,15 +534,16 @@ export default function VisitDetailView() {
               {deleting ? (
                 <ActivityIndicator color={colors.error} />
               ) : (
-                <Text style={styles.actionButtonDeleteText}>Eliminar gestión</Text>
+                <Text style={styles.actionButtonDeleteText}>
+                  Eliminar gestión
+                </Text>
               )}
             </Pressable>
           </View>
         </>
       ) : null}
-
     </KeyboardAwareScrollView>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -776,4 +816,4 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold as '600',
     color: colors.error,
   },
-})
+});

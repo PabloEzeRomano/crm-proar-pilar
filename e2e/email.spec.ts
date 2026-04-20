@@ -14,458 +14,497 @@
  * - Test verifies UI behavior, not email backend
  */
 
-import { test, expect } from '@playwright/test'
+import { test, expect } from '@playwright/test';
 
 test.describe('Email Configuration (EP-023.5)', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to settings page
-    await page.goto('/settings')
-    await page.waitForLoadState('networkidle')
-  })
+    await page.goto('/settings');
+    await page.waitForLoadState('networkidle');
+  });
 
   test('should display email section in settings', async ({ page }) => {
     // Look for "RESUMEN SEMANAL" section
-    const emailSection = page.locator('text=RESUMEN SEMANAL')
-    const toggleLabel = page.locator('text=Enviar resumen semanal')
+    const emailSection = page.locator('text=RESUMEN SEMANAL');
+    const toggleLabel = page.locator('text=Enviar resumen semanal');
 
-    await expect(emailSection).toBeVisible()
-    await expect(toggleLabel).toBeVisible()
-  })
+    await expect(emailSection).toBeVisible();
+    await expect(toggleLabel).toBeVisible();
+  });
 
   test('should display email toggle switch', async ({ page }) => {
-    const toggleSwitch = page.locator('input[role="switch"]').first()
+    const toggleSwitch = page.locator('input[role="switch"]').first();
 
     // Toggle should be visible
     if (await toggleSwitch.isVisible().catch(() => false)) {
-      await expect(toggleSwitch).toBeVisible()
+      await expect(toggleSwitch).toBeVisible();
     }
-  })
+  });
 
   test('should show description for email feature', async ({ page }) => {
-    const description = page.locator('text=Cada lunes por la mañana')
+    const description = page.locator('text=Cada lunes por la mañana');
 
-    await expect(description).toBeVisible()
-  })
+    await expect(description).toBeVisible();
+  });
 
-  test('should enable email config options when toggle is ON', async ({ page }) => {
-    const toggleSwitch = page.locator('input[role="switch"]').first()
+  test('should enable email config options when toggle is ON', async ({
+    page,
+  }) => {
+    const toggleSwitch = page.locator('input[role="switch"]').first();
 
     if (await toggleSwitch.isVisible().catch(() => false)) {
-      const isEnabled = await toggleSwitch.isChecked().catch(() => false)
+      const isEnabled = await toggleSwitch.isChecked().catch(() => false);
 
       if (!isEnabled) {
         // Toggle it on
-        await toggleSwitch.click()
-        await page.waitForTimeout(500) // Wait for UI to update
+        await toggleSwitch.click();
+        await page.waitForTimeout(500); // Wait for UI to update
       }
 
       // After enabling, should show configuration fields
-      const senderLabel = page.locator('text=Email de envío')
-      const recipientLabel = page.locator('text=Destinatarios')
+      const senderLabel = page.locator('text=Email de envío');
+      const recipientLabel = page.locator('text=Destinatarios');
 
       // At least one config field should appear
-      let foundConfigField = false
+      let foundConfigField = false;
       if (await senderLabel.isVisible().catch(() => false)) {
-        foundConfigField = true
+        foundConfigField = true;
       }
       if (await recipientLabel.isVisible().catch(() => false)) {
-        foundConfigField = true
+        foundConfigField = true;
       }
 
-      expect(foundConfigField).toBeTruthy()
+      expect(foundConfigField).toBeTruthy();
     }
-  })
+  });
 
-  test('should show read-only auto-generated sender address', async ({ page }) => {
-    const toggleSwitch = page.locator('input[role="switch"]').first()
+  test('should show read-only auto-generated sender address', async ({
+    page,
+  }) => {
+    const toggleSwitch = page.locator('input[role="switch"]').first();
 
     if (await toggleSwitch.isVisible().catch(() => false)) {
-      const isEnabled = await toggleSwitch.isChecked().catch(() => false)
+      const isEnabled = await toggleSwitch.isChecked().catch(() => false);
 
       if (!isEnabled) {
-        await toggleSwitch.click()
-        await page.waitForTimeout(500)
+        await toggleSwitch.click();
+        await page.waitForTimeout(500);
       }
 
       // Look for read-only sender address field
-      const senderLabel = page.locator('text=Email de envío')
-      const senderField = page.locator('[style*="backgroundColor"], input[disabled]')
-        .or(page.locator('text=gvega@send.gemm-apps.com'))
+      const senderLabel = page.locator('text=Email de envío');
+      const senderField = page
+        .locator('[style*="backgroundColor"], input[disabled]')
+        .or(page.locator('text=gvega@send.gemm-apps.com'));
 
       // Sender display should be visible
       if (await senderLabel.isVisible().catch(() => false)) {
-        await expect(senderLabel).toBeVisible()
+        await expect(senderLabel).toBeVisible();
       }
 
       // Read-only field should show auto-generated address
       // It follows pattern: {email_local_part}@send.gemm-apps.com
-      const autoGeneratedPattern = page.locator('text=@send.gemm-apps.com')
+      const autoGeneratedPattern = page.locator('text=@send.gemm-apps.com');
       if (await autoGeneratedPattern.isVisible().catch(() => false)) {
-        await expect(autoGeneratedPattern).toBeVisible()
+        await expect(autoGeneratedPattern).toBeVisible();
       }
     }
-  })
+  });
 
   test('should allow adding recipient email addresses', async ({ page }) => {
-    const toggleSwitch = page.locator('input[role="switch"]').first()
+    const toggleSwitch = page.locator('input[role="switch"]').first();
 
     if (await toggleSwitch.isVisible().catch(() => false)) {
-      const isEnabled = await toggleSwitch.isChecked().catch(() => false)
+      const isEnabled = await toggleSwitch.isChecked().catch(() => false);
 
       if (!isEnabled) {
-        await toggleSwitch.click()
-        await page.waitForTimeout(500)
+        await toggleSwitch.click();
+        await page.waitForTimeout(500);
       }
 
       // Look for recipient input and add button
-      const recipientInputs = page.locator('input[placeholder*="ejemplo"]')
-        .or(page.locator('input[placeholder*="correo"]'))
+      const recipientInputs = page
+        .locator('input[placeholder*="ejemplo"]')
+        .or(page.locator('input[placeholder*="correo"]'));
 
-      if (await recipientInputs.first().isVisible().catch(() => false)) {
-        const recipientInput = recipientInputs.first()
-        const addButton = page.locator('button:has-text("Agregar")')
+      if (
+        await recipientInputs
+          .first()
+          .isVisible()
+          .catch(() => false)
+      ) {
+        const recipientInput = recipientInputs.first();
+        const addButton = page.locator('button:has-text("Agregar")');
 
         // Fill in recipient email
-        await recipientInput.fill('test@example.com')
+        await recipientInput.fill('test@example.com');
 
         // Click add button
         if (await addButton.isVisible().catch(() => false)) {
-          await addButton.click()
-          await page.waitForTimeout(300)
+          await addButton.click();
+          await page.waitForTimeout(300);
 
           // Should show recipient chip/tag
-          const recipientChip = page.locator('text=test@example.com')
+          const recipientChip = page.locator('text=test@example.com');
           if (await recipientChip.isVisible().catch(() => false)) {
-            await expect(recipientChip).toBeVisible()
+            await expect(recipientChip).toBeVisible();
           }
         }
       }
     }
-  })
+  });
 
   test('should validate email format for recipients', async ({ page }) => {
-    const toggleSwitch = page.locator('input[role="switch"]').first()
+    const toggleSwitch = page.locator('input[role="switch"]').first();
 
     if (await toggleSwitch.isVisible().catch(() => false)) {
-      const isEnabled = await toggleSwitch.isChecked().catch(() => false)
+      const isEnabled = await toggleSwitch.isChecked().catch(() => false);
 
       if (!isEnabled) {
-        await toggleSwitch.click()
-        await page.waitForTimeout(500)
+        await toggleSwitch.click();
+        await page.waitForTimeout(500);
       }
 
       // Try to add invalid email
-      const recipientInput = page.locator('input[placeholder*="ejemplo"]')
-        .or(page.locator('input[placeholder*="correo"]')).first()
+      const recipientInput = page
+        .locator('input[placeholder*="ejemplo"]')
+        .or(page.locator('input[placeholder*="correo"]'))
+        .first();
 
       if (await recipientInput.isVisible().catch(() => false)) {
-        await recipientInput.fill('not-an-email')
+        await recipientInput.fill('not-an-email');
 
-        const addButton = page.locator('button:has-text("Agregar")')
+        const addButton = page.locator('button:has-text("Agregar")');
         if (await addButton.isVisible().catch(() => false)) {
-          await addButton.click()
-          await page.waitForTimeout(300)
+          await addButton.click();
+          await page.waitForTimeout(300);
 
           // Should show error message
-          const errorMessage = page.locator('text=/Email inválido|invalido/')
-          if (await errorMessage.isVisible({ timeout: 2000 }).catch(() => false)) {
-            await expect(errorMessage).toBeVisible()
+          const errorMessage = page.locator('text=/Email inválido|invalido/');
+          if (
+            await errorMessage.isVisible({ timeout: 2000 }).catch(() => false)
+          ) {
+            await expect(errorMessage).toBeVisible();
           }
         }
       }
     }
-  })
+  });
 
   test('should prevent adding duplicate recipients', async ({ page }) => {
-    const toggleSwitch = page.locator('input[role="switch"]').first()
+    const toggleSwitch = page.locator('input[role="switch"]').first();
 
     if (await toggleSwitch.isVisible().catch(() => false)) {
-      const isEnabled = await toggleSwitch.isChecked().catch(() => false)
+      const isEnabled = await toggleSwitch.isChecked().catch(() => false);
 
       if (!isEnabled) {
-        await toggleSwitch.click()
-        await page.waitForTimeout(500)
+        await toggleSwitch.click();
+        await page.waitForTimeout(500);
       }
 
       // Add recipient
-      const recipientInput = page.locator('input[placeholder*="ejemplo"]')
-        .or(page.locator('input[placeholder*="correo"]')).first()
+      const recipientInput = page
+        .locator('input[placeholder*="ejemplo"]')
+        .or(page.locator('input[placeholder*="correo"]'))
+        .first();
 
       if (await recipientInput.isVisible().catch(() => false)) {
-        const testEmail = 'duplicate@test.com'
-        await recipientInput.fill(testEmail)
+        const testEmail = 'duplicate@test.com';
+        await recipientInput.fill(testEmail);
 
-        const addButton = page.locator('button:has-text("Agregar")')
+        const addButton = page.locator('button:has-text("Agregar")');
         if (await addButton.isVisible().catch(() => false)) {
-          await addButton.click()
-          await page.waitForTimeout(300)
+          await addButton.click();
+          await page.waitForTimeout(300);
 
           // Try to add same email again
-          await recipientInput.fill(testEmail)
-          await addButton.click()
-          await page.waitForTimeout(300)
+          await recipientInput.fill(testEmail);
+          await addButton.click();
+          await page.waitForTimeout(300);
 
           // Should show error "Ya agregado"
-          const errorMessage = page.locator('text=Ya agregado')
-          if (await errorMessage.isVisible({ timeout: 2000 }).catch(() => false)) {
-            await expect(errorMessage).toBeVisible()
+          const errorMessage = page.locator('text=Ya agregado');
+          if (
+            await errorMessage.isVisible({ timeout: 2000 }).catch(() => false)
+          ) {
+            await expect(errorMessage).toBeVisible();
           }
         }
       }
     }
-  })
+  });
 
   test('should allow removing recipient email addresses', async ({ page }) => {
-    const toggleSwitch = page.locator('input[role="switch"]').first()
+    const toggleSwitch = page.locator('input[role="switch"]').first();
 
     if (await toggleSwitch.isVisible().catch(() => false)) {
-      const isEnabled = await toggleSwitch.isChecked().catch(() => false)
+      const isEnabled = await toggleSwitch.isChecked().catch(() => false);
 
       if (!isEnabled) {
-        await toggleSwitch.click()
-        await page.waitForTimeout(500)
+        await toggleSwitch.click();
+        await page.waitForTimeout(500);
       }
 
       // Add a recipient first
-      const recipientInput = page.locator('input[placeholder*="ejemplo"]')
-        .or(page.locator('input[placeholder*="correo"]')).first()
+      const recipientInput = page
+        .locator('input[placeholder*="ejemplo"]')
+        .or(page.locator('input[placeholder*="correo"]'))
+        .first();
 
       if (await recipientInput.isVisible().catch(() => false)) {
-        await recipientInput.fill('remove@test.com')
+        await recipientInput.fill('remove@test.com');
 
-        const addButton = page.locator('button:has-text("Agregar")')
+        const addButton = page.locator('button:has-text("Agregar")');
         if (await addButton.isVisible().catch(() => false)) {
-          await addButton.click()
-          await page.waitForTimeout(300)
+          await addButton.click();
+          await page.waitForTimeout(300);
 
           // Look for close button on recipient chip
-          const closeButton = page.locator('button[aria-label*="Eliminar"]').first()
+          const closeButton = page
+            .locator('button[aria-label*="Eliminar"]')
+            .first();
           if (await closeButton.isVisible().catch(() => false)) {
-            await closeButton.click()
-            await page.waitForTimeout(300)
+            await closeButton.click();
+            await page.waitForTimeout(300);
 
             // Recipient chip should be removed
-            const removedEmail = page.locator('text=remove@test.com')
-            if (await removedEmail.isVisible({ timeout: 1000 }).catch(() => false)) {
+            const removedEmail = page.locator('text=remove@test.com');
+            if (
+              await removedEmail.isVisible({ timeout: 1000 }).catch(() => false)
+            ) {
               // Should not be visible anymore
-              await expect(removedEmail).not.toBeVisible()
+              await expect(removedEmail).not.toBeVisible();
             }
           }
         }
       }
     }
-  })
-})
+  });
+});
 
 test.describe('Email Sending (EP-023.5)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/settings')
-    await page.waitForLoadState('networkidle')
-  })
+    await page.goto('/settings');
+    await page.waitForLoadState('networkidle');
+  });
 
-  test('should show "Enviar ahora" button in dev environment', async ({ page }) => {
+  test('should show "Enviar ahora" button in dev environment', async ({
+    page,
+  }) => {
     // This button only appears in __DEV__ mode
-    const sendButton = page.locator('button:has-text("Enviar ahora")')
+    const sendButton = page.locator('button:has-text("Enviar ahora")');
 
     // Soft assertion — button only exists in dev builds
     if (await sendButton.isVisible().catch(() => false)) {
-      await expect(sendButton).toBeVisible()
+      await expect(sendButton).toBeVisible();
     }
-  })
+  });
 
   test('should disable send button while sending', async ({ page }) => {
-    const sendButton = page.locator('button:has-text("Enviar ahora")')
+    const sendButton = page.locator('button:has-text("Enviar ahora")');
 
     if (await sendButton.isVisible().catch(() => false)) {
       // Button should be enabled initially
-      await expect(sendButton).toBeEnabled()
+      await expect(sendButton).toBeEnabled();
 
       // Click send button
-      await sendButton.click()
+      await sendButton.click();
 
       // Brief moment to check loading state
-      await page.waitForTimeout(100)
+      await page.waitForTimeout(100);
     }
-  })
+  });
 
   test('should show feedback after email send attempt', async ({ page }) => {
-    const sendButton = page.locator('button:has-text("Enviar ahora")')
+    const sendButton = page.locator('button:has-text("Enviar ahora")');
 
     if (await sendButton.isVisible().catch(() => false)) {
       // Clear any previous feedback
-      const clearButton = page.locator('[data-testid="clear-feedback"]')
+      const clearButton = page.locator('[data-testid="clear-feedback"]');
       if (await clearButton.isVisible().catch(() => false)) {
-        await clearButton.click()
-        await page.waitForTimeout(300)
+        await clearButton.click();
+        await page.waitForTimeout(300);
       }
 
       // Click send
-      await sendButton.click()
+      await sendButton.click();
 
       // Wait for response
-      const feedbackMessage = page.locator('text=/Enviado|Enviado correctamente|Error|Fallo/')
+      const feedbackMessage = page.locator(
+        'text=/Enviado|Enviado correctamente|Error|Fallo/'
+      );
 
       // Feedback should appear (either success or error)
-      if (await feedbackMessage.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await expect(feedbackMessage).toBeVisible()
+      if (
+        await feedbackMessage.isVisible({ timeout: 5000 }).catch(() => false)
+      ) {
+        await expect(feedbackMessage).toBeVisible();
       }
     }
-  })
+  });
 
   test('should show success message on successful send', async ({ page }) => {
-    const sendButton = page.locator('button:has-text("Enviar ahora")')
+    const sendButton = page.locator('button:has-text("Enviar ahora")');
 
     if (await sendButton.isVisible().catch(() => false)) {
-      await sendButton.click()
+      await sendButton.click();
 
       // Look for success message
-      const successMessage = page.locator('text=/Enviado correctamente|Sent successfully/')
-        .or(page.locator('[style*="success"], [style*="green"]'))
+      const successMessage = page
+        .locator('text=/Enviado correctamente|Sent successfully/')
+        .or(page.locator('[style*="success"], [style*="green"]'));
 
       // Soft assertion — success depends on email config being valid
-      if (await successMessage.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await expect(successMessage).toBeVisible()
+      if (
+        await successMessage.isVisible({ timeout: 5000 }).catch(() => false)
+      ) {
+        await expect(successMessage).toBeVisible();
       }
     }
-  })
+  });
 
-  test('should handle errors gracefully when sending fails', async ({ page }) => {
-    const sendButton = page.locator('button:has-text("Enviar ahora")')
+  test('should handle errors gracefully when sending fails', async ({
+    page,
+  }) => {
+    const sendButton = page.locator('button:has-text("Enviar ahora")');
 
     if (await sendButton.isVisible().catch(() => false)) {
-      await sendButton.click()
+      await sendButton.click();
 
       // Wait for response
-      await page.waitForTimeout(1000)
+      await page.waitForTimeout(1000);
 
       // Check for any error indicators
-      const errorMessage = page.locator('text=/Error|error/')
-        .or(page.locator('[role="alert"]'))
+      const errorMessage = page
+        .locator('text=/Error|error/')
+        .or(page.locator('[role="alert"]'));
 
       // Soft assertion — error only appears if something fails
       if (await errorMessage.isVisible({ timeout: 5000 }).catch(() => false)) {
-        await expect(errorMessage).toBeVisible()
+        await expect(errorMessage).toBeVisible();
       }
     }
-  })
+  });
 
   test('should not crash app after sending email', async ({ page }) => {
-    const sendButton = page.locator('button:has-text("Enviar ahora")')
+    const sendButton = page.locator('button:has-text("Enviar ahora")');
 
     if (await sendButton.isVisible().catch(() => false)) {
       // Click send
-      await sendButton.click()
+      await sendButton.click();
 
       // Wait for async operation
-      await page.waitForTimeout(2000)
+      await page.waitForTimeout(2000);
 
       // App should still be responsive
-      const pageContent = page.locator('body')
-      await expect(pageContent).toBeTruthy()
+      const pageContent = page.locator('body');
+      await expect(pageContent).toBeTruthy();
 
       // Settings page should still be visible
-      const settingsContent = page.locator('text=RESUMEN SEMANAL')
+      const settingsContent = page.locator('text=RESUMEN SEMANAL');
       if (await settingsContent.isVisible().catch(() => false)) {
-        await expect(settingsContent).toBeVisible()
+        await expect(settingsContent).toBeVisible();
       }
     }
-  })
+  });
 
   test('should allow multiple send attempts', async ({ page }) => {
-    const sendButton = page.locator('button:has-text("Enviar ahora")')
+    const sendButton = page.locator('button:has-text("Enviar ahora")');
 
     if (await sendButton.isVisible().catch(() => false)) {
       // First send
-      await sendButton.click()
-      await page.waitForTimeout(1500)
+      await sendButton.click();
+      await page.waitForTimeout(1500);
 
       // Button should be available again
-      await expect(sendButton).toBeEnabled()
+      await expect(sendButton).toBeEnabled();
 
       // Second send
-      await sendButton.click()
-      await page.waitForTimeout(1500)
+      await sendButton.click();
+      await page.waitForTimeout(1500);
 
       // Should still be responsive
-      const pageContent = page.locator('body')
-      await expect(pageContent).toBeTruthy()
+      const pageContent = page.locator('body');
+      await expect(pageContent).toBeTruthy();
     }
-  })
-})
+  });
+});
 
 test.describe('Email Settings Save (EP-023.5)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/settings')
-    await page.waitForLoadState('networkidle')
-  })
+    await page.goto('/settings');
+    await page.waitForLoadState('networkidle');
+  });
 
   test('should show save bar when email config changes', async ({ page }) => {
-    const toggleSwitch = page.locator('input[role="switch"]').first()
+    const toggleSwitch = page.locator('input[role="switch"]').first();
 
     if (await toggleSwitch.isVisible().catch(() => false)) {
-      const initialState = await toggleSwitch.isChecked()
+      const initialState = await toggleSwitch.isChecked();
 
       // Toggle email setting
-      await toggleSwitch.click()
-      await page.waitForTimeout(300)
+      await toggleSwitch.click();
+      await page.waitForTimeout(300);
 
       // Save bar should appear
-      const saveBar = page.locator('button:has-text("Guardar cambios")')
-        .or(page.locator('[role="button"]:has-text("Guardar")'))
+      const saveBar = page
+        .locator('button:has-text("Guardar cambios")')
+        .or(page.locator('[role="button"]:has-text("Guardar")'));
 
       if (await saveBar.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await expect(saveBar).toBeVisible()
+        await expect(saveBar).toBeVisible();
       }
 
       // Revert change
-      await toggleSwitch.click()
+      await toggleSwitch.click();
     }
-  })
+  });
 
   test('should save email configuration changes', async ({ page }) => {
-    const toggleSwitch = page.locator('input[role="switch"]').first()
+    const toggleSwitch = page.locator('input[role="switch"]').first();
 
     if (await toggleSwitch.isVisible().catch(() => false)) {
       // Change setting
-      await toggleSwitch.click()
-      await page.waitForTimeout(300)
+      await toggleSwitch.click();
+      await page.waitForTimeout(300);
 
       // Find and click save button
-      const saveButton = page.locator('button:has-text("Guardar cambios")')
-        .or(page.locator('[role="button"]:has-text("Guardar")'))
+      const saveButton = page
+        .locator('button:has-text("Guardar cambios")')
+        .or(page.locator('[role="button"]:has-text("Guardar")'));
 
       if (await saveButton.isVisible().catch(() => false)) {
-        await saveButton.click()
+        await saveButton.click();
 
         // Wait for save to complete
-        await page.waitForTimeout(1000)
+        await page.waitForTimeout(1000);
 
         // Save button should disappear if save succeeded
         // Or show feedback
-        const feedback = page.locator('text=/Guardado|Saved/')
+        const feedback = page.locator('text=/Guardado|Saved/');
         if (await feedback.isVisible({ timeout: 2000 }).catch(() => false)) {
-          await expect(feedback).toBeVisible()
+          await expect(feedback).toBeVisible();
         }
       }
     }
-  })
+  });
 
   test('should not lose changes on navigation', async ({ page }) => {
     // Make a change
-    const toggleSwitch = page.locator('input[role="switch"]').first()
+    const toggleSwitch = page.locator('input[role="switch"]').first();
 
     if (await toggleSwitch.isVisible().catch(() => false)) {
-      const currentState = await toggleSwitch.isChecked()
-      await toggleSwitch.click()
+      const currentState = await toggleSwitch.isChecked();
+      await toggleSwitch.click();
 
       // Navigate away (should ideally warn about unsaved changes)
       // For now, just verify the app doesn't crash
-      await page.goto('/visits')
-      await page.waitForLoadState('networkidle')
+      await page.goto('/visits');
+      await page.waitForLoadState('networkidle');
 
       // Navigation should succeed
-      const pageContent = page.locator('body')
-      await expect(pageContent).toBeTruthy()
+      const pageContent = page.locator('body');
+      await expect(pageContent).toBeTruthy();
     }
-  })
-})
+  });
+});

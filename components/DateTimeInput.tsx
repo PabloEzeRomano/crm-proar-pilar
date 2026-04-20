@@ -5,13 +5,13 @@
  * - Web: HTML <input type="date"> / <input type="time"> via TextInput
  */
 
-import React from 'react'
-import { Platform, TextInput, ViewStyle } from 'react-native'
+import React from 'react';
+import { Platform, TextInput, ViewStyle } from 'react-native';
 import DateTimePicker, {
   DateTimePickerEvent,
-} from '@react-native-community/datetimepicker'
-import dayjs from '@/lib/dayjs'
-import { colors, borderRadius, spacing, fontSize } from '@/constants/theme'
+} from '@react-native-community/datetimepicker';
+import dayjs from '@/lib/dayjs';
+import { colors, borderRadius, spacing, fontSize } from '@/constants/theme';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -19,23 +19,23 @@ import { colors, borderRadius, spacing, fontSize } from '@/constants/theme'
 
 export interface DateTimeInputProps {
   /** The current date value */
-  value: Date
+  value: Date;
   /** Called when date changes */
-  onChange: (date: Date) => void
+  onChange: (date: Date) => void;
   /** "date" or "time" */
-  mode: 'date' | 'time'
+  mode: 'date' | 'time';
   /** For date mode: 'calendar' (Android) or 'inline' (iOS). For time mode: 'spinner' or 'clock' */
-  display?: 'calendar' | 'spinner' | 'clock' | 'inline'
+  display?: 'calendar' | 'spinner' | 'clock' | 'inline';
   /** Accent color for native picker */
-  accentColor?: string
+  accentColor?: string;
   /** Locale code */
-  locale?: string
+  locale?: string;
   /** Whether this is an Android modal picker (affects UI on native) */
-  isAndroidModal?: boolean
+  isAndroidModal?: boolean;
   /** Optional style for container */
-  containerStyle?: ViewStyle
+  containerStyle?: ViewStyle;
   /** Called when Android modal closes (only for Android) */
-  onDismiss?: () => void
+  onDismiss?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -58,7 +58,7 @@ export default function DateTimeInput({
     const webValue =
       mode === 'date'
         ? dayjs(value).format('YYYY-MM-DD')
-        : dayjs(value).format('HH:mm')
+        : dayjs(value).format('HH:mm');
 
     const webStyles = {
       paddingHorizontal: spacing[3],
@@ -70,7 +70,7 @@ export default function DateTimeInput({
       fontSize: fontSize.base,
       color: colors.textPrimary,
       height: 44, // Match touch target minimum
-    }
+    };
 
     return (
       <TextInput
@@ -78,24 +78,24 @@ export default function DateTimeInput({
         defaultValue={webValue}
         {...({ type: mode, step: mode === 'time' ? '60' : undefined } as any)}
         onChange={(e: any) => {
-          const raw = e.target.value
-          if (!raw) return
+          const raw = e.target.value;
+          if (!raw) return;
 
-          let parsed: Date
+          let parsed: Date;
           if (mode === 'date') {
-            parsed = dayjs(raw).toDate()
+            parsed = dayjs(raw).toDate();
           } else {
             // Parse time as HH:mm → create a date with that time
-            parsed = dayjs(`1970-01-01T${raw}`).toDate()
+            parsed = dayjs(`1970-01-01T${raw}`).toDate();
           }
 
           // Only update if valid date
           if (!isNaN(parsed.getTime())) {
-            onChange(parsed)
+            onChange(parsed);
           }
         }}
       />
-    )
+    );
   }
 
   // Native: use DateTimePicker
@@ -104,18 +104,23 @@ export default function DateTimeInput({
       value={value}
       mode={mode}
       display={
-        display || (mode === 'date' ? (Platform.OS === 'android' ? 'calendar' : 'inline') : 'spinner')
+        display ||
+        (mode === 'date'
+          ? Platform.OS === 'android'
+            ? 'calendar'
+            : 'inline'
+          : 'spinner')
       }
       onChange={(event: DateTimePickerEvent, date?: Date) => {
         if (date) {
-          onChange(date)
+          onChange(date);
         }
         if (onDismiss && isAndroidModal) {
-          onDismiss()
+          onDismiss();
         }
       }}
       locale={locale}
       accentColor={accentColor}
     />
-  )
+  );
 }

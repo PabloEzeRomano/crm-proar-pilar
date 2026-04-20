@@ -8,7 +8,7 @@
  * - All visual values come from constants/theme.ts and constants/brand.ts.
  */
 
-import { useState } from 'react'
+import { useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -19,20 +19,20 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native'
-import { z } from 'zod'
-import { useRouter } from 'expo-router'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+} from 'react-native';
+import { z } from 'zod';
+import { useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { useAuthStore } from '@/stores/authStore'
-import { brand } from '@/constants/brand'
+import { useAuthStore } from '@/stores/authStore';
+import { brand } from '@/constants/brand';
 import {
   borderRadius,
   colors,
   fontSize,
   fontWeight,
   spacing,
-} from '@/constants/theme'
+} from '@/constants/theme';
 
 // ---------------------------------------------------------------------------
 // Validation schema
@@ -41,63 +41,65 @@ import {
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Mínimo 6 caracteres'),
-})
+});
 
-type LoginSchema = z.infer<typeof loginSchema>
+type LoginSchema = z.infer<typeof loginSchema>;
 
-type FieldErrors = Partial<Record<keyof LoginSchema, string>>
+type FieldErrors = Partial<Record<keyof LoginSchema, string>>;
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function LoginScreen() {
-  const router = useRouter()
-  const signIn = useAuthStore((s) => s.signIn)
-  const loading = useAuthStore((s) => s.loading)
-  const authError = useAuthStore((s) => s.error)
-  const clearError = useAuthStore((s) => s.clearError)
+  const router = useRouter();
+  const signIn = useAuthStore((s) => s.signIn);
+  const loading = useAuthStore((s) => s.loading);
+  const authError = useAuthStore((s) => s.error);
+  const clearError = useAuthStore((s) => s.clearError);
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   // Focus state for styled borders
-  const [emailFocused, setEmailFocused] = useState(false)
-  const [passwordFocused, setPasswordFocused] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // ------------------------------------------------------------------
   // Handlers
   // ------------------------------------------------------------------
 
   function handleEmailChange(text: string) {
-    setEmail(text)
-    if (authError) clearError()
-    if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }))
+    setEmail(text);
+    if (authError) clearError();
+    if (fieldErrors.email)
+      setFieldErrors((prev) => ({ ...prev, email: undefined }));
   }
 
   function handlePasswordChange(text: string) {
-    setPassword(text)
-    if (authError) clearError()
-    if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }))
+    setPassword(text);
+    if (authError) clearError();
+    if (fieldErrors.password)
+      setFieldErrors((prev) => ({ ...prev, password: undefined }));
   }
 
   async function handleSubmit() {
-    const result = loginSchema.safeParse({ email: email.trim(), password })
+    const result = loginSchema.safeParse({ email: email.trim(), password });
 
     if (!result.success) {
-      const errors: FieldErrors = {}
+      const errors: FieldErrors = {};
       for (const issue of result.error.issues) {
-        const field = issue.path[0] as keyof LoginSchema
-        if (!errors[field]) errors[field] = issue.message
+        const field = issue.path[0] as keyof LoginSchema;
+        if (!errors[field]) errors[field] = issue.message;
       }
-      setFieldErrors(errors)
-      return
+      setFieldErrors(errors);
+      return;
     }
 
-    setFieldErrors({})
-    await signIn(result.data.email, result.data.password)
+    setFieldErrors({});
+    await signIn(result.data.email, result.data.password);
     // Navigation is handled automatically by the root layout auth guard.
   }
 
@@ -108,14 +110,14 @@ export default function LoginScreen() {
   const emailBorderColor = fieldErrors.email
     ? colors.error
     : emailFocused
-    ? colors.primary
-    : colors.border
+      ? colors.primary
+      : colors.border;
 
   const passwordBorderColor = fieldErrors.password
     ? colors.error
     : passwordFocused
-    ? colors.primary
-    : colors.border
+      ? colors.primary
+      : colors.border;
 
   // ------------------------------------------------------------------
   // Render
@@ -167,7 +169,11 @@ export default function LoginScreen() {
             <Text style={styles.label}>Contraseña</Text>
             <View style={styles.passwordFieldContainer}>
               <TextInput
-                style={[styles.input, styles.passwordInput, { borderColor: passwordBorderColor }]}
+                style={[
+                  styles.input,
+                  styles.passwordInput,
+                  { borderColor: passwordBorderColor },
+                ]}
                 value={password}
                 onChangeText={handlePasswordChange}
                 onFocus={() => setPasswordFocused(true)}
@@ -184,7 +190,9 @@ export default function LoginScreen() {
               <Pressable
                 onPress={() => setShowPassword(!showPassword)}
                 style={styles.passwordToggle}
-                accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                accessibilityLabel={
+                  showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                }
                 accessibilityRole="button"
               >
                 <MaterialCommunityIcons
@@ -216,9 +224,7 @@ export default function LoginScreen() {
           </Pressable>
 
           {/* Auth error banner */}
-          {authError ? (
-            <Text style={styles.authError}>{authError}</Text>
-          ) : null}
+          {authError ? <Text style={styles.authError}>{authError}</Text> : null}
 
           {/* Password recovery link */}
           <Pressable
@@ -229,11 +235,10 @@ export default function LoginScreen() {
           >
             <Text style={styles.textLinkLabel}>¿Olvidaste tu contraseña?</Text>
           </Pressable>
-
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -366,4 +371,4 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.primary,
   },
-})
+});

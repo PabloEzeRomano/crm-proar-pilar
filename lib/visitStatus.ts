@@ -1,38 +1,35 @@
-import { VisitStatus, VisitType } from '@/types'
+import { VisitStatus, VisitType } from '@/types';
 
 const STATUS_LABELS: Record<VisitType, Record<VisitStatus, string>> = {
   visit: {
-    pending:   'Pendiente',
+    pending: 'Pendiente',
     completed: 'Completada',
-    canceled:  'Cancelada',
+    canceled: 'Cancelada',
   },
   call: {
-    pending:   'Pendiente',
+    pending: 'Pendiente',
     completed: 'Completada',
-    canceled:  'Cancelada',
+    canceled: 'Cancelada',
   },
   quote: {
-    pending:   'Enviada',
+    pending: 'Enviada',
     completed: 'Aceptada',
-    canceled:  'Rechazada',
+    canceled: 'Rechazada',
   },
   sale: {
-    pending:   'Pendiente',
+    pending: 'Pendiente',
     completed: 'Pagada',
-    canceled:  'Demorada',
+    canceled: 'Demorada',
   },
-}
+};
 
 const TYPE_LABELS: Record<VisitType, string> = {
   visit: 'Visita',
   call: 'Llamada',
   quote: 'Cotización',
   sale: 'Venta',
-}
+};
 
-export function getStatusLabel(
-  type: VisitType,
-  status?: VisitStatus,
-): string {
+export function getStatusLabel(type: VisitType, status?: VisitStatus): string {
   return status ? STATUS_LABELS[type][status] : TYPE_LABELS[type];
 }

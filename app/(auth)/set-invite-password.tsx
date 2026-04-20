@@ -6,7 +6,7 @@
  * After saving, they are sent to the main app — no sign-out needed.
  */
 
-import { useState } from 'react'
+import { useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -17,97 +17,110 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native'
-import { useRouter } from 'expo-router'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { useAuthStore } from '@/stores/authStore'
-import { setInvitePasswordSchema, type SetInvitePasswordInput } from '@/validators/auth'
+import { useAuthStore } from '@/stores/authStore';
+import {
+  setInvitePasswordSchema,
+  type SetInvitePasswordInput,
+} from '@/validators/auth';
 import {
   borderRadius,
   colors,
   fontSize,
   fontWeight,
   spacing,
-} from '@/constants/theme'
+} from '@/constants/theme';
 
-type FieldErrors = Partial<Record<keyof SetInvitePasswordInput, string>>
+type FieldErrors = Partial<Record<keyof SetInvitePasswordInput, string>>;
 
 export default function SetInvitePasswordScreen() {
-  const router = useRouter()
-  const setInitialPassword = useAuthStore((s) => s.setInitialPassword)
+  const router = useRouter();
+  const setInitialPassword = useAuthStore((s) => s.setInitialPassword);
 
-  const [fullName, setFullName] = useState('')
-  const [password, setPassword] = useState('')
-  const [passwordConfirm, setPasswordConfirm] = useState('')
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
-  const [loading, setLoading] = useState(false)
+  const [fullName, setFullName] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [loading, setLoading] = useState(false);
 
-  const [fullNameFocused, setFullNameFocused] = useState(false)
-  const [passwordFocused, setPasswordFocused] = useState(false)
-  const [confirmFocused, setConfirmFocused] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
+  const [fullNameFocused, setFullNameFocused] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [confirmFocused, setConfirmFocused] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   function handleFullNameChange(text: string) {
-    setFullName(text)
-    if (fieldErrors.fullName) setFieldErrors((prev) => ({ ...prev, fullName: undefined }))
+    setFullName(text);
+    if (fieldErrors.fullName)
+      setFieldErrors((prev) => ({ ...prev, fullName: undefined }));
   }
 
   function handlePasswordChange(text: string) {
-    setPassword(text)
-    if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }))
+    setPassword(text);
+    if (fieldErrors.password)
+      setFieldErrors((prev) => ({ ...prev, password: undefined }));
   }
 
   function handleConfirmChange(text: string) {
-    setPasswordConfirm(text)
-    if (fieldErrors.passwordConfirm) setFieldErrors((prev) => ({ ...prev, passwordConfirm: undefined }))
+    setPasswordConfirm(text);
+    if (fieldErrors.passwordConfirm)
+      setFieldErrors((prev) => ({ ...prev, passwordConfirm: undefined }));
   }
 
   async function handleSubmit() {
-    const result = setInvitePasswordSchema.safeParse({ fullName, password, passwordConfirm })
+    const result = setInvitePasswordSchema.safeParse({
+      fullName,
+      password,
+      passwordConfirm,
+    });
 
     if (!result.success) {
-      const errors: FieldErrors = {}
+      const errors: FieldErrors = {};
       for (const issue of result.error.issues) {
-        const field = issue.path[0] as keyof SetInvitePasswordInput
-        if (!errors[field]) errors[field] = issue.message
+        const field = issue.path[0] as keyof SetInvitePasswordInput;
+        if (!errors[field]) errors[field] = issue.message;
       }
-      setFieldErrors(errors)
-      return
+      setFieldErrors(errors);
+      return;
     }
 
-    setFieldErrors({})
-    setLoading(true)
-    const { error } = await setInitialPassword(result.data.password, result.data.fullName)
-    setLoading(false)
+    setFieldErrors({});
+    setLoading(true);
+    const { error } = await setInitialPassword(
+      result.data.password,
+      result.data.fullName
+    );
+    setLoading(false);
 
     if (error) {
-      setFieldErrors({ password: error })
-      return
+      setFieldErrors({ password: error });
+      return;
     }
 
     // isInviteUser is now false → useAuthGuard routes to /(tabs)/agenda
-    router.replace('/(tabs)/agenda')
+    router.replace('/(tabs)/agenda');
   }
 
   const fullNameBorderColor = fieldErrors.fullName
     ? colors.error
     : fullNameFocused
-    ? colors.primary
-    : colors.border
+      ? colors.primary
+      : colors.border;
 
   const passwordBorderColor = fieldErrors.password
     ? colors.error
     : passwordFocused
-    ? colors.primary
-    : colors.border
+      ? colors.primary
+      : colors.border;
 
   const confirmBorderColor = fieldErrors.passwordConfirm
     ? colors.error
     : confirmFocused
-    ? colors.primary
-    : colors.border
+      ? colors.primary
+      : colors.border;
 
   return (
     <KeyboardAvoidingView
@@ -154,7 +167,11 @@ export default function SetInvitePasswordScreen() {
             <Text style={styles.label}>Contraseña</Text>
             <View style={styles.passwordFieldContainer}>
               <TextInput
-                style={[styles.input, styles.passwordInput, { borderColor: passwordBorderColor }]}
+                style={[
+                  styles.input,
+                  styles.passwordInput,
+                  { borderColor: passwordBorderColor },
+                ]}
                 value={password}
                 onChangeText={handlePasswordChange}
                 onFocus={() => setPasswordFocused(true)}
@@ -171,7 +188,9 @@ export default function SetInvitePasswordScreen() {
               <Pressable
                 onPress={() => setShowPassword(!showPassword)}
                 style={styles.passwordToggle}
-                accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                accessibilityLabel={
+                  showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                }
                 accessibilityRole="button"
               >
                 <MaterialCommunityIcons
@@ -191,7 +210,11 @@ export default function SetInvitePasswordScreen() {
             <Text style={styles.label}>Confirmar contraseña</Text>
             <View style={styles.passwordFieldContainer}>
               <TextInput
-                style={[styles.input, styles.passwordInput, { borderColor: confirmBorderColor }]}
+                style={[
+                  styles.input,
+                  styles.passwordInput,
+                  { borderColor: confirmBorderColor },
+                ]}
                 value={passwordConfirm}
                 onChangeText={handleConfirmChange}
                 onFocus={() => setConfirmFocused(true)}
@@ -209,7 +232,9 @@ export default function SetInvitePasswordScreen() {
               <Pressable
                 onPress={() => setShowConfirm(!showConfirm)}
                 style={styles.passwordToggle}
-                accessibilityLabel={showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                accessibilityLabel={
+                  showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                }
                 accessibilityRole="button"
               >
                 <MaterialCommunityIcons
@@ -220,7 +245,9 @@ export default function SetInvitePasswordScreen() {
               </Pressable>
             </View>
             {fieldErrors.passwordConfirm ? (
-              <Text style={styles.fieldError}>{fieldErrors.passwordConfirm}</Text>
+              <Text style={styles.fieldError}>
+                {fieldErrors.passwordConfirm}
+              </Text>
             ) : null}
           </View>
 
@@ -240,7 +267,7 @@ export default function SetInvitePasswordScreen() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -339,4 +366,4 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold,
     color: colors.textOnPrimary,
   },
-})
+});

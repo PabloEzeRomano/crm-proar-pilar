@@ -10,37 +10,37 @@
  *   - Grid of day cells for the current month
  */
 
-import React, { useState } from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
-import dayjs from '@/lib/dayjs'
+import React, { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import dayjs from '@/lib/dayjs';
 import {
   borderRadius,
   colors,
   fontSize,
   fontWeight,
   spacing,
-} from '@/constants/theme'
+} from '@/constants/theme';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export interface WebDatePickerProps {
-  value: Date
-  onChange: (date: Date) => void
-  minDate?: Date
-  maxDate?: Date
+  value: Date;
+  onChange: (date: Date) => void;
+  minDate?: Date;
+  maxDate?: Date;
 }
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const DAY_NAMES = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+const DAY_NAMES = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
 // Cell size — enough to show the number; touch handled via hitSlop
-const CELL_SIZE = 40
-const HIT_SLOP = { top: 4, bottom: 4, left: 4, right: 4 }
+const CELL_SIZE = 40;
+const HIT_SLOP = { top: 4, bottom: 4, left: 4, right: 4 };
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -48,74 +48,82 @@ const HIT_SLOP = { top: 4, bottom: 4, left: 4, right: 4 }
 
 /** Convert JS day (0=Sun) → Monday-first index (0=Mon, 6=Sun) */
 function toMondayFirst(jsDay: number): number {
-  return (jsDay + 6) % 7
+  return (jsDay + 6) % 7;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-export default function WebDatePicker({ value, onChange, minDate, maxDate }: WebDatePickerProps) {
-  const selected = dayjs(value)
-  const today = dayjs()
+export default function WebDatePicker({
+  value,
+  onChange,
+  minDate,
+  maxDate,
+}: WebDatePickerProps) {
+  const selected = dayjs(value);
+  const today = dayjs();
 
   // The month currently shown in the calendar (may differ from selected)
-  const [viewMonth, setViewMonth] = useState(() => selected.startOf('month'))
+  const [viewMonth, setViewMonth] = useState(() => selected.startOf('month'));
 
-  const daysInMonth = viewMonth.daysInMonth()
+  const daysInMonth = viewMonth.daysInMonth();
   // Offset: how many empty cells before the 1st of the month (Monday-first)
-  const firstDayOffset = toMondayFirst(viewMonth.day())
+  const firstDayOffset = toMondayFirst(viewMonth.day());
 
   // Build array: null for empty cells, day number for real cells
   const cells: (number | null)[] = [
     ...Array(firstDayOffset).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
-  ]
+  ];
 
   // Pad to complete the last week row
-  while (cells.length % 7 !== 0) cells.push(null)
+  while (cells.length % 7 !== 0) cells.push(null);
 
   function handlePrevMonth() {
-    setViewMonth((m) => m.subtract(1, 'month'))
+    setViewMonth((m) => m.subtract(1, 'month'));
   }
 
   function handleNextMonth() {
-    setViewMonth((m) => m.add(1, 'month'))
+    setViewMonth((m) => m.add(1, 'month'));
   }
 
   function handleDayPress(day: number) {
-    const newDate = viewMonth.date(day).toDate()
-    if (minDate && dayjs(newDate).isBefore(dayjs(minDate), 'day')) return
-    if (maxDate && dayjs(newDate).isAfter(dayjs(maxDate), 'day')) return
-    onChange(newDate)
+    const newDate = viewMonth.date(day).toDate();
+    if (minDate && dayjs(newDate).isBefore(dayjs(minDate), 'day')) return;
+    if (maxDate && dayjs(newDate).isAfter(dayjs(maxDate), 'day')) return;
+    onChange(newDate);
   }
 
   function isDaySelected(day: number): boolean {
-    return viewMonth.date(day).isSame(selected, 'day')
+    return viewMonth.date(day).isSame(selected, 'day');
   }
 
   function isDayToday(day: number): boolean {
-    return viewMonth.date(day).isSame(today, 'day')
+    return viewMonth.date(day).isSame(today, 'day');
   }
 
   function isDayDisabled(day: number): boolean {
-    const d = viewMonth.date(day)
-    if (minDate && d.isBefore(dayjs(minDate), 'day')) return true
-    if (maxDate && d.isAfter(dayjs(maxDate), 'day')) return true
-    return false
+    const d = viewMonth.date(day);
+    if (minDate && d.isBefore(dayjs(minDate), 'day')) return true;
+    if (maxDate && d.isAfter(dayjs(maxDate), 'day')) return true;
+    return false;
   }
 
   // Capitalize month name
-  const monthLabel = viewMonth.format('MMMM YYYY')
-  const capitalizedMonth = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1)
+  const monthLabel = viewMonth.format('MMMM YYYY');
+  const capitalizedMonth =
+    monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
 
   return (
     <View style={styles.container}>
-
       {/* ── Header ─────────────────────────────────────────────────── */}
       <View style={styles.header}>
         <Pressable
-          style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}
+          style={({ pressed }) => [
+            styles.navButton,
+            pressed && styles.navButtonPressed,
+          ]}
           onPress={handlePrevMonth}
           accessibilityRole="button"
           accessibilityLabel="Mes anterior"
@@ -127,7 +135,10 @@ export default function WebDatePicker({ value, onChange, minDate, maxDate }: Web
         <Text style={styles.monthLabel}>{capitalizedMonth}</Text>
 
         <Pressable
-          style={({ pressed }) => [styles.navButton, pressed && styles.navButtonPressed]}
+          style={({ pressed }) => [
+            styles.navButton,
+            pressed && styles.navButtonPressed,
+          ]}
           onPress={handleNextMonth}
           accessibilityRole="button"
           accessibilityLabel="Mes siguiente"
@@ -150,12 +161,12 @@ export default function WebDatePicker({ value, onChange, minDate, maxDate }: Web
       <View style={styles.grid}>
         {cells.map((day, index) => {
           if (day === null) {
-            return <View key={`empty-${index}`} style={styles.dayCell} />
+            return <View key={`empty-${index}`} style={styles.dayCell} />;
           }
 
-          const selected_ = isDaySelected(day)
-          const today_ = isDayToday(day)
-          const disabled = isDayDisabled(day)
+          const selected_ = isDaySelected(day);
+          const today_ = isDayToday(day);
+          const disabled = isDayDisabled(day);
 
           return (
             <Pressable
@@ -186,12 +197,11 @@ export default function WebDatePicker({ value, onChange, minDate, maxDate }: Web
                 {day}
               </Text>
             </Pressable>
-          )
+          );
         })}
       </View>
-
     </View>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -301,4 +311,4 @@ const styles = StyleSheet.create({
   dayTextDisabled: {
     color: colors.textDisabled,
   },
-})
+});

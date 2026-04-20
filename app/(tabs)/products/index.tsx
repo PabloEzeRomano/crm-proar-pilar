@@ -1,6 +1,6 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { useRouter } from 'expo-router'
-import React, { useEffect, useMemo, useState } from 'react'
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -9,7 +9,7 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native'
+} from 'react-native';
 
 import {
   borderRadius,
@@ -18,10 +18,10 @@ import {
   fontWeight,
   shadows,
   spacing,
-} from '@/constants/theme'
-import { useAuthStore } from '@/stores/authStore'
-import { useProductsStore } from '@/stores/productsStore'
-import type { Product, ProductType } from '@/types'
+} from '@/constants/theme';
+import { useAuthStore } from '@/stores/authStore';
+import { useProductsStore } from '@/stores/productsStore';
+import type { Product, ProductType } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Type tabs
@@ -31,13 +31,19 @@ const TYPE_TABS: { key: 'all' | ProductType; label: string }[] = [
   { key: 'all', label: 'Todos' },
   { key: 'commodity', label: 'Commodities' },
   { key: 'formulated', label: 'Formulados' },
-]
+];
 
 // ---------------------------------------------------------------------------
 // Product row
 // ---------------------------------------------------------------------------
 
-function ProductRow({ product, onPress }: { product: Product; onPress: () => void }) {
+function ProductRow({
+  product,
+  onPress,
+}: {
+  product: Product;
+  onPress: () => void;
+}) {
   return (
     <Pressable style={styles.row} onPress={onPress} accessibilityRole="button">
       <View style={styles.rowIcon}>
@@ -53,13 +59,19 @@ function ProductRow({ product, onPress }: { product: Product; onPress: () => voi
         </Text>
         <Text style={styles.rowSub}>
           {product.presentations.length}{' '}
-          {product.presentations.length === 1 ? 'presentación' : 'presentaciones'}
+          {product.presentations.length === 1
+            ? 'presentación'
+            : 'presentaciones'}
           {product.code ? `  ·  ${product.code}` : ''}
         </Text>
       </View>
-      <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textDisabled} />
+      <MaterialCommunityIcons
+        name="chevron-right"
+        size={20}
+        color={colors.textDisabled}
+      />
     </Pressable>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -67,40 +79,44 @@ function ProductRow({ product, onPress }: { product: Product; onPress: () => voi
 // ---------------------------------------------------------------------------
 
 export default function ProductsIndexScreen() {
-  const router = useRouter()
-  const profile = useAuthStore((s) => s.profile)
-  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root'
+  const router = useRouter();
+  const profile = useAuthStore((s) => s.profile);
+  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root';
 
-  const products = useProductsStore((s) => s.products)
-  const loading = useProductsStore((s) => s.loading)
-  const fetchProducts = useProductsStore((s) => s.fetchProducts)
+  const products = useProductsStore((s) => s.products);
+  const loading = useProductsStore((s) => s.loading);
+  const fetchProducts = useProductsStore((s) => s.fetchProducts);
 
-  const [search, setSearch] = useState('')
-  const [typeTab, setTypeTab] = useState<'all' | ProductType>('all')
+  const [search, setSearch] = useState('');
+  const [typeTab, setTypeTab] = useState<'all' | ProductType>('all');
 
   useEffect(() => {
-    fetchProducts()
-  }, [])
+    fetchProducts();
+  }, []);
 
   const filtered = useMemo(() => {
-    let list = products
-    if (typeTab !== 'all') list = list.filter((p) => p.type === typeTab)
+    let list = products;
+    if (typeTab !== 'all') list = list.filter((p) => p.type === typeTab);
     if (search.trim()) {
-      const q = search.trim().toLowerCase()
+      const q = search.trim().toLowerCase();
       list = list.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
-          (p.code ?? '').toLowerCase().includes(q),
-      )
+          (p.code ?? '').toLowerCase().includes(q)
+      );
     }
-    return list
-  }, [products, typeTab, search])
+    return list;
+  }, [products, typeTab, search]);
 
   return (
     <View style={styles.container}>
       {/* Search */}
       <View style={styles.searchBar}>
-        <MaterialCommunityIcons name="magnify" size={20} color={colors.textSecondary} />
+        <MaterialCommunityIcons
+          name="magnify"
+          size={20}
+          color={colors.textSecondary}
+        />
         <TextInput
           style={styles.searchInput}
           placeholder="Buscar producto…"
@@ -121,7 +137,12 @@ export default function ProductsIndexScreen() {
             onPress={() => setTypeTab(tab.key)}
             accessibilityRole="tab"
           >
-            <Text style={[styles.tabText, typeTab === tab.key && styles.tabTextActive]}>
+            <Text
+              style={[
+                styles.tabText,
+                typeTab === tab.key && styles.tabTextActive,
+              ]}
+            >
               {tab.label}
             </Text>
           </Pressable>
@@ -163,11 +184,15 @@ export default function ProductsIndexScreen() {
           accessibilityRole="button"
           accessibilityLabel="Nuevo producto"
         >
-          <MaterialCommunityIcons name="plus" size={28} color={colors.textOnPrimary} />
+          <MaterialCommunityIcons
+            name="plus"
+            size={28}
+            color={colors.textOnPrimary}
+          />
         </Pressable>
       )}
     </View>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -285,4 +310,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...shadows.subtle,
   },
-})
+});

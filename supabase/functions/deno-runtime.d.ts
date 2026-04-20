@@ -4,14 +4,16 @@
  */
 declare const Deno: {
   serve: (
-    handler: (request: Request) => Response | Promise<Response> | void | Promise<void>
-  ) => void
+    handler: (
+      request: Request
+    ) => Response | Promise<Response> | void | Promise<void>
+  ) => void;
   env: {
-    get(key: string): string | undefined
-  }
-}
+    get(key: string): string | undefined;
+  };
+};
 
 /** Map Deno remote import to the same types as the app’s npm package. */
 declare module 'https://esm.sh/@supabase/supabase-js@2' {
-  export * from '@supabase/supabase-js'
+  export * from '@supabase/supabase-js';
 }

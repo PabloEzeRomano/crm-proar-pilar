@@ -26,23 +26,23 @@
  *   SUPABASE_ANON_KEY
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type UserRole = 'user' | 'admin' | 'root'
+type UserRole = 'user' | 'admin' | 'root';
 
 interface Profile {
-  id: string
-  role: UserRole
-  company_id: string | null
+  id: string;
+  role: UserRole;
+  company_id: string | null;
 }
 
 interface InviteBody {
-  email: string
-  role: 'user' | 'admin'
+  email: string;
+  role: 'user' | 'admin';
 }
 
 // ---------------------------------------------------------------------------
@@ -56,14 +56,15 @@ function jsonResponse(body: unknown, status = 200): Response {
       'Content-Type': 'application/json',
       ...corsHeaders(),
     },
-  })
+  });
 }
 
 function corsHeaders(): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  }
+    'Access-Control-Allow-Headers':
+      'authorization, x-client-info, apikey, content-type',
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -73,77 +74,86 @@ function corsHeaders(): Record<string, string> {
 Deno.serve(async (req) => {
   // CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders() })
+    return new Response('ok', { headers: corsHeaders() });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
     // ── 1. Authenticate caller ──────────────────────────────────────────────
 
-    const authHeader = req.headers.get('Authorization')
+    const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return jsonResponse({ error: 'Missing authorization header' }, 401)
+      return jsonResponse({ error: 'Missing authorization header' }, 401);
     }
-    const callerJwt = authHeader.slice(7)
+    const callerJwt = authHeader.slice(7);
 
     // Use anon key client + caller JWT to identify the caller
     const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: `Bearer ${callerJwt}` } },
-    })
+    });
 
-    const { data: { user: callerUser }, error: userErr } = await callerClient.auth.getUser()
+    const {
+      data: { user: callerUser },
+      error: userErr,
+    } = await callerClient.auth.getUser();
     if (userErr || !callerUser) {
-      return jsonResponse({ error: 'Invalid or expired token' }, 401)
+      return jsonResponse({ error: 'Invalid or expired token' }, 401);
     }
 
     // ── 2. Load caller's profile ────────────────────────────────────────────
 
     // Use service-role client to bypass RLS for profile lookup
-    const adminClient = createClient(supabaseUrl, serviceRoleKey)
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     const { data: callerProfile, error: profileErr } = await adminClient
       .from('profiles')
       .select('id, role, company_id')
       .eq('id', callerUser.id)
-      .single<Profile>()
+      .single<Profile>();
 
     if (profileErr || !callerProfile) {
-      return jsonResponse({ error: 'Caller profile not found' }, 403)
+      return jsonResponse({ error: 'Caller profile not found' }, 403);
     }
 
     // ── 3. Guard: caller must be admin or root ──────────────────────────────
 
     if (callerProfile.role !== 'admin' && callerProfile.role !== 'root') {
-      return jsonResponse({ error: 'Forbidden: admin or root role required' }, 403)
+      return jsonResponse(
+        { error: 'Forbidden: admin or root role required' },
+        403
+      );
     }
 
     // ── 4. Parse and validate request body ─────────────────────────────────
 
-    let body: InviteBody
+    let body: InviteBody;
     try {
-      body = await req.json() as InviteBody
+      body = (await req.json()) as InviteBody;
     } catch {
-      return jsonResponse({ error: 'Invalid JSON body' }, 400)
+      return jsonResponse({ error: 'Invalid JSON body' }, 400);
     }
 
-    const { email, role } = body
+    const { email, role } = body;
 
     if (!email || typeof email !== 'string' || !email.includes('@')) {
-      return jsonResponse({ error: 'Invalid email address' }, 400)
+      return jsonResponse({ error: 'Invalid email address' }, 400);
     }
 
     if (role !== 'user' && role !== 'admin') {
-      return jsonResponse({ error: 'Invalid role: must be "user" or "admin"' }, 400)
+      return jsonResponse(
+        { error: 'Invalid role: must be "user" or "admin"' },
+        400
+      );
     }
 
     // ── 5. Seat limit check (skip for root) ────────────────────────────────
 
     if (callerProfile.role !== 'root') {
       if (!callerProfile.company_id) {
-        return jsonResponse({ error: 'Caller has no company assigned' }, 403)
+        return jsonResponse({ error: 'Caller has no company assigned' }, 403);
       }
 
       // Read max_users from company_config
@@ -151,52 +161,50 @@ Deno.serve(async (req) => {
         .from('company_config')
         .select('max_users')
         .eq('company_id', callerProfile.company_id)
-        .single<{ max_users: number }>()
+        .single<{ max_users: number }>();
 
       if (configErr || !config) {
-        return jsonResponse({ error: 'Company configuration not found' }, 500)
+        return jsonResponse({ error: 'Company configuration not found' }, 500);
       }
 
       // Count current active users in the company
       const { count, error: countErr } = await adminClient
         .from('profiles')
         .select('id', { count: 'exact', head: true })
-        .eq('company_id', callerProfile.company_id)
+        .eq('company_id', callerProfile.company_id);
 
       if (countErr) {
-        return jsonResponse({ error: 'Failed to count company users' }, 500)
+        return jsonResponse({ error: 'Failed to count company users' }, 500);
       }
 
-      const currentCount = count ?? 0
+      const currentCount = count ?? 0;
       if (currentCount >= config.max_users) {
         return jsonResponse(
           {
             error: 'Seat limit reached',
             detail: `Company has ${currentCount}/${config.max_users} users. Increase max_users in company_config to invite more.`,
           },
-          403,
-        )
+          403
+        );
       }
     }
 
     // ── 6. Send invite ──────────────────────────────────────────────────────
 
-    const { data: inviteData, error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(
-      email,
-      {
+    const { data: inviteData, error: inviteErr } =
+      await adminClient.auth.admin.inviteUserByEmail(email, {
         data: {
           role,
           company_id: callerProfile.company_id,
         },
-      },
-    )
+      });
 
     if (inviteErr) {
       // Surface a friendly message for already-registered emails
       const msg = inviteErr.message.toLowerCase().includes('already')
         ? 'A user with this email already exists'
-        : inviteErr.message
-      return jsonResponse({ error: msg }, 422)
+        : inviteErr.message;
+      return jsonResponse({ error: msg }, 422);
     }
 
     return jsonResponse({
@@ -205,10 +213,10 @@ Deno.serve(async (req) => {
       email,
       role,
       company_id: callerProfile.company_id,
-    })
+    });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err)
-    console.error('invite-user error:', message)
-    return jsonResponse({ error: message }, 500)
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('invite-user error:', message);
+    return jsonResponse({ error: message }, 500);
   }
-})
+});

@@ -10,37 +10,45 @@
  * Props are a superset of DateTimeInputProps so it is a drop-in replacement.
  */
 
-import React, { useState } from 'react'
-import { Modal, Platform, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native'
-import DateTimeInput from '@/components/DateTimeInput'
-import WebDatePicker from '@/components/ui/WebDatePicker'
+import React, { useState } from 'react';
+import {
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
+} from 'react-native';
+import DateTimeInput from '@/components/DateTimeInput';
+import WebDatePicker from '@/components/ui/WebDatePicker';
 import {
   borderRadius,
   colors,
   fontSize,
   fontWeight,
   spacing,
-} from '@/constants/theme'
-import dayjs from '@/lib/dayjs'
+} from '@/constants/theme';
+import dayjs from '@/lib/dayjs';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export interface AppDatePickerProps {
-  value: Date
-  onChange: (date: Date) => void
-  mode?: 'date' | 'time'
-  label?: string
-  minDate?: Date
-  maxDate?: Date
+  value: Date;
+  onChange: (date: Date) => void;
+  mode?: 'date' | 'time';
+  label?: string;
+  minDate?: Date;
+  maxDate?: Date;
   // Pass-through props for mobile (DateTimeInput compatibility)
-  display?: 'calendar' | 'spinner' | 'clock' | 'inline'
-  accentColor?: string
-  locale?: string
-  isAndroidModal?: boolean
-  containerStyle?: ViewStyle
-  onDismiss?: () => void
+  display?: 'calendar' | 'spinner' | 'clock' | 'inline';
+  accentColor?: string;
+  locale?: string;
+  isAndroidModal?: boolean;
+  containerStyle?: ViewStyle;
+  onDismiss?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -61,7 +69,7 @@ export default function AppDatePicker({
   containerStyle,
   onDismiss,
 }: AppDatePickerProps) {
-  const [calendarVisible, setCalendarVisible] = useState(false)
+  const [calendarVisible, setCalendarVisible] = useState(false);
 
   // ── Mobile: delegate entirely to DateTimeInput ──────────────────────────
 
@@ -78,7 +86,7 @@ export default function AppDatePicker({
         containerStyle={containerStyle}
         onDismiss={onDismiss}
       />
-    )
+    );
   }
 
   // ── Web + time mode: keep the HTML input approach ───────────────────────
@@ -91,12 +99,12 @@ export default function AppDatePicker({
         mode="time"
         containerStyle={containerStyle}
       />
-    )
+    );
   }
 
   // ── Web + date mode: trigger button + WebDatePicker modal ───────────────
 
-  const formattedDate = dayjs(value).format('DD/MM/YYYY')
+  const formattedDate = dayjs(value).format('DD/MM/YYYY');
 
   return (
     <>
@@ -108,7 +116,9 @@ export default function AppDatePicker({
         ]}
         onPress={() => setCalendarVisible(true)}
         accessibilityRole="button"
-        accessibilityLabel={label ? `${label}: ${formattedDate}` : formattedDate}
+        accessibilityLabel={
+          label ? `${label}: ${formattedDate}` : formattedDate
+        }
       >
         <Text style={styles.triggerText}>{formattedDate}</Text>
         <Text style={styles.triggerIcon}>📅</Text>
@@ -140,8 +150,8 @@ export default function AppDatePicker({
           <WebDatePicker
             value={value}
             onChange={(date) => {
-              onChange(date)
-              setCalendarVisible(false)
+              onChange(date);
+              setCalendarVisible(false);
             }}
             minDate={minDate}
             maxDate={maxDate}
@@ -149,7 +159,7 @@ export default function AppDatePicker({
         </View>
       </Modal>
     </>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -219,4 +229,4 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     color: colors.textSecondary,
   },
-})
+});

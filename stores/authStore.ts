@@ -18,7 +18,7 @@ export interface AuthState {
   signUp: (
     email: string,
     password: string,
-    fullName: string,
+    fullName: string
   ) => Promise<{ requiresVerification: boolean; error: string | null }>;
   signOut: () => Promise<void>;
   clearError: () => void;
@@ -27,7 +27,10 @@ export interface AuthState {
   updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
   setInviteUser: (value: boolean) => void;
   completeInviteFlow: (isNewUser: boolean) => void;
-  setInitialPassword: (newPassword: string, fullName?: string) => Promise<{ error: string | null }>;
+  setInitialPassword: (
+    newPassword: string,
+    fullName?: string
+  ) => Promise<{ error: string | null }>;
   updateEmailConfig: (config: import('../types').EmailConfig) => Promise<void>;
   completeTour: () => Promise<void>;
   resetTour: () => Promise<void>;
@@ -35,12 +38,12 @@ export interface AuthState {
     recipientsOverride?: string[],
     dateFrom?: string,
     dateTo?: string,
-    targetUserId?: string,
+    targetUserId?: string
   ) => Promise<void>;
   sendQuote: (
     visitId: string,
     recipientEmail: string,
-    recipientName?: string,
+    recipientName?: string
   ) => Promise<{ error: string | null }>;
   setInviteSetup: (value: boolean) => void;
 }
@@ -54,7 +57,7 @@ let authSubscription:
 // Module-level helper so it is not part of AuthState and avoids the
 // get()._fetchProfile() pattern which would require extending the interface.
 async function fetchProfile(
-  userId: string,
+  userId: string
   // set: (partial: Partial<AuthState>) => void,
 ) {
   const { data, error } = await supabase
@@ -111,11 +114,13 @@ export const useAuthStore = create<AuthState>()((set) => ({
         set({ session, user: session.user, loading: false });
 
         // Fetch profile in the background without blocking
-        fetchProfile(session.user.id).then((profile) => {
-          if (profile) set({ profile })
-        }).catch(() => {
-          // Profile may not exist yet on first sign-up (DB trigger is async)
-        });
+        fetchProfile(session.user.id)
+          .then((profile) => {
+            if (profile) set({ profile });
+          })
+          .catch(() => {
+            // Profile may not exist yet on first sign-up (DB trigger is async)
+          });
       } else if (event === 'SIGNED_OUT') {
         set({
           session: null,
@@ -198,7 +203,9 @@ export const useAuthStore = create<AuthState>()((set) => ({
       Platform.OS === 'web' && typeof window !== 'undefined'
         ? `${window.location.origin}/auth/callback`
         : 'crm-proar://auth/callback';
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    });
     return { error: error?.message ?? null };
   },
 
@@ -230,34 +237,39 @@ export const useAuthStore = create<AuthState>()((set) => ({
   setInitialPassword: async (newPassword: string, fullName?: string) => {
     const updateData: { password: string; data?: { full_name: string } } = {
       password: newPassword,
-    }
-    if (fullName) updateData.data = { full_name: fullName }
-    const { error } = await supabase.auth.updateUser(updateData)
-    if (error) return { error: error.message }
+    };
+    if (fullName) updateData.data = { full_name: fullName };
+    const { error } = await supabase.auth.updateUser(updateData);
+    if (error) return { error: error.message };
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (user) {
-      const userEmail = user.email ?? ''
-      const localPart = userEmail.split('@')[0] ?? ''
+      const userEmail = user.email ?? '';
+      const localPart = userEmail.split('@')[0] ?? '';
       const senderAddress = localPart
         ? `${localPart}@send.gemm-apps.com`
-        : 'noreply@send.gemm-apps.com'
+        : 'noreply@send.gemm-apps.com';
       const emailConfig = {
         sender: userEmail,
         sender_address: senderAddress,
         sender_name: fullName ?? userEmail,
         recipients: [],
         enabled: false,
-      }
+      };
 
       // company_id from invite metadata — safety net if trigger ran before 0024
-      const companyId = (user.user_metadata?.company_id as string | undefined) ?? null
+      const companyId =
+        (user.user_metadata?.company_id as string | undefined) ?? null;
 
-      const profileUpdate: Record<string, unknown> = { email_config: emailConfig }
-      if (fullName) profileUpdate.full_name = fullName
-      if (companyId) profileUpdate.company_id = companyId
+      const profileUpdate: Record<string, unknown> = {
+        email_config: emailConfig,
+      };
+      if (fullName) profileUpdate.full_name = fullName;
+      if (companyId) profileUpdate.company_id = companyId;
 
-      await supabase.from('profiles').update(profileUpdate).eq('id', user.id)
+      await supabase.from('profiles').update(profileUpdate).eq('id', user.id);
 
       set((state) => ({
         profile: state.profile
@@ -269,12 +281,12 @@ export const useAuthStore = create<AuthState>()((set) => ({
             }
           : state.profile,
         isInviteUser: false,
-      }))
+      }));
     } else {
-      set({ isInviteUser: false })
+      set({ isInviteUser: false });
     }
 
-    return { error: null }
+    return { error: null };
   },
 
   completeTour: async () => {
@@ -335,7 +347,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
     recipientsOverride?: string[],
     dateFrom?: string,
     dateTo?: string,
-    targetUserId?: string,
+    targetUserId?: string
   ) => {
     set({ error: null });
 
@@ -350,7 +362,14 @@ export const useAuthStore = create<AuthState>()((set) => ({
       body: Object.keys(body).length > 0 ? body : undefined,
     });
 
-    console.log('[weekly-email] response:', JSON.stringify(data), 'error:', error, 'body:', body);
+    console.log(
+      '[weekly-email] response:',
+      JSON.stringify(data),
+      'error:',
+      error,
+      'body:',
+      body
+    );
 
     if (error) {
       set({
@@ -365,7 +384,10 @@ export const useAuthStore = create<AuthState>()((set) => ({
       body: { visitId, recipientEmail, recipientName },
     });
     if (error) {
-      const msg = typeof error === 'string' ? error : (error as Error)?.message ?? 'Error sending quote email';
+      const msg =
+        typeof error === 'string'
+          ? error
+          : ((error as Error)?.message ?? 'Error sending quote email');
       return { error: msg };
     }
     if (data && !data.ok) {

@@ -6,4 +6,4 @@
  * No query-param workaround needed.
  */
 
-export { default } from '@/components/visits/VisitDetailView'
+export { default } from '@/components/visits/VisitDetailView';

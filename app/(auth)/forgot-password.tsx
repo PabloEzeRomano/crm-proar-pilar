@@ -5,7 +5,7 @@
  * After submission, shows confirmation that email was sent.
  */
 
-import { useState } from 'react'
+import { useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -16,65 +16,71 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native'
-import { useRouter } from 'expo-router'
+} from 'react-native';
+import { useRouter } from 'expo-router';
 
-import { useAuthStore } from '@/stores/authStore'
-import { forgotPasswordSchema } from '@/validators/auth'
+import { useAuthStore } from '@/stores/authStore';
+import { forgotPasswordSchema } from '@/validators/auth';
 import {
   borderRadius,
   colors,
   fontSize,
   fontWeight,
   spacing,
-} from '@/constants/theme'
+} from '@/constants/theme';
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function ForgotPasswordScreen() {
-  const router = useRouter()
-  const requestPasswordReset = useAuthStore((s) => s.requestPasswordReset)
+  const router = useRouter();
+  const requestPasswordReset = useAuthStore((s) => s.requestPasswordReset);
 
-  const [email, setEmail] = useState('')
-  const [fieldError, setFieldError] = useState<string | undefined>()
-  const [loading, setLoading] = useState(false)
-  const [step, setStep] = useState<'form' | 'sent'>('form')
-  const [emailFocused, setEmailFocused] = useState(false)
+  const [email, setEmail] = useState('');
+  const [fieldError, setFieldError] = useState<string | undefined>();
+  const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<'form' | 'sent'>('form');
+  const [emailFocused, setEmailFocused] = useState(false);
 
   // ------------------------------------------------------------------
   // Handlers
   // ------------------------------------------------------------------
 
   function handleEmailChange(text: string) {
-    setEmail(text)
-    if (fieldError) setFieldError(undefined)
+    setEmail(text);
+    if (fieldError) setFieldError(undefined);
   }
 
   async function handleSubmit() {
-    const result = forgotPasswordSchema.safeParse({ email: email.trim().toLowerCase() })
+    const result = forgotPasswordSchema.safeParse({
+      email: email.trim().toLowerCase(),
+    });
 
     if (!result.success) {
-      setFieldError(result.error.issues[0]?.message)
-      return
+      setFieldError(result.error.issues[0]?.message);
+      return;
     }
 
-    setFieldError(undefined)
-    setLoading(true)
-    const { error } = await requestPasswordReset(result.data.email)
-    setLoading(false)
+    setFieldError(undefined);
+    setLoading(true);
+    const { error } = await requestPasswordReset(result.data.email);
+    setLoading(false);
 
     // Always show "sent" step regardless of error
     // (don't leak whether email exists in the system)
-    setStep('sent')
+    setStep('sent');
   }
 
   // ------------------------------------------------------------------
   // Derived styles
   // ------------------------------------------------------------------
 
-  const emailBorderColor = fieldError ? colors.error : emailFocused ? colors.primary : colors.border
+  const emailBorderColor = fieldError
+    ? colors.error
+    : emailFocused
+      ? colors.primary
+      : colors.border;
 
   // ------------------------------------------------------------------
   // Render: form step
@@ -111,7 +117,9 @@ export default function ForgotPasswordScreen() {
                 placeholderTextColor={colors.textDisabled}
                 editable={!loading}
               />
-              {fieldError ? <Text style={styles.fieldError}>{fieldError}</Text> : null}
+              {fieldError ? (
+                <Text style={styles.fieldError}>{fieldError}</Text>
+              ) : null}
             </View>
 
             <Pressable
@@ -134,7 +142,7 @@ export default function ForgotPasswordScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    )
+    );
   }
 
   // ------------------------------------------------------------------
@@ -142,7 +150,10 @@ export default function ForgotPasswordScreen() {
   // ------------------------------------------------------------------
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -154,13 +165,16 @@ export default function ForgotPasswordScreen() {
             Si la cuenta existe, enviamos un link para resetear tu contraseña.
           </Text>
 
-          <Pressable onPress={() => router.replace('/(auth)/login')} style={styles.backLink}>
+          <Pressable
+            onPress={() => router.replace('/(auth)/login')}
+            style={styles.backLink}
+          >
             <Text style={styles.backLinkLabel}>Volver al inicio</Text>
           </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -263,4 +277,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
   },
-})
+});

@@ -1,6 +1,6 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
-import React, { useEffect, useLayoutEffect, useState } from 'react'
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -9,7 +9,7 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native'
+} from 'react-native';
 
 import {
   borderRadius,
@@ -18,18 +18,21 @@ import {
   fontWeight,
   shadows,
   spacing,
-} from '@/constants/theme'
-import { useAuthStore } from '@/stores/authStore'
-import { useProductsStore } from '@/stores/productsStore'
-import type { Product, ProductPresentation } from '@/types'
-import type { UpdateProductInput, CreatePresentationInput } from '@/validators/product'
+} from '@/constants/theme';
+import { useAuthStore } from '@/stores/authStore';
+import { useProductsStore } from '@/stores/productsStore';
+import type { Product, ProductPresentation } from '@/types';
+import type {
+  UpdateProductInput,
+  CreatePresentationInput,
+} from '@/validators/product';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 function formatPrice(price: number) {
-  return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} USD`
+  return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} USD`;
 }
 
 // ---------------------------------------------------------------------------
@@ -41,9 +44,9 @@ function PresentationRow({
   isAdmin,
   onDelete,
 }: {
-  pres: ProductPresentation
-  isAdmin: boolean
-  onDelete: () => void
+  pres: ProductPresentation;
+  isAdmin: boolean;
+  onDelete: () => void;
 }) {
   return (
     <View style={styles.presRow}>
@@ -63,36 +66,45 @@ function PresentationRow({
           accessibilityLabel="Eliminar presentación"
           hitSlop={8}
         >
-          <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors.error} />
+          <MaterialCommunityIcons
+            name="trash-can-outline"
+            size={18}
+            color={colors.error}
+          />
         </Pressable>
       )}
     </View>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
 // Add presentation inline form
 // ---------------------------------------------------------------------------
 
-function AddPresentationForm({ onAdd }: { onAdd: (data: CreatePresentationInput) => void }) {
-  const [label, setLabel] = useState('')
-  const [unit, setUnit] = useState('')
-  const [price, setPrice] = useState('')
-  const [quantity, setQuantity] = useState('')
+function AddPresentationForm({
+  onAdd,
+}: {
+  onAdd: (data: CreatePresentationInput) => void;
+}) {
+  const [label, setLabel] = useState('');
+  const [unit, setUnit] = useState('');
+  const [price, setPrice] = useState('');
+  const [quantity, setQuantity] = useState('');
 
   function submit() {
-    const priceVal = parseFloat(price)
-    if (!label.trim() || !unit.trim() || isNaN(priceVal) || priceVal < 0) return
+    const priceVal = parseFloat(price);
+    if (!label.trim() || !unit.trim() || isNaN(priceVal) || priceVal < 0)
+      return;
     onAdd({
       label: label.trim(),
       unit: unit.trim(),
       price_usd: priceVal,
       quantity: quantity.trim() ? parseFloat(quantity) || null : null,
-    })
-    setLabel('')
-    setUnit('')
-    setPrice('')
-    setQuantity('')
+    });
+    setLabel('');
+    setUnit('');
+    setPrice('');
+    setQuantity('');
   }
 
   return (
@@ -130,11 +142,15 @@ function AddPresentationForm({ onAdd }: { onAdd: (data: CreatePresentationInput)
         onChangeText={setPrice}
         keyboardType="decimal-pad"
       />
-      <Pressable style={styles.addPresBtn} onPress={submit} accessibilityRole="button">
+      <Pressable
+        style={styles.addPresBtn}
+        onPress={submit}
+        accessibilityRole="button"
+      >
         <Text style={styles.addPresBtnText}>Agregar</Text>
       </Pressable>
     </View>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -142,35 +158,35 @@ function AddPresentationForm({ onAdd }: { onAdd: (data: CreatePresentationInput)
 // ---------------------------------------------------------------------------
 
 export default function ProductDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>()
-  const navigation = useNavigation()
-  const router = useRouter()
-  const profile = useAuthStore((s) => s.profile)
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'root'
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const navigation = useNavigation();
+  const router = useRouter();
+  const profile = useAuthStore((s) => s.profile);
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'root';
 
-  const products = useProductsStore((s) => s.products)
-  const updateProduct = useProductsStore((s) => s.updateProduct)
-  const deleteProduct = useProductsStore((s) => s.deleteProduct)
-  const addPresentation = useProductsStore((s) => s.addPresentation)
-  const deletePresentation = useProductsStore((s) => s.deletePresentation)
+  const products = useProductsStore((s) => s.products);
+  const updateProduct = useProductsStore((s) => s.updateProduct);
+  const deleteProduct = useProductsStore((s) => s.deleteProduct);
+  const addPresentation = useProductsStore((s) => s.addPresentation);
+  const deletePresentation = useProductsStore((s) => s.deletePresentation);
 
-  const product: Product | undefined = products.find((p) => p.id === id)
+  const product: Product | undefined = products.find((p) => p.id === id);
 
-  const [editing, setEditing] = useState(false)
-  const [name, setName] = useState('')
-  const [code, setCode] = useState('')
-  const [notes, setNotes] = useState('')
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState('');
+  const [code, setCode] = useState('');
+  const [notes, setNotes] = useState('');
 
   useEffect(() => {
     if (product) {
-      setName(product.name)
-      setCode(product.code ?? '')
-      setNotes(product.notes ?? '')
+      setName(product.name);
+      setCode(product.code ?? '');
+      setNotes(product.notes ?? '');
     }
-  }, [product?.id])
+  }, [product?.id]);
 
   useLayoutEffect(() => {
-    if (!isAdmin || !product) return
+    if (!isAdmin || !product) return;
     navigation.setOptions({
       headerRight: () => (
         <Pressable
@@ -183,15 +199,15 @@ export default function ProductDetailScreen() {
           </Text>
         </Pressable>
       ),
-    })
-  }, [isAdmin, editing, product])
+    });
+  }, [isAdmin, editing, product]);
 
   if (!product) {
     return (
       <View style={styles.centered}>
         <Text style={styles.emptyText}>Producto no encontrado</Text>
       </View>
-    )
+    );
   }
 
   async function handleSave() {
@@ -199,9 +215,9 @@ export default function ProductDetailScreen() {
       name: name.trim() || product!.name,
       code: code.trim() || null,
       notes: notes.trim() || null,
-    }
-    await updateProduct(product!.id, data)
-    setEditing(false)
+    };
+    await updateProduct(product!.id, data);
+    setEditing(false);
   }
 
   function handleDelete() {
@@ -214,12 +230,12 @@ export default function ProductDetailScreen() {
           text: 'Eliminar',
           style: 'destructive',
           onPress: async () => {
-            await deleteProduct(product!.id)
-            router.back()
+            await deleteProduct(product!.id);
+            router.back();
           },
         },
-      ],
-    )
+      ]
+    );
   }
 
   function handleDeletePresentation(presId: string) {
@@ -230,11 +246,14 @@ export default function ProductDetailScreen() {
         style: 'destructive',
         onPress: () => deletePresentation(presId),
       },
-    ])
+    ]);
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+    >
       {/* ── Info section ─────────────────────────────────────────────── */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Información</Text>
@@ -264,7 +283,11 @@ export default function ProductDetailScreen() {
               numberOfLines={3}
             />
             <View style={styles.editActions}>
-              <Pressable style={styles.saveBtn} onPress={handleSave} accessibilityRole="button">
+              <Pressable
+                style={styles.saveBtn}
+                onPress={handleSave}
+                accessibilityRole="button"
+              >
                 <Text style={styles.saveBtnText}>Guardar</Text>
               </Pressable>
               {profile?.role === 'root' && (
@@ -281,7 +304,10 @@ export default function ProductDetailScreen() {
         ) : (
           <View style={styles.infoCard}>
             <InfoRow label="Nombre" value={product.name} />
-            <InfoRow label="Tipo" value={product.type === 'commodity' ? 'Commodity' : 'Formulado'} />
+            <InfoRow
+              label="Tipo"
+              value={product.type === 'commodity' ? 'Commodity' : 'Formulado'}
+            />
             {product.code && <InfoRow label="Código" value={product.code} />}
             {product.notes && <InfoRow label="Notas" value={product.notes} />}
           </View>
@@ -313,7 +339,7 @@ export default function ProductDetailScreen() {
         )}
       </View>
     </ScrollView>
-  )
+  );
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
@@ -322,7 +348,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       <Text style={styles.infoLabel}>{label}</Text>
       <Text style={styles.infoValue}>{value}</Text>
     </View>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -497,4 +523,4 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     color: colors.textSecondary,
   },
-})
+});

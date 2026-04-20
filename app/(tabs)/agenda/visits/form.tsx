@@ -5,4 +5,4 @@
  * stays within the Agenda stack and back navigation works correctly.
  */
 
-export { default } from '../../visits/form'
+export { default } from '../../visits/form';

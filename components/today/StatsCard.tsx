@@ -10,20 +10,36 @@
  *   - EP-039: "Completed only" toggle + date range filter
  */
 
-import React, { useEffect, useState } from 'react'
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native'
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
-import { borderRadius, colors, fontSize, fontWeight, shadows, spacing } from '@/constants/theme'
-import { useVisitStats } from '@/hooks/useVisitStats'
-import AppDatePicker from '@/components/ui/AppDatePicker'
-import dayjs from '@/lib/dayjs'
-import { useAuthStore } from '@/stores/authStore'
-import { useVisitsStore } from '@/stores/visitsStore'
-import { useUsersStore } from '@/stores/usersStore'
+import React, { useEffect, useState } from 'react';
+import {
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import {
+  borderRadius,
+  colors,
+  fontSize,
+  fontWeight,
+  shadows,
+  spacing,
+} from '@/constants/theme';
+import { useVisitStats } from '@/hooks/useVisitStats';
+import AppDatePicker from '@/components/ui/AppDatePicker';
+import dayjs from '@/lib/dayjs';
+import { useAuthStore } from '@/stores/authStore';
+import { useVisitsStore } from '@/stores/visitsStore';
+import { useUsersStore } from '@/stores/usersStore';
 
 interface StatsModalProps {
-  visible: boolean
-  onClose: () => void
+  visible: boolean;
+  onClose: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -31,12 +47,18 @@ interface StatsModalProps {
 // ---------------------------------------------------------------------------
 
 function ProgressBar({ rate }: { rate: number }) {
-  const fillColor = rate >= 75 ? colors.success : rate >= 50 ? colors.warning : colors.error
+  const fillColor =
+    rate >= 75 ? colors.success : rate >= 50 ? colors.warning : colors.error;
   return (
     <View style={pbStyles.track}>
-      <View style={[pbStyles.fill, { width: `${rate}%` as `${number}%`, backgroundColor: fillColor }]} />
+      <View
+        style={[
+          pbStyles.fill,
+          { width: `${rate}%` as `${number}%`, backgroundColor: fillColor },
+        ]}
+      />
     </View>
-  )
+  );
 }
 
 const pbStyles = StyleSheet.create({
@@ -51,51 +73,80 @@ const pbStyles = StyleSheet.create({
     height: '100%',
     borderRadius: borderRadius.full,
   },
-})
+});
 
 // ---------------------------------------------------------------------------
 // Period card (week / month)
 // ---------------------------------------------------------------------------
 
 interface PeriodCardProps {
-  label: string
-  total: number
-  totalAll: number
-  completed: number
-  pending: number
-  completionRate: number
-  completedOnly: boolean
+  label: string;
+  total: number;
+  totalAll: number;
+  completed: number;
+  pending: number;
+  completionRate: number;
+  completedOnly: boolean;
 }
 
-function PeriodCard({ label, total, totalAll, completed, pending, completionRate, completedOnly }: PeriodCardProps) {
+function PeriodCard({
+  label,
+  total,
+  totalAll,
+  completed,
+  pending,
+  completionRate,
+  completedOnly,
+}: PeriodCardProps) {
   // When completedOnly is active, show real completion rate against unfiltered total
-  const displayRate = completedOnly && totalAll > 0 ? Math.round((total / totalAll) * 100) : completionRate
-  const rateColor = displayRate >= 75 ? colors.success : displayRate >= 50 ? colors.warning : colors.error
-  const showAsFraction = completedOnly && totalAll > total
+  const displayRate =
+    completedOnly && totalAll > 0
+      ? Math.round((total / totalAll) * 100)
+      : completionRate;
+  const rateColor =
+    displayRate >= 75
+      ? colors.success
+      : displayRate >= 50
+        ? colors.warning
+        : colors.error;
+  const showAsFraction = completedOnly && totalAll > total;
 
   return (
     <View style={pcStyles.card}>
       <Text style={pcStyles.label}>{label}</Text>
       <Text style={pcStyles.total}>
         {showAsFraction ? `${total} de ${totalAll}` : total}
-        <Text style={pcStyles.unit}> {totalAll === 1 ? 'visita' : 'visitas'}</Text>
+        <Text style={pcStyles.unit}>
+          {' '}
+          {totalAll === 1 ? 'visita' : 'visitas'}
+        </Text>
       </Text>
 
       <View style={pcStyles.row}>
-        <MaterialCommunityIcons name="check-circle-outline" size={14} color={colors.success} />
+        <MaterialCommunityIcons
+          name="check-circle-outline"
+          size={14}
+          color={colors.success}
+        />
         <Text style={pcStyles.stat}>{completed} completadas</Text>
       </View>
       <View style={pcStyles.row}>
-        <MaterialCommunityIcons name="clock-outline" size={14} color={colors.warning} />
+        <MaterialCommunityIcons
+          name="clock-outline"
+          size={14}
+          color={colors.warning}
+        />
         <Text style={pcStyles.stat}>{pending} pendientes</Text>
       </View>
 
       <View style={pcStyles.rateRow}>
         <ProgressBar rate={displayRate} />
-        <Text style={[pcStyles.rateText, { color: rateColor }]}>{displayRate}%</Text>
+        <Text style={[pcStyles.rateText, { color: rateColor }]}>
+          {displayRate}%
+        </Text>
       </View>
     </View>
-  )
+  );
 }
 
 const pcStyles = StyleSheet.create({
@@ -146,7 +197,7 @@ const pcStyles = StyleSheet.create({
     minWidth: 32,
     textAlign: 'right',
   },
-})
+});
 
 // ---------------------------------------------------------------------------
 // Main modal
@@ -154,42 +205,57 @@ const pcStyles = StyleSheet.create({
 
 export function StatsModal({ visible, onClose }: StatsModalProps) {
   // Default range: first day of current month → today
-  const [completedOnly, setCompletedOnly] = useState(true)
-  const [dateFrom, setDateFrom] = useState<Date | null>(() => dayjs().startOf('month').toDate())
-  const [dateTo, setDateTo] = useState<Date | null>(() => dayjs().toDate())
-  const [showFromPicker, setShowFromPicker] = useState(false)
-  const [showToPicker, setShowToPicker] = useState(false)
+  const [completedOnly, setCompletedOnly] = useState(true);
+  const [dateFrom, setDateFrom] = useState<Date | null>(() =>
+    dayjs().startOf('month').toDate()
+  );
+  const [dateTo, setDateTo] = useState<Date | null>(() => dayjs().toDate());
+  const [showFromPicker, setShowFromPicker] = useState(false);
+  const [showToPicker, setShowToPicker] = useState(false);
   // null = all users (admin default); string = specific user; undefined = own data (regular user)
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
-  const profile = useAuthStore((s) => s.profile)
-  const { allVisits, fetchAllVisitsForAdmin } = useVisitsStore()
-  const { users, fetchUsers } = useUsersStore()
+  const profile = useAuthStore((s) => s.profile);
+  const { allVisits, fetchAllVisitsForAdmin } = useVisitsStore();
+  const { users, fetchUsers } = useUsersStore();
 
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'root'
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'root';
 
   // Fetch all-users data when admin opens the modal
   useEffect(() => {
-    if (!visible || !isAdmin) return
-    if (allVisits.length === 0) fetchAllVisitsForAdmin()
-    if (users.length === 0) fetchUsers()
-  }, [visible])
+    if (!visible || !isAdmin) return;
+    if (allVisits.length === 0) fetchAllVisitsForAdmin();
+    if (users.length === 0) fetchUsers();
+  }, [visible]);
 
-  const datesActive = !!(dateFrom && dateTo)
-  const clearDates = () => { setDateFrom(null); setDateTo(null) }
-  const resetDates = () => { setDateFrom(dayjs().startOf('month').toDate()); setDateTo(dayjs().toDate()) }
+  const datesActive = !!(dateFrom && dateTo);
+  const clearDates = () => {
+    setDateFrom(null);
+    setDateTo(null);
+  };
+  const resetDates = () => {
+    setDateFrom(dayjs().startOf('month').toDate());
+    setDateTo(dayjs().toDate());
+  };
 
   // For admin: pass selectedUserId (null = all, string = specific user)
   // For regular user: pass undefined (uses own visits store)
-  const statsUserId = isAdmin ? selectedUserId : undefined
-  const stats = useVisitStats({ completedOnly, dateFrom, dateTo, userId: statsUserId })
-  const { hasDateFilter } = stats
+  const statsUserId = isAdmin ? selectedUserId : undefined;
+  const stats = useVisitStats({
+    completedOnly,
+    dateFrom,
+    dateTo,
+    userId: statsUserId,
+  });
+  const { hasDateFilter } = stats;
   const rangeDateLabel = datesActive
     ? `${dayjs(dateFrom).format('DD/MM')} – ${dayjs(dateTo).format('DD/MM')}`
-    : ''
+    : '';
   const hasData =
-    (hasDateFilter ? stats.range.totalAll > 0 : stats.week.total > 0 || stats.month.total > 0) ||
-    stats.topClients.length > 0
+    (hasDateFilter
+      ? stats.range.totalAll > 0
+      : stats.week.total > 0 || stats.month.total > 0) ||
+    stats.topClients.length > 0;
 
   return (
     <Modal
@@ -209,10 +275,17 @@ export function StatsModal({ visible, onClose }: StatsModalProps) {
 
         {/* Header */}
         <View style={styles.sheetHeader}>
-          <MaterialCommunityIcons name="chart-bar" size={20} color={colors.primary} />
+          <MaterialCommunityIcons
+            name="chart-bar"
+            size={20}
+            color={colors.primary}
+          />
           <Text style={styles.sheetTitle}>Estadísticas</Text>
           <Pressable
-            style={({ pressed }) => [styles.closeBtn, pressed && styles.closeBtnPressed]}
+            style={({ pressed }) => [
+              styles.closeBtn,
+              pressed && styles.closeBtnPressed,
+            ]}
             onPress={onClose}
             accessibilityRole="button"
             accessibilityLabel="Cerrar estadísticas"
@@ -250,38 +323,43 @@ export function StatsModal({ visible, onClose }: StatsModalProps) {
                     accessibilityLabel="Ver todos los usuarios"
                     hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                   >
-                    <Text style={[
-                      styles.userPillText,
-                      selectedUserId === null && styles.userPillTextSelected,
-                    ]}>
+                    <Text
+                      style={[
+                        styles.userPillText,
+                        selectedUserId === null && styles.userPillTextSelected,
+                      ]}
+                    >
                       Todos
                     </Text>
                   </Pressable>
 
                   {/* One pill per active user */}
-                  {users.filter((u) => u.status === 'active').map((u) => (
-                    <Pressable
-                      key={u.id}
-                      style={[
-                        styles.userPill,
-                        selectedUserId === u.id && styles.userPillSelected,
-                      ]}
-                      onPress={() => setSelectedUserId(u.id)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Ver estadísticas de ${u.full_name ?? u.email}`}
-                      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                    >
-                      <Text
+                  {users
+                    .filter((u) => u.status === 'active')
+                    .map((u) => (
+                      <Pressable
+                        key={u.id}
                         style={[
-                          styles.userPillText,
-                          selectedUserId === u.id && styles.userPillTextSelected,
+                          styles.userPill,
+                          selectedUserId === u.id && styles.userPillSelected,
                         ]}
-                        numberOfLines={1}
+                        onPress={() => setSelectedUserId(u.id)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Ver estadísticas de ${u.full_name ?? u.email}`}
+                        hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
                       >
-                        {u.full_name ?? u.email}
-                      </Text>
-                    </Pressable>
-                  ))}
+                        <Text
+                          style={[
+                            styles.userPillText,
+                            selectedUserId === u.id &&
+                              styles.userPillTextSelected,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {u.full_name ?? u.email}
+                        </Text>
+                      </Pressable>
+                    ))}
                 </ScrollView>
               </View>
             )}
@@ -293,7 +371,9 @@ export function StatsModal({ visible, onClose }: StatsModalProps) {
                 value={completedOnly}
                 onValueChange={setCompletedOnly}
                 trackColor={{ false: colors.border, true: colors.primaryLight }}
-                thumbColor={completedOnly ? colors.primary : colors.textDisabled}
+                thumbColor={
+                  completedOnly ? colors.primary : colors.textDisabled
+                }
               />
             </View>
 
@@ -307,7 +387,11 @@ export function StatsModal({ visible, onClose }: StatsModalProps) {
                   accessibilityRole="button"
                   accessibilityLabel="Quitar filtro de fechas"
                 >
-                  <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+                  <Ionicons
+                    name="close-circle"
+                    size={18}
+                    color={colors.textSecondary}
+                  />
                 </Pressable>
               ) : (
                 <Pressable
@@ -316,7 +400,11 @@ export function StatsModal({ visible, onClose }: StatsModalProps) {
                   accessibilityRole="button"
                   accessibilityLabel="Agregar filtro de fechas"
                 >
-                  <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
+                  <Ionicons
+                    name="add-circle-outline"
+                    size={18}
+                    color={colors.primary}
+                  />
                 </Pressable>
               )}
             </View>
@@ -329,13 +417,22 @@ export function StatsModal({ visible, onClose }: StatsModalProps) {
                     <Text style={styles.datePickerLabel}>Desde</Text>
                     {Platform.OS === 'android' ? (
                       <Pressable
-                        style={({ pressed }) => [styles.dateDisplayButton, pressed && styles.dateDisplayButtonPressed]}
+                        style={({ pressed }) => [
+                          styles.dateDisplayButton,
+                          pressed && styles.dateDisplayButtonPressed,
+                        ]}
                         onPress={() => setShowFromPicker(true)}
                         accessibilityRole="button"
                         accessibilityLabel="Seleccionar fecha desde"
                       >
-                        <Text style={styles.dateDisplayText}>{dayjs(dateFrom).format('DD/MM/YYYY')}</Text>
-                        <MaterialCommunityIcons name="calendar" size={20} color={colors.primary} />
+                        <Text style={styles.dateDisplayText}>
+                          {dayjs(dateFrom).format('DD/MM/YYYY')}
+                        </Text>
+                        <MaterialCommunityIcons
+                          name="calendar"
+                          size={20}
+                          color={colors.primary}
+                        />
                       </Pressable>
                     ) : (
                       <AppDatePicker
@@ -352,13 +449,22 @@ export function StatsModal({ visible, onClose }: StatsModalProps) {
                     <Text style={styles.datePickerLabel}>Hasta</Text>
                     {Platform.OS === 'android' ? (
                       <Pressable
-                        style={({ pressed }) => [styles.dateDisplayButton, pressed && styles.dateDisplayButtonPressed]}
+                        style={({ pressed }) => [
+                          styles.dateDisplayButton,
+                          pressed && styles.dateDisplayButtonPressed,
+                        ]}
                         onPress={() => setShowToPicker(true)}
                         accessibilityRole="button"
                         accessibilityLabel="Seleccionar fecha hasta"
                       >
-                        <Text style={styles.dateDisplayText}>{dayjs(dateTo).format('DD/MM/YYYY')}</Text>
-                        <MaterialCommunityIcons name="calendar" size={20} color={colors.primary} />
+                        <Text style={styles.dateDisplayText}>
+                          {dayjs(dateTo).format('DD/MM/YYYY')}
+                        </Text>
+                        <MaterialCommunityIcons
+                          name="calendar"
+                          size={20}
+                          color={colors.primary}
+                        />
                       </Pressable>
                     ) : (
                       <AppDatePicker
@@ -379,7 +485,11 @@ export function StatsModal({ visible, onClose }: StatsModalProps) {
                     value={dateFrom!}
                     mode="date"
                     display="calendar"
-                    onChange={(date) => { setDateFrom(date); setShowFromPicker(false); setShowToPicker(true) }}
+                    onChange={(date) => {
+                      setDateFrom(date);
+                      setShowFromPicker(false);
+                      setShowToPicker(true);
+                    }}
                     isAndroidModal
                     onDismiss={() => setShowFromPicker(false)}
                     accentColor={colors.primary}
@@ -391,7 +501,10 @@ export function StatsModal({ visible, onClose }: StatsModalProps) {
                     value={dateTo!}
                     mode="date"
                     display="calendar"
-                    onChange={(date) => { setDateTo(date); setShowToPicker(false) }}
+                    onChange={(date) => {
+                      setDateTo(date);
+                      setShowToPicker(false);
+                    }}
                     isAndroidModal
                     onDismiss={() => setShowToPicker(false)}
                     accentColor={colors.primary}
@@ -451,7 +564,9 @@ export function StatsModal({ visible, onClose }: StatsModalProps) {
                         {client.clientName}
                       </Text>
                       <View style={styles.topBadge}>
-                        <Text style={styles.topBadgeText}>{client.visitCount}</Text>
+                        <Text style={styles.topBadgeText}>
+                          {client.visitCount}
+                        </Text>
                       </View>
                     </View>
                   ))}
@@ -462,14 +577,15 @@ export function StatsModal({ visible, onClose }: StatsModalProps) {
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyEmoji}>📊</Text>
               <Text style={styles.emptyText}>
-                No hay datos para el período seleccionado.{'\n'}Ajustá los filtros o el rango de fechas.
+                No hay datos para el período seleccionado.{'\n'}Ajustá los
+                filtros o el rango de fechas.
               </Text>
             </View>
           )}
         </ScrollView>
       </View>
     </Modal>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -699,4 +815,4 @@ const styles = StyleSheet.create({
   userPillTextSelected: {
     color: colors.textOnPrimary,
   },
-})
+});

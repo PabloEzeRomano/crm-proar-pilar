@@ -1,7 +1,7 @@
-import { Link, Stack } from 'expo-router'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { colors, fontSize, fontWeight, spacing } from '@/constants/theme'
+import { Link, Stack } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { colors, fontSize, fontWeight, spacing } from '@/constants/theme';
 
 export default function NotFoundScreen() {
   return (
@@ -25,7 +25,7 @@ export default function NotFoundScreen() {
         </Link>
       </View>
     </>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -67,4 +67,4 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold as '600',
     color: '#FFFFFF',
   },
-})
+});

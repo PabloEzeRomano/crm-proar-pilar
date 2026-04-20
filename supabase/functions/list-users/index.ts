@@ -10,33 +10,33 @@
  * Response: UserListItem[]
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type UserRole = 'user' | 'admin' | 'root'
+type UserRole = 'user' | 'admin' | 'root';
 
 interface Profile {
-  id: string
-  full_name: string | null
-  role: UserRole
-  company_id: string | null
+  id: string;
+  full_name: string | null;
+  role: UserRole;
+  company_id: string | null;
 }
 
 interface CallerProfile extends Profile {
-  role: UserRole
+  role: UserRole;
 }
 
 export interface UserListItem {
-  id: string
-  email: string
-  full_name: string | null
-  role: UserRole | null
-  status: 'active' | 'pending' | 'banned'
-  invited_at: string | null
-  company_id: string | null
+  id: string;
+  email: string;
+  full_name: string | null;
+  role: UserRole | null;
+  status: 'active' | 'pending' | 'banned';
+  invited_at: string | null;
+  company_id: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -46,8 +46,9 @@ export interface UserListItem {
 function corsHeaders(): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  }
+    'Access-Control-Allow-Headers':
+      'authorization, x-client-info, apikey, content-type',
+  };
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -57,7 +58,7 @@ function jsonResponse(body: unknown, status = 200): Response {
       'Content-Type': 'application/json',
       ...corsHeaders(),
     },
-  })
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -66,111 +67,124 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders() })
+    return new Response('ok', { headers: corsHeaders() });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
     // ── 1. Authenticate caller ──────────────────────────────────────────────
 
-    const authHeader = req.headers.get('Authorization')
+    const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return jsonResponse({ error: 'Missing authorization header' }, 401)
+      return jsonResponse({ error: 'Missing authorization header' }, 401);
     }
-    const callerJwt = authHeader.slice(7)
+    const callerJwt = authHeader.slice(7);
 
     const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: `Bearer ${callerJwt}` } },
-    })
+    });
 
-    const { data: { user: callerUser }, error: userErr } = await callerClient.auth.getUser()
+    const {
+      data: { user: callerUser },
+      error: userErr,
+    } = await callerClient.auth.getUser();
     if (userErr || !callerUser) {
-      return jsonResponse({ error: 'Invalid or expired token' }, 401)
+      return jsonResponse({ error: 'Invalid or expired token' }, 401);
     }
 
     // ── 2. Load caller's profile ────────────────────────────────────────────
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey)
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     const { data: callerProfile, error: profileErr } = await adminClient
       .from('profiles')
       .select('id, role, company_id')
       .eq('id', callerUser.id)
-      .single<CallerProfile>()
+      .single<CallerProfile>();
 
     if (profileErr || !callerProfile) {
-      return jsonResponse({ error: 'Caller profile not found' }, 403)
+      return jsonResponse({ error: 'Caller profile not found' }, 403);
     }
 
     if (callerProfile.role !== 'admin' && callerProfile.role !== 'root') {
-      return jsonResponse({ error: 'Forbidden: admin or root role required' }, 403)
+      return jsonResponse(
+        { error: 'Forbidden: admin or root role required' },
+        403
+      );
     }
 
     // ── 3. List all auth users via Admin API ────────────────────────────────
 
-    const { data: authData, error: listErr } = await adminClient.auth.admin.listUsers({
-      perPage: 1000,
-    })
+    const { data: authData, error: listErr } =
+      await adminClient.auth.admin.listUsers({
+        perPage: 1000,
+      });
 
     if (listErr) {
-      return jsonResponse({ error: 'Failed to list users' }, 500)
+      return jsonResponse({ error: 'Failed to list users' }, 500);
     }
 
-    const authUsers = authData?.users ?? []
+    const authUsers = authData?.users ?? [];
 
     // ── 4. Load all profiles in the same company ────────────────────────────
 
     let profileQuery = adminClient
       .from('profiles')
-      .select('id, full_name, role, company_id')
+      .select('id, full_name, role, company_id');
 
     if (callerProfile.role !== 'root' && callerProfile.company_id) {
-      profileQuery = profileQuery.eq('company_id', callerProfile.company_id)
+      profileQuery = profileQuery.eq('company_id', callerProfile.company_id);
     }
 
-    const { data: profiles } = await profileQuery
-    const profileMap = new Map<string, Profile>()
-    for (const p of (profiles ?? [])) {
-      profileMap.set(p.id, p)
+    const { data: profiles } = await profileQuery;
+    const profileMap = new Map<string, Profile>();
+    for (const p of profiles ?? []) {
+      profileMap.set(p.id, p);
     }
 
     // ── 5. Build UserListItem list ──────────────────────────────────────────
 
-    const items: UserListItem[] = []
+    const items: UserListItem[] = [];
 
     for (const authUser of authUsers) {
-      const profile = profileMap.get(authUser.id)
+      const profile = profileMap.get(authUser.id);
 
       // Filter by company: if caller is admin (not root), only include users
       // whose profile is in the same company OR who have no profile yet but
       // were invited by someone in this company (check raw_user_meta_data).
       if (callerProfile.role !== 'root') {
-        const companyId = callerProfile.company_id
-        const profileCompanyId = profile?.company_id
-        const metaCompanyId = (authUser.raw_user_meta_data as Record<string, unknown> | null)?.company_id as string | undefined
+        const companyId = callerProfile.company_id;
+        const profileCompanyId = profile?.company_id;
+        const metaCompanyId = (
+          authUser.raw_user_meta_data as Record<string, unknown> | null
+        )?.company_id as string | undefined;
 
         if (profileCompanyId !== companyId && metaCompanyId !== companyId) {
-          continue
+          continue;
         }
       }
 
       // Exclude root users from the list — covers confirmed root, pending root,
       // and any edge case where profile and metadata disagree
-      const metaRole = (authUser.raw_user_meta_data as Record<string, unknown> | null)
-        ?.role as string | undefined
-      if (profile?.role === 'root' || metaRole === 'root') continue
+      const metaRole = (
+        authUser.raw_user_meta_data as Record<string, unknown> | null
+      )?.role as string | undefined;
+      if (profile?.role === 'root' || metaRole === 'root') continue;
 
       // Determine status
-      let status: 'active' | 'pending' | 'banned'
-      if (authUser.banned_until && new Date(authUser.banned_until) > new Date()) {
-        status = 'banned'
+      let status: 'active' | 'pending' | 'banned';
+      if (
+        authUser.banned_until &&
+        new Date(authUser.banned_until) > new Date()
+      ) {
+        status = 'banned';
       } else if (!authUser.confirmed_at) {
-        status = 'pending'
+        status = 'pending';
       } else {
-        status = 'active'
+        status = 'active';
       }
 
       items.push({
@@ -180,14 +194,18 @@ Deno.serve(async (req) => {
         role: profile?.role ?? null,
         status,
         invited_at: authUser.invited_at ?? null,
-        company_id: profile?.company_id ?? (authUser.raw_user_meta_data as Record<string, unknown> | null)?.company_id as string | null ?? null,
-      })
+        company_id:
+          profile?.company_id ??
+          ((authUser.raw_user_meta_data as Record<string, unknown> | null)
+            ?.company_id as string | null) ??
+          null,
+      });
     }
 
-    return jsonResponse(items)
+    return jsonResponse(items);
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err)
-    console.error('list-users error:', message)
-    return jsonResponse({ error: message }, 500)
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('list-users error:', message);
+    return jsonResponse({ error: message }, 500);
   }
-})
+});

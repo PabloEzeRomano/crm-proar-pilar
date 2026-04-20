@@ -9,8 +9,8 @@
  *   - form   : create / edit modal
  */
 
-import { Stack } from 'expo-router'
-import { colors, fontSize, fontWeight } from '@/constants/theme'
+import { Stack } from 'expo-router';
+import { colors, fontSize, fontWeight } from '@/constants/theme';
 
 const headerOptions = {
   headerStyle: { backgroundColor: colors.surface },
@@ -23,7 +23,7 @@ const headerOptions = {
     color: colors.textPrimary,
   },
   headerBackButtonDisplayMode: 'minimal' as const,
-}
+};
 
 export default function VisitsLayout() {
   return (
@@ -35,5 +35,5 @@ export default function VisitsLayout() {
         options={{ presentation: 'modal', title: 'Nueva visita' }}
       />
     </Stack>
-  )
+  );
 }

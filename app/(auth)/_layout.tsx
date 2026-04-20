@@ -5,8 +5,8 @@
  * here without any navigation chrome so they can occupy the full screen.
  */
 
-import { Stack } from 'expo-router'
+import { Stack } from 'expo-router';
 
 export default function AuthLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />
+  return <Stack screenOptions={{ headerShown: false }} />;
 }

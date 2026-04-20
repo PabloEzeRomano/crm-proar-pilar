@@ -28,18 +28,18 @@ A mobile-first CRM for a salesperson who visits businesses in person. Designed a
 
 ## Tech Stack (locked — agents must not deviate)
 
-| Layer | Technology |
-|---|---|
-| Framework | Expo (SDK latest) + React Native |
-| Language | TypeScript (strict) |
-| Navigation | Expo Router (file-based) |
-| State | Zustand |
-| Backend | Supabase (Postgres) |
-| Client | supabase-js |
-| Validation | Zod |
-| Dates | dayjs |
-| Email | Resend |
-| Package Manager | yarn |
+| Layer           | Technology                       |
+| --------------- | -------------------------------- |
+| Framework       | Expo (SDK latest) + React Native |
+| Language        | TypeScript (strict)              |
+| Navigation      | Expo Router (file-based)         |
+| State           | Zustand                          |
+| Backend         | Supabase (Postgres)              |
+| Client          | supabase-js                      |
+| Validation      | Zod                              |
+| Dates           | dayjs                            |
+| Email           | Resend                           |
+| Package Manager | yarn                             |
 
 ---
 
@@ -48,11 +48,13 @@ A mobile-first CRM for a salesperson who visits businesses in person. Designed a
 ### Environment Setup
 
 1. **Install dependencies:**
+
    ```bash
    yarn install
    ```
 
 2. **Set up `.env` file** (copy from `.env.example`):
+
    ```bash
    EXPO_PUBLIC_SUPABASE_URL=...  # From Supabase project settings
    EXPO_PUBLIC_SUPABASE_ANON_KEY=...  # From Supabase project settings
@@ -80,6 +82,7 @@ yarn start
 ```
 
 For faster iteration with a development client:
+
 ```bash
 # Install/run development client
 yarn start-dev
@@ -119,6 +122,7 @@ supabase db push
 The first system administrator must be promoted to `root` manually from the Supabase dashboard. This is a one-time operation per project.
 
 **Steps:**
+
 1. Create your account normally in the app (email + password login, or accept an invite if another admin exists)
 2. Find your User ID in **Supabase dashboard → Authentication → Users**
 3. Open **SQL Editor** and run:
@@ -154,6 +158,7 @@ UPDATE public.profiles SET company_id = '<company_uuid>';
 ```
 
 To increase the seat limit later:
+
 ```sql
 UPDATE public.company_config SET max_users = 10 WHERE company_id = '<company_uuid>';
 ```
@@ -177,23 +182,27 @@ yarn import
 ### Common Development Tasks
 
 **Add a new screen:**
+
 1. Create file in `/app/(tabs)/` or `/app/(auth)/` following Expo Router conventions
 2. Add route guard if needed (check `authStore.user`)
 3. Use Zustand stores for data (never call Supabase directly)
 
 **Add a new Zustand store:**
+
 1. Create file in `/stores/` (e.g., `featureStore.ts`)
 2. Define types in `/types/index.ts`
 3. Handle loading, error, and data state
 4. Expose only what components need
 
 **Add a new database table:**
+
 1. Create migration in `/supabase/migrations/` with next sequence number
 2. Include `owner_user_id UUID NOT NULL` and RLS policies
 3. Push migration via Supabase CLI
 4. Create store to handle Supabase calls
 
 **Update a Zod validator:**
+
 1. Edit the schema in `/validators/` (e.g., `visit.ts`)
 2. Use it in forms via `validator.parse()` or `.safeParse()`
 3. Keep validators close to where they're used
@@ -216,47 +225,50 @@ yarn import
 ## Data Model
 
 ### `profiles`
+
 Extends `auth.users`. One row per user.
 
-| Column | Type | Notes |
-|---|---|---|
-| id | UUID PK | References auth.users |
-| full_name | TEXT | |
-| email_config | JSONB | `{ sender, recipients[], enabled }` |
-| created_at | TIMESTAMPTZ | |
-| updated_at | TIMESTAMPTZ | |
+| Column       | Type        | Notes                               |
+| ------------ | ----------- | ----------------------------------- |
+| id           | UUID PK     | References auth.users               |
+| full_name    | TEXT        |                                     |
+| email_config | JSONB       | `{ sender, recipients[], enabled }` |
+| created_at   | TIMESTAMPTZ |                                     |
+| updated_at   | TIMESTAMPTZ |                                     |
 
 ### `clients`
+
 Businesses the salesperson visits.
 
-| Column | Type | Notes |
-|---|---|---|
-| id | UUID PK | |
-| owner_user_id | UUID NOT NULL | References auth.users, RLS |
-| name | TEXT NOT NULL | Cliente |
-| industry | TEXT | RUBRO |
-| address | TEXT | Domicilio |
-| city | TEXT | Localidad |
-| contacts | JSONB | `ContactInfo[]` — `[{ name?, phone?, email? }]` — multiple contacts per client |
-| notes | TEXT | General notes |
-| created_at | TIMESTAMPTZ | |
-| updated_at | TIMESTAMPTZ | |
+| Column        | Type          | Notes                                                                          |
+| ------------- | ------------- | ------------------------------------------------------------------------------ |
+| id            | UUID PK       |                                                                                |
+| owner_user_id | UUID NOT NULL | References auth.users, RLS                                                     |
+| name          | TEXT NOT NULL | Cliente                                                                        |
+| industry      | TEXT          | RUBRO                                                                          |
+| address       | TEXT          | Domicilio                                                                      |
+| city          | TEXT          | Localidad                                                                      |
+| contacts      | JSONB         | `ContactInfo[]` — `[{ name?, phone?, email? }]` — multiple contacts per client |
+| notes         | TEXT          | General notes                                                                  |
+| created_at    | TIMESTAMPTZ   |                                                                                |
+| updated_at    | TIMESTAMPTZ   |                                                                                |
 
 > `contact_name`, `phone`, `email` columns were dropped in migration 0010 and replaced by `contacts JSONB`.
 
 ### `visits`
+
 Single entity: starts as scheduled appointment, updated with notes after.
 
-| Column | Type | Notes |
-|---|---|---|
-| id | UUID PK | |
-| owner_user_id | UUID NOT NULL | References auth.users, RLS |
-| client_id | UUID NOT NULL | References clients |
-| scheduled_at | TIMESTAMPTZ NOT NULL | Default time 10:00 if no time known |
-| status | TEXT NOT NULL | `pending`, `completed`, `canceled` |
-| notes | TEXT | Minuta de la Reunión |
-| created_at | TIMESTAMPTZ | |
-| updated_at | TIMESTAMPTZ | |
+| Column        | Type                 | Notes                               |
+| ------------- | -------------------- | ----------------------------------- |
+| id            | UUID PK              |                                     |
+| owner_user_id | UUID NOT NULL        | References auth.users, RLS          |
+| client_id     | UUID NOT NULL        | References clients                  |
+| scheduled_at  | TIMESTAMPTZ NOT NULL | Default time 10:00 if no time known |
+| status        | TEXT NOT NULL        | `pending`, `completed`, `canceled`  |
+| notes         | TEXT                 | Minuta de la Reunión                |
+| created_at    | TIMESTAMPTZ          |                                     |
+| updated_at    | TIMESTAMPTZ          |                                     |
 
 ---
 
@@ -341,6 +353,7 @@ This project uses a **multi-agent team** managed by a PM+TL orchestrator. When s
 **Role:** Project Manager + Tech Lead.
 
 **Responsibilities:**
+
 - Read `backlog.md` at the start of every session. Know what is `pending`, `in_progress`, `reviewing`, `done`.
 - Break features into user stories and add them to `backlog.md`.
 - Assign tasks to specialized agents by spawning them with scoped, clear prompts.
@@ -357,6 +370,7 @@ This project uses a **multi-agent team** managed by a PM+TL orchestrator. When s
 **Scope:** Supabase only. Schema, migrations, RLS policies, Edge Functions.
 
 **Rules:**
+
 - All migrations in `/supabase/migrations/` as numbered SQL files.
 - Every table must have `owner_user_id` + RLS.
 - Use `gen_random_uuid()` for PKs.
@@ -369,6 +383,7 @@ This project uses a **multi-agent team** managed by a PM+TL orchestrator. When s
 **Scope:** Expo Router screens and React Native components.
 
 **Rules:**
+
 - Screens in `/app/`, components in `/components/`.
 - Use Expo Router conventions (file-based routing, `<Link>`, `useRouter`).
 - **Tabs with nested Stacks:** If a tab points to a folder with its own `_layout.tsx` (Stack), the `Tabs.Screen` for that tab MUST set `headerShown: false`. Otherwise Expo Router renders both the Tabs header AND the Stack header, creating a duplicate title. The nested Stack owns the header for all its screens.
@@ -383,6 +398,7 @@ This project uses a **multi-agent team** managed by a PM+TL orchestrator. When s
 **Scope:** Zustand stores and data hooks.
 
 **Rules:**
+
 - One store per domain: `authStore`, `clientsStore`, `visitsStore`, `todayStore`.
 - Stores handle all Supabase calls via `supabase-js`.
 - `todayStore` must persist today's data to AsyncStorage for offline fallback.
@@ -395,12 +411,14 @@ This project uses a **multi-agent team** managed by a PM+TL orchestrator. When s
 **Scope:** Design system, visual consistency, and mobile UX standards.
 
 **Responsibilities:**
+
 - Own and maintain `/constants/theme.ts` (design tokens) and `/constants/brand.ts` (white-label config).
 - Define component visual specs before the frontend agent builds them.
 - Review screens and components for visual consistency and outdoor readability.
 - Ensure all UI follows mobile UX best practices (touch targets, spacing, contrast).
 
 **Design tokens (`/constants/theme.ts`):**
+
 ```
 colors:
   background: #FFFFFF
@@ -426,6 +444,7 @@ border radius: sm(4) md(8) lg(12) xl(16) full(9999)
 ```
 
 **White-label config (`/constants/brand.ts`):**
+
 ```
 appName: string         # e.g. "Proar CRM"
 primaryColor: string    # hex — the one brand color
@@ -433,6 +452,7 @@ logoUrl?: string        # optional local asset or URL
 ```
 
 **Non-negotiable UI rules:**
+
 - Minimum touch target: **48×48px**. Prefer 56px for primary actions.
 - Minimum font size: **14px** for secondary text, **16px** for primary.
 - Contrast ratio: minimum **4.5:1** (WCAG AA). Target 7:1 for body text.
@@ -441,6 +461,7 @@ logoUrl?: string        # optional local asset or URL
 - Never touch `/stores`, `/supabase`, `/hooks`, or `/scripts`.
 
 **Review checklist (before approving any screen):**
+
 - [ ] All colors from `theme.ts` — no hardcoded hex
 - [ ] Touch targets ≥ 48px
 - [ ] Font sizes ≥ 14px
@@ -455,6 +476,7 @@ logoUrl?: string        # optional local asset or URL
 **Scope:** One-time scripts and data utilities.
 
 **Rules:**
+
 - Import script in `/scripts/import-excel.ts`.
 - Deduplicate clients by `(name + address)` — case-insensitive trim.
 - Rows with a date → create client + visit. Rows without date → create client only.
@@ -468,22 +490,26 @@ logoUrl?: string        # optional local asset or URL
 ## Conventions
 
 ### TypeScript
+
 - `strict: true` always.
 - Define all shared types in `/types/index.ts`.
 - Use `zod` for runtime validation at boundaries (form input, API response).
 - No `any`. Use `unknown` and narrow.
 
 ### Naming
+
 - Files: `camelCase.ts` for utilities, `PascalCase.tsx` for components.
 - Database: `snake_case` for tables and columns.
 - TypeScript: `PascalCase` for types/interfaces, `camelCase` for variables/functions.
 - Zustand stores: `use[Domain]Store` (e.g., `useVisitsStore`).
 
 ### Commits
+
 - Use conventional commits: `feat:`, `fix:`, `chore:`, `docs:`.
 - Scope by domain: `feat(visits):`, `fix(today):`, `chore(db):`.
 
 ### Dates
+
 - Always store as UTC in Supabase (`TIMESTAMPTZ`).
 - Always display in local time using `dayjs`.
 - Import `dayjs` from `/lib/dayjs.ts` (configured with locale).
@@ -493,6 +519,7 @@ logoUrl?: string        # optional local asset or URL
 ## Definition of Done (PM+TL checklist)
 
 Before marking any task `done`:
+
 - [ ] Code follows file structure conventions
 - [ ] All tables/columns are in English
 - [ ] `owner_user_id` present on new tables, RLS policy created
@@ -516,19 +543,20 @@ Before marking any task `done`:
 
 **Column mapping:**
 
-| Excel Column | DB Column |
-|---|---|
-| Fecha | `visits.scheduled_at` |
-| RUBRO | `clients.industry` |
-| Cliente | `clients.name` |
-| Domicilio | `clients.address` |
-| Localidad | `clients.city` |
-| Contacto | `clients.contacts[0].name` (fallback name if none extracted from Tel 1) |
-| Tel 1 | `clients.contacts[*].phone` (parsed into multiple `ContactInfo` entries; names extracted from cell text) |
-| Mail | `clients.contacts[*].email` (parsed; merged with phone entries by name when possible) |
-| Minuta de la Reunión | `visits.notes` |
+| Excel Column         | DB Column                                                                                                |
+| -------------------- | -------------------------------------------------------------------------------------------------------- |
+| Fecha                | `visits.scheduled_at`                                                                                    |
+| RUBRO                | `clients.industry`                                                                                       |
+| Cliente              | `clients.name`                                                                                           |
+| Domicilio            | `clients.address`                                                                                        |
+| Localidad            | `clients.city`                                                                                           |
+| Contacto             | `clients.contacts[0].name` (fallback name if none extracted from Tel 1)                                  |
+| Tel 1                | `clients.contacts[*].phone` (parsed into multiple `ContactInfo` entries; names extracted from cell text) |
+| Mail                 | `clients.contacts[*].email` (parsed; merged with phone entries by name when possible)                    |
+| Minuta de la Reunión | `visits.notes`                                                                                           |
 
 **Import rules:**
+
 - Skip column A (always empty).
 - Deduplicate clients: `LOWER(TRIM(name)) + LOWER(TRIM(address))`.
 - Row with Fecha → create client (if new) + visit with status `completed`.

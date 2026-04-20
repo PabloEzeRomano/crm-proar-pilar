@@ -1,33 +1,33 @@
-import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { supabase } from '../lib/supabase'
-import { Client, Profile } from '../types'
-import { CreateClientInput, UpdateClientInput } from '../validators/client'
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../lib/supabase';
+import { Client, Profile } from '../types';
+import { CreateClientInput, UpdateClientInput } from '../validators/client';
 
 interface ClientsState {
-  clients: Client[]
-  inactiveClients: Client[]
-  loading: boolean
-  error: string | null
-  teamClients: Client[]
-  teamClientsLoading: boolean
-  allClients: Client[]
-  allClientsLoading: boolean
-  ownerProfiles: Record<string, Profile | null>
-  fetchAllClientsForAdmin: () => Promise<void>
-  fetchClients: () => Promise<void>
-  fetchInactiveClients: () => Promise<void>
-  fetchClient: (id: string) => Promise<Client | null>
-  fetchClientsByOwner: (userId: string) => Promise<void>
-  clearTeamClients: () => void
-  createClient: (data: CreateClientInput) => Promise<Client | null>
-  updateClient: (id: string, data: UpdateClientInput) => Promise<void>
-  archiveClient: (id: string) => Promise<void>
-  restoreClient: (id: string) => Promise<void>
-  deleteClient: (id: string) => Promise<void>
-  deleteAllUserClients: () => Promise<void>
-  geocodeClient: (id: string) => Promise<void>
+  clients: Client[];
+  inactiveClients: Client[];
+  loading: boolean;
+  error: string | null;
+  teamClients: Client[];
+  teamClientsLoading: boolean;
+  allClients: Client[];
+  allClientsLoading: boolean;
+  ownerProfiles: Record<string, Profile | null>;
+  fetchAllClientsForAdmin: () => Promise<void>;
+  fetchClients: () => Promise<void>;
+  fetchInactiveClients: () => Promise<void>;
+  fetchClient: (id: string) => Promise<Client | null>;
+  fetchClientsByOwner: (userId: string) => Promise<void>;
+  clearTeamClients: () => void;
+  createClient: (data: CreateClientInput) => Promise<Client | null>;
+  updateClient: (id: string, data: UpdateClientInput) => Promise<void>;
+  archiveClient: (id: string) => Promise<void>;
+  restoreClient: (id: string) => Promise<void>;
+  deleteClient: (id: string) => Promise<void>;
+  deleteAllUserClients: () => Promise<void>;
+  geocodeClient: (id: string) => Promise<void>;
 }
 
 function normalizeClientInput(data: CreateClientInput) {
@@ -38,347 +38,358 @@ function normalizeClientInput(data: CreateClientInput) {
     city: data.city || null,
     contacts: data.contacts ?? [],
     notes: data.notes || null,
-  }
+  };
 }
 
 export const useClientsStore = create<ClientsState>()(
   persist(
     (set, get) => ({
-  clients: [],
-  inactiveClients: [],
-  loading: false,
-  error: null,
-  teamClients: [],
-  teamClientsLoading: false,
-  allClients: [],
-  allClientsLoading: false,
-  ownerProfiles: {},
+      clients: [],
+      inactiveClients: [],
+      loading: false,
+      error: null,
+      teamClients: [],
+      teamClientsLoading: false,
+      allClients: [],
+      allClientsLoading: false,
+      ownerProfiles: {},
 
-  fetchAllClientsForAdmin: async () => {
-    set({ allClientsLoading: true })
+      fetchAllClientsForAdmin: async () => {
+        set({ allClientsLoading: true });
 
-    const { data, error } = await supabase
-      .from('clients')
-      .select('*')
-      .is('deleted_at', null)
-      .order('name', { ascending: true })
+        const { data, error } = await supabase
+          .from('clients')
+          .select('*')
+          .is('deleted_at', null)
+          .order('name', { ascending: true });
 
-    if (!error && data) {
-      const clients = data as Client[]
-      const ownerIds = Array.from(new Set(clients.map((c) => c.owner_user_id)))
+        if (!error && data) {
+          const clients = data as Client[];
+          const ownerIds = Array.from(
+            new Set(clients.map((c) => c.owner_user_id))
+          );
 
-      let ownerProfiles: Record<string, Profile | null> = {}
-      if (ownerIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, full_name')
-          .in('id', ownerIds)
+          let ownerProfiles: Record<string, Profile | null> = {};
+          if (ownerIds.length > 0) {
+            const { data: profiles } = await supabase
+              .from('profiles')
+              .select('id, full_name')
+              .in('id', ownerIds);
 
-        if (profiles) {
-          ownerProfiles = Object.fromEntries(
-            profiles.map((p) => [p.id, p as unknown as Profile]),
-          )
+            if (profiles) {
+              ownerProfiles = Object.fromEntries(
+                profiles.map((p) => [p.id, p as unknown as Profile])
+              );
+            }
+          }
+
+          set({ allClients: clients, ownerProfiles });
         }
-      }
 
-      set({ allClients: clients, ownerProfiles })
-    }
+        set({ allClientsLoading: false });
+      },
 
-    set({ allClientsLoading: false })
-  },
+      fetchClients: async () => {
+        set({ loading: true, error: null });
 
-  fetchClients: async () => {
-    set({ loading: true, error: null })
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      set({ loading: false, error: 'Usuario no autenticado' })
-      return
-    }
-
-    const { data, error } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('owner_user_id', user.id)
-      .is('deleted_at', null)
-      .order('name', { ascending: true })
-
-    if (error) {
-      set({ error: error.message, loading: false })
-      return
-    }
-
-    set({ clients: (data as Client[]) ?? [], loading: false })
-  },
-
-  fetchInactiveClients: async () => {
-    set({ loading: true, error: null })
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      set({ loading: false, error: 'Usuario no autenticado' })
-      return
-    }
-
-    const { data, error } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('owner_user_id', user.id)
-      .not('deleted_at', 'is', null)
-      .order('name', { ascending: true })
-
-    if (error) {
-      set({ error: error.message, loading: false })
-      return
-    }
-
-    set({ inactiveClients: (data as Client[]) ?? [], loading: false })
-  },
-
-  fetchClient: async (id: string) => {
-    set({ error: null })
-
-    const { data, error } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('id', id)
-      .single()
-
-    if (error) {
-      set({ error: error.message })
-      return null
-    }
-
-    const client = (data as Client) ?? null
-    if (client) {
-      set((state) => {
-        const existing = state.clients.find((c) => c.id === id)
-        return {
-          clients: existing
-            ? state.clients.map((c) => (c.id === id ? client : c))
-            : [...state.clients, client],
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          set({ loading: false, error: 'Usuario no autenticado' });
+          return;
         }
-      })
-    }
-    return client
-  },
 
-  fetchClientsByOwner: async (userId: string) => {
-    set({ teamClientsLoading: true })
+        const { data, error } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('owner_user_id', user.id)
+          .is('deleted_at', null)
+          .order('name', { ascending: true });
 
-    const { data, error } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('owner_user_id', userId)
-      .is('deleted_at', null)
-      .order('name', { ascending: true })
+        if (error) {
+          set({ error: error.message, loading: false });
+          return;
+        }
 
-    if (error || !data) {
-      set({ teamClientsLoading: false })
-      return
-    }
+        set({ clients: (data as Client[]) ?? [], loading: false });
+      },
 
-    set({ teamClients: data as Client[], teamClientsLoading: false })
-  },
+      fetchInactiveClients: async () => {
+        set({ loading: true, error: null });
 
-  clearTeamClients: () => set({ teamClients: [], teamClientsLoading: false }),
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          set({ loading: false, error: 'Usuario no autenticado' });
+          return;
+        }
 
-  createClient: async (data: CreateClientInput) => {
-    set({ error: null })
+        const { data, error } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('owner_user_id', user.id)
+          .not('deleted_at', 'is', null)
+          .order('name', { ascending: true });
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+        if (error) {
+          set({ error: error.message, loading: false });
+          return;
+        }
 
-    if (!user) {
-      set({ error: 'Usuario no autenticado' })
-      return null
-    }
+        set({ inactiveClients: (data as Client[]) ?? [], loading: false });
+      },
 
-    const normalized = normalizeClientInput(data)
+      fetchClient: async (id: string) => {
+        set({ error: null });
 
-    const { data: created, error } = await supabase
-      .from('clients')
-      .insert({ ...normalized, owner_user_id: user.id })
-      .select()
-      .single()
+        const { data, error } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('id', id)
+          .single();
 
-    if (error) {
-      set({ error: error.message })
-      return null
-    }
+        if (error) {
+          set({ error: error.message });
+          return null;
+        }
 
-    const newClient = created as Client
+        const client = (data as Client) ?? null;
+        if (client) {
+          set((state) => {
+            const existing = state.clients.find((c) => c.id === id);
+            return {
+              clients: existing
+                ? state.clients.map((c) => (c.id === id ? client : c))
+                : [...state.clients, client],
+            };
+          });
+        }
+        return client;
+      },
 
-    set((state) => ({ clients: [...state.clients, newClient] }))
+      fetchClientsByOwner: async (userId: string) => {
+        set({ teamClientsLoading: true });
 
-    // Geocode in background (fire-and-forget)
-    get().geocodeClient(newClient.id).catch(() => {})
+        const { data, error } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('owner_user_id', userId)
+          .is('deleted_at', null)
+          .order('name', { ascending: true });
 
-    return newClient
-  },
+        if (error || !data) {
+          set({ teamClientsLoading: false });
+          return;
+        }
 
-  updateClient: async (id: string, data: UpdateClientInput) => {
-    set({ error: null })
+        set({ teamClients: data as Client[], teamClientsLoading: false });
+      },
 
-    const normalized = normalizeClientInput(data as CreateClientInput)
+      clearTeamClients: () =>
+        set({ teamClients: [], teamClientsLoading: false }),
 
-    const { data: updated, error } = await supabase
-      .from('clients')
-      .update(normalized)
-      .eq('id', id)
-      .select()
-      .single()
+      createClient: async (data: CreateClientInput) => {
+        set({ error: null });
 
-    if (error) {
-      set({ error: error.message })
-      return
-    }
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-    const updatedClient = updated as Client
+        if (!user) {
+          set({ error: 'Usuario no autenticado' });
+          return null;
+        }
 
-    set((state) => ({
-      clients: state.clients.map((c) => (c.id === id ? updatedClient : c)),
-    }))
+        const normalized = normalizeClientInput(data);
 
-    // Geocode in background (fire-and-forget)
-    get().geocodeClient(id).catch(() => {})
-  },
+        const { data: created, error } = await supabase
+          .from('clients')
+          .insert({ ...normalized, owner_user_id: user.id })
+          .select()
+          .single();
 
-  archiveClient: async (id: string) => {
-    set({ error: null })
+        if (error) {
+          set({ error: error.message });
+          return null;
+        }
 
-    const { error } = await supabase
-      .from('clients')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', id)
+        const newClient = created as Client;
 
-    if (error) {
-      set({ error: error.message })
-      return
-    }
+        set((state) => ({ clients: [...state.clients, newClient] }));
 
-    set((state) => ({
-      clients: state.clients.filter((c) => c.id !== id),
-    }))
-  },
+        // Geocode in background (fire-and-forget)
+        get()
+          .geocodeClient(newClient.id)
+          .catch(() => {});
 
-  restoreClient: async (id: string) => {
-    set({ error: null })
+        return newClient;
+      },
 
-    const { data: updated, error } = await supabase
-      .from('clients')
-      .update({ deleted_at: null })
-      .eq('id', id)
-      .select()
-      .single()
+      updateClient: async (id: string, data: UpdateClientInput) => {
+        set({ error: null });
 
-    if (error) {
-      set({ error: error.message })
-      return
-    }
+        const normalized = normalizeClientInput(data as CreateClientInput);
 
-    const restoredClient = updated as Client
+        const { data: updated, error } = await supabase
+          .from('clients')
+          .update(normalized)
+          .eq('id', id)
+          .select()
+          .single();
 
-    set((state) => ({
-      inactiveClients: state.inactiveClients.filter((c) => c.id !== id),
-      clients: [...state.clients, restoredClient].sort((a, b) =>
-        a.name.localeCompare(b.name),
-      ),
-    }))
-  },
+        if (error) {
+          set({ error: error.message });
+          return;
+        }
 
-  deleteClient: async (id: string) => {
-    set({ error: null })
+        const updatedClient = updated as Client;
 
-    const { error } = await supabase
-      .from('clients')
-      .delete()
-      .eq('id', id)
+        set((state) => ({
+          clients: state.clients.map((c) => (c.id === id ? updatedClient : c)),
+        }));
 
-    if (error) {
-      set({ error: error.message })
-      return
-    }
+        // Geocode in background (fire-and-forget)
+        get()
+          .geocodeClient(id)
+          .catch(() => {});
+      },
 
-    set((state) => ({
-      clients: state.clients.filter((c) => c.id !== id),
-    }))
-  },
+      archiveClient: async (id: string) => {
+        set({ error: null });
 
-  deleteAllUserClients: async () => {
-    set({ error: null })
+        const { error } = await supabase
+          .from('clients')
+          .update({ deleted_at: new Date().toISOString() })
+          .eq('id', id);
 
-    const { data: { user } } = await supabase.auth.getUser()
+        if (error) {
+          set({ error: error.message });
+          return;
+        }
 
-    if (!user) {
-      set({ error: 'Usuario no autenticado' })
-      return
-    }
+        set((state) => ({
+          clients: state.clients.filter((c) => c.id !== id),
+        }));
+      },
 
-    const { error } = await supabase
-      .from('clients')
-      .delete()
-      .eq('owner_user_id', user.id)
+      restoreClient: async (id: string) => {
+        set({ error: null });
 
-    if (error) {
-      set({ error: error.message })
-      return
-    }
+        const { data: updated, error } = await supabase
+          .from('clients')
+          .update({ deleted_at: null })
+          .eq('id', id)
+          .select()
+          .single();
 
-    set({ clients: [] })
-  },
+        if (error) {
+          set({ error: error.message });
+          return;
+        }
 
-  geocodeClient: async (id: string) => {
-    const client = get().clients.find((c) => c.id === id)
-    if (!client || !client.address || !client.city) return
+        const restoredClient = updated as Client;
 
-    try {
-      // Call Nominatim with rate limiting awareness
-      const query = encodeURIComponent(
-        `${client.address}, ${client.city}`,
-      )
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1&countrycodes=ar`,
-        {
-          headers: {
-            'User-Agent': 'CRM-Proar-Pilar/1.0',
-          },
-        },
-      )
+        set((state) => ({
+          inactiveClients: state.inactiveClients.filter((c) => c.id !== id),
+          clients: [...state.clients, restoredClient].sort((a, b) =>
+            a.name.localeCompare(b.name)
+          ),
+        }));
+      },
 
-      if (!response.ok) return
+      deleteClient: async (id: string) => {
+        set({ error: null });
 
-      const results = await response.json()
-      if (!results || results.length === 0) return
+        const { error } = await supabase.from('clients').delete().eq('id', id);
 
-      const { lat, lon } = results[0]
-      const latitude = parseFloat(lat)
-      const longitude = parseFloat(lon)
+        if (error) {
+          set({ error: error.message });
+          return;
+        }
 
-      if (isNaN(latitude) || isNaN(longitude)) return
+        set((state) => ({
+          clients: state.clients.filter((c) => c.id !== id),
+        }));
+      },
 
-      // Update in database (silent fail if error)
-      await supabase
-        .from('clients')
-        .update({ latitude, longitude })
-        .eq('id', id)
+      deleteAllUserClients: async () => {
+        set({ error: null });
 
-      // Update local state
-      set((state) => ({
-        clients: state.clients.map((c) =>
-          c.id === id ? { ...c, latitude, longitude } : c,
-        ),
-      }))
-    } catch {
-      // Silent fail - coords remain null
-    }
-  },
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          set({ error: 'Usuario no autenticado' });
+          return;
+        }
+
+        const { error } = await supabase
+          .from('clients')
+          .delete()
+          .eq('owner_user_id', user.id);
+
+        if (error) {
+          set({ error: error.message });
+          return;
+        }
+
+        set({ clients: [] });
+      },
+
+      geocodeClient: async (id: string) => {
+        const client = get().clients.find((c) => c.id === id);
+        if (!client || !client.address || !client.city) return;
+
+        try {
+          // Call Nominatim with rate limiting awareness
+          const query = encodeURIComponent(`${client.address}, ${client.city}`);
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1&countrycodes=ar`,
+            {
+              headers: {
+                'User-Agent': 'CRM-Proar-Pilar/1.0',
+              },
+            }
+          );
+
+          if (!response.ok) return;
+
+          const results = await response.json();
+          if (!results || results.length === 0) return;
+
+          const { lat, lon } = results[0];
+          const latitude = parseFloat(lat);
+          const longitude = parseFloat(lon);
+
+          if (isNaN(latitude) || isNaN(longitude)) return;
+
+          // Update in database (silent fail if error)
+          await supabase
+            .from('clients')
+            .update({ latitude, longitude })
+            .eq('id', id);
+
+          // Update local state
+          set((state) => ({
+            clients: state.clients.map((c) =>
+              c.id === id ? { ...c, latitude, longitude } : c
+            ),
+          }));
+        } catch {
+          // Silent fail - coords remain null
+        }
+      },
     }),
     {
       name: 'clients-store',
       storage: createJSONStorage(() => AsyncStorage),
-      partialize: (state) => ({ clients: state.clients, inactiveClients: state.inactiveClients }),
+      partialize: (state) => ({
+        clients: state.clients,
+        inactiveClients: state.inactiveClients,
+      }),
     }
   )
-)
+);

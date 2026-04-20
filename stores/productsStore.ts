@@ -1,39 +1,54 @@
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { create } from 'zustand'
-import { createJSONStorage, persist } from 'zustand/middleware'
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
-import { supabase } from '../lib/supabase'
-import { ClientProduct, Product, ProductPresentation, QuoteItem } from '../types'
+import { supabase } from '../lib/supabase';
+import {
+  ClientProduct,
+  Product,
+  ProductPresentation,
+  QuoteItem,
+} from '../types';
 import {
   CreateProductInput,
   CreatePresentationInput,
   UpdateProductInput,
   UpdatePresentationInput,
-} from '../validators/product'
+} from '../validators/product';
 
 interface ProductsState {
-  products: Product[]
-  loading: boolean
-  error: string | null
+  products: Product[];
+  loading: boolean;
+  error: string | null;
 
   // Client habitual products
-  clientProducts: ClientProduct[]
-  clientProductsLoading: boolean
+  clientProducts: ClientProduct[];
+  clientProductsLoading: boolean;
 
-  fetchProducts: () => Promise<void>
+  fetchProducts: () => Promise<void>;
 
-  createProduct: (data: CreateProductInput) => Promise<Product | null>
-  updateProduct: (id: string, data: UpdateProductInput) => Promise<void>
-  deleteProduct: (id: string) => Promise<void>
+  createProduct: (data: CreateProductInput) => Promise<Product | null>;
+  updateProduct: (id: string, data: UpdateProductInput) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
 
-  addPresentation: (productId: string, data: CreatePresentationInput) => Promise<ProductPresentation | null>
-  updatePresentation: (id: string, data: UpdatePresentationInput) => Promise<void>
-  deletePresentation: (id: string) => Promise<void>
+  addPresentation: (
+    productId: string,
+    data: CreatePresentationInput
+  ) => Promise<ProductPresentation | null>;
+  updatePresentation: (
+    id: string,
+    data: UpdatePresentationInput
+  ) => Promise<void>;
+  deletePresentation: (id: string) => Promise<void>;
 
-  fetchClientProducts: (clientId: string) => Promise<void>
-  addClientProduct: (clientId: string, productId: string, presentationId: string) => Promise<void>
-  removeClientProduct: (id: string) => Promise<void>
-  syncClientProducts: (clientId: string, items: QuoteItem[]) => Promise<void>
+  fetchClientProducts: (clientId: string) => Promise<void>;
+  addClientProduct: (
+    clientId: string,
+    productId: string,
+    presentationId: string
+  ) => Promise<void>;
+  removeClientProduct: (id: string) => Promise<void>;
+  syncClientProducts: (clientId: string, items: QuoteItem[]) => Promise<void>;
 }
 
 export const useProductsStore = create<ProductsState>()(
@@ -46,153 +61,170 @@ export const useProductsStore = create<ProductsState>()(
       clientProductsLoading: false,
 
       fetchProducts: async () => {
-        set({ loading: true, error: null })
+        set({ loading: true, error: null });
 
         const { data, error } = await supabase
           .from('products')
           .select('*, presentations:product_presentations(*)')
-          .order('name', { ascending: true })
+          .order('name', { ascending: true });
 
         if (error) {
-          set({ error: error.message, loading: false })
-          return
+          set({ error: error.message, loading: false });
+          return;
         }
 
-        set({ products: (data as Product[]) ?? [], loading: false })
+        set({ products: (data as Product[]) ?? [], loading: false });
       },
 
       createProduct: async (input: CreateProductInput) => {
-        set({ error: null })
+        set({ error: null });
 
-        const { presentations, ...productData } = input
+        const { presentations, ...productData } = input;
 
         const { data: created, error: productError } = await supabase
           .from('products')
           .insert(productData)
           .select()
-          .single()
+          .single();
 
         if (productError) {
-          set({ error: productError.message })
-          return null
+          set({ error: productError.message });
+          return null;
         }
 
-        const product = created as Omit<Product, 'presentations'>
+        const product = created as Omit<Product, 'presentations'>;
 
-        const presRows = presentations.map((p) => ({ ...p, product_id: product.id }))
+        const presRows = presentations.map((p) => ({
+          ...p,
+          product_id: product.id,
+        }));
         const { data: createdPres, error: presError } = await supabase
           .from('product_presentations')
           .insert(presRows)
-          .select()
+          .select();
 
         if (presError) {
-          set({ error: presError.message })
-          return null
+          set({ error: presError.message });
+          return null;
         }
 
-        const full: Product = { ...product, presentations: (createdPres as ProductPresentation[]) ?? [] }
-        set((state) => ({ products: [...state.products, full].sort((a, b) => a.name.localeCompare(b.name)) }))
-        return full
+        const full: Product = {
+          ...product,
+          presentations: (createdPres as ProductPresentation[]) ?? [],
+        };
+        set((state) => ({
+          products: [...state.products, full].sort((a, b) =>
+            a.name.localeCompare(b.name)
+          ),
+        }));
+        return full;
       },
 
       updateProduct: async (id: string, data: UpdateProductInput) => {
-        set({ error: null })
+        set({ error: null });
 
         const { data: updated, error } = await supabase
           .from('products')
           .update(data)
           .eq('id', id)
           .select()
-          .single()
+          .single();
 
         if (error) {
-          set({ error: error.message })
-          return
+          set({ error: error.message });
+          return;
         }
 
         set((state) => ({
           products: state.products.map((p) =>
-            p.id === id ? { ...p, ...(updated as Partial<Product>) } : p,
+            p.id === id ? { ...p, ...(updated as Partial<Product>) } : p
           ),
-        }))
+        }));
       },
 
       deleteProduct: async (id: string) => {
-        set({ error: null })
+        set({ error: null });
 
-        const { error } = await supabase.from('products').delete().eq('id', id)
+        const { error } = await supabase.from('products').delete().eq('id', id);
 
         if (error) {
-          set({ error: error.message })
-          return
+          set({ error: error.message });
+          return;
         }
 
-        set((state) => ({ products: state.products.filter((p) => p.id !== id) }))
+        set((state) => ({
+          products: state.products.filter((p) => p.id !== id),
+        }));
       },
 
-      addPresentation: async (productId: string, data: CreatePresentationInput) => {
-        set({ error: null })
+      addPresentation: async (
+        productId: string,
+        data: CreatePresentationInput
+      ) => {
+        set({ error: null });
 
         const { data: created, error } = await supabase
           .from('product_presentations')
           .insert({ ...data, product_id: productId })
           .select()
-          .single()
+          .single();
 
         if (error) {
-          set({ error: error.message })
-          return null
+          set({ error: error.message });
+          return null;
         }
 
-        const pres = created as ProductPresentation
+        const pres = created as ProductPresentation;
 
         set((state) => ({
           products: state.products.map((p) =>
             p.id === productId
               ? { ...p, presentations: [...p.presentations, pres] }
-              : p,
+              : p
           ),
-        }))
+        }));
 
-        return pres
+        return pres;
       },
 
       updatePresentation: async (id: string, data: UpdatePresentationInput) => {
-        set({ error: null })
+        set({ error: null });
 
         const { data: updated, error } = await supabase
           .from('product_presentations')
           .update(data)
           .eq('id', id)
           .select()
-          .single()
+          .single();
 
         if (error) {
-          set({ error: error.message })
-          return
+          set({ error: error.message });
+          return;
         }
 
-        const pres = updated as ProductPresentation
+        const pres = updated as ProductPresentation;
 
         set((state) => ({
           products: state.products.map((p) => ({
             ...p,
-            presentations: p.presentations.map((pr) => (pr.id === id ? pres : pr)),
+            presentations: p.presentations.map((pr) =>
+              pr.id === id ? pres : pr
+            ),
           })),
-        }))
+        }));
       },
 
       deletePresentation: async (id: string) => {
-        set({ error: null })
+        set({ error: null });
 
         const { error } = await supabase
           .from('product_presentations')
           .delete()
-          .eq('id', id)
+          .eq('id', id);
 
         if (error) {
-          set({ error: error.message })
-          return
+          set({ error: error.message });
+          return;
         }
 
         set((state) => ({
@@ -200,39 +232,42 @@ export const useProductsStore = create<ProductsState>()(
             ...p,
             presentations: p.presentations.filter((pr) => pr.id !== id),
           })),
-        }))
+        }));
       },
 
       fetchClientProducts: async (clientId: string) => {
-        set({ clientProductsLoading: true })
+        set({ clientProductsLoading: true });
 
         const { data, error } = await supabase
           .from('client_products')
           .select('*')
-          .eq('client_id', clientId)
+          .eq('client_id', clientId);
 
         if (error || !data) {
-          set({ clientProductsLoading: false })
-          return
+          set({ clientProductsLoading: false });
+          return;
         }
 
-        set({ clientProducts: data as ClientProduct[], clientProductsLoading: false })
+        set({
+          clientProducts: data as ClientProduct[],
+          clientProductsLoading: false,
+        });
       },
 
       addClientProduct: async (
         clientId: string,
         productId: string,
-        presentationId: string,
+        presentationId: string
       ) => {
-        set({ error: null })
+        set({ error: null });
 
         const existing = get().clientProducts.find(
           (cp) =>
             cp.client_id === clientId &&
             cp.product_id === productId &&
-            cp.product_presentation_id === presentationId,
-        )
-        if (existing) return
+            cp.product_presentation_id === presentationId
+        );
+        if (existing) return;
 
         const { data, error } = await supabase
           .from('client_products')
@@ -242,35 +277,44 @@ export const useProductsStore = create<ProductsState>()(
             product_presentation_id: presentationId,
           })
           .select()
-          .single()
+          .single();
 
         if (error) {
-          set({ error: error.message })
-          return
+          set({ error: error.message });
+          return;
         }
 
-        set((state) => ({ clientProducts: [...state.clientProducts, data as ClientProduct] }))
+        set((state) => ({
+          clientProducts: [...state.clientProducts, data as ClientProduct],
+        }));
       },
 
       removeClientProduct: async (id: string) => {
-        set({ error: null })
+        set({ error: null });
 
-        const { error } = await supabase.from('client_products').delete().eq('id', id)
+        const { error } = await supabase
+          .from('client_products')
+          .delete()
+          .eq('id', id);
 
         if (error) {
-          set({ error: error.message })
-          return
+          set({ error: error.message });
+          return;
         }
 
         set((state) => ({
           clientProducts: state.clientProducts.filter((cp) => cp.id !== id),
-        }))
+        }));
       },
 
       syncClientProducts: async (clientId: string, items: QuoteItem[]) => {
-        await get().fetchClientProducts(clientId)
+        await get().fetchClientProducts(clientId);
         for (const item of items) {
-          await get().addClientProduct(clientId, item.product_id, item.presentation_id)
+          await get().addClientProduct(
+            clientId,
+            item.product_id,
+            item.presentation_id
+          );
         }
       },
     }),
@@ -278,6 +322,6 @@ export const useProductsStore = create<ProductsState>()(
       name: 'products-store',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ products: state.products }),
-    },
-  ),
-)
+    }
+  )
+);

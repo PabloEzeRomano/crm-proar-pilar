@@ -21,7 +21,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { readAsStringAsync } from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as XLSX from 'xlsx';
-import dayjs from '@/lib/dayjs'
+import dayjs from '@/lib/dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 
 import { supabase } from '../lib/supabase';
@@ -89,135 +89,152 @@ function clientKey(name: string | null, address: string | null): string {
 
 /** Parse a phone cell segment into { name?, phone }.
  *  Handles patterns like: "Name number", "number (Name)", "cel. Name number" */
-function parsePhoneSegment(seg: string): { name?: string; phone: string } | null {
-  seg = seg.trim()
-  if (!seg || seg === '-') return null
+function parsePhoneSegment(
+  seg: string
+): { name?: string; phone: string } | null {
+  seg = seg.trim();
+  if (!seg || seg === '-') return null;
 
-  let name: string | undefined
+  let name: string | undefined;
 
   // Extract (label) in parens — only if contains letters (not area codes like (011))
   seg = seg.replace(/\(([^)]+)\)/g, (match, inner) => {
-    const trimmed = inner.trim()
+    const trimmed = inner.trim();
     if (/[a-zA-ZáéíóúñÁÉÍÓÚÑ]/.test(trimmed)) {
-      const candidate = trimmed.replace(/^(cel|tel|int)\b\.?\s*/i, '').trim()
+      const candidate = trimmed.replace(/^(cel|tel|int)\b\.?\s*/i, '').trim();
       // Skip if it's "int. NNN" style extension markers
-      if (candidate && !/^\d+$/.test(candidate) && !name) name = candidate
-      return ''
+      if (candidate && !/^\d+$/.test(candidate) && !name) name = candidate;
+      return '';
     }
-    return match // keep area code parens like (011)
-  })
+    return match; // keep area code parens like (011)
+  });
 
   // Strip common prefixes
-  seg = seg.replace(/^\s*(cel\.?|tel\.?|teléfono\.?)\s*/i, '')
+  seg = seg.replace(/^\s*(cel\.?|tel\.?|teléfono\.?)\s*/i, '');
 
   // Extract leading name (letters before first digit/+ group)
-  const leadingName = seg.match(/^([a-zA-ZáéíóúñÁÉÍÓÚÑ][a-zA-ZáéíóúñÁÉÍÓÚÑ\s.]+?)\s+(?=[\d+(])/)
+  const leadingName = seg.match(
+    /^([a-zA-ZáéíóúñÁÉÍÓÚÑ][a-zA-ZáéíóúñÁÉÍÓÚÑ\s.]+?)\s+(?=[\d+(])/
+  );
   if (leadingName) {
-    const candidate = leadingName[1].trim().replace(/\s*(cel\.?|tel\.?)$/i, '')
-    const isNoise = /^(cel|tel|int|empresa|planta|portería|y)\b/i.test(candidate)
+    const candidate = leadingName[1].trim().replace(/\s*(cel\.?|tel\.?)$/i, '');
+    const isNoise = /^(cel|tel|int|empresa|planta|portería|y)\b/i.test(
+      candidate
+    );
     if (!isNoise && candidate.length > 1) {
-      if (!name) name = candidate
+      if (!name) name = candidate;
     }
-    seg = seg.slice(leadingName[0].length)
+    seg = seg.slice(leadingName[0].length);
   }
 
   // Strip trailing "y NNN" style connectors that bleed into phone string
-  seg = seg.replace(/\s+y\s+[\d-]+.*$/i, '').trim()
+  seg = seg.replace(/\s+y\s+[\d-]+.*$/i, '').trim();
 
   // Remove any remaining letters (but preserve + and parens for area codes)
   const phone = seg
     .replace(/[a-zA-ZáéíóúñÁÉÍÓÚÑ]+/g, '')
     .replace(/\s+/g, ' ')
     .trim()
-    .replace(/[.\s]+$/, '')
+    .replace(/[.\s]+$/, '');
 
-  if (!phone || phone.replace(/\D/g, '').length < 6) return null
-  return { name: name || undefined, phone }
+  if (!phone || phone.replace(/\D/g, '').length < 6) return null;
+  return { name: name || undefined, phone };
 }
 
 /** Parse a Tel 1 cell → array of { name?, phone } contacts */
 function parsePhoneCell(raw: unknown): { name?: string; phone: string }[] {
-  if (!raw) return []
-  const s = String(raw).trim()
-  if (!s || s === '-') return []
-  const segments = s.split(/\/\/|[\n\r]+|\//).map((x) => x.trim()).filter(Boolean)
+  if (!raw) return [];
+  const s = String(raw).trim();
+  if (!s || s === '-') return [];
+  const segments = s
+    .split(/\/\/|[\n\r]+|\//)
+    .map((x) => x.trim())
+    .filter(Boolean);
   return segments.flatMap((seg) => {
-    const r = parsePhoneSegment(seg)
-    return r ? [r] : []
-  })
+    const r = parsePhoneSegment(seg);
+    return r ? [r] : [];
+  });
 }
 
 /** Parse a Mail cell → array of { name?, email } contacts */
 function parseEmailCell(raw: unknown): { name?: string; email: string }[] {
-  if (!raw) return []
-  const s = String(raw).trim()
-  if (!s || s === '-') return []
-  const emailRe = /[\w.+%-]+@[\w.-]+\.[a-zA-Z]{2,}/g
-  const results: { name?: string; email: string }[] = []
-  let m: RegExpExecArray | null
+  if (!raw) return [];
+  const s = String(raw).trim();
+  if (!s || s === '-') return [];
+  const emailRe = /[\w.+%-]+@[\w.-]+\.[a-zA-Z]{2,}/g;
+  const results: { name?: string; email: string }[] = [];
+  let m: RegExpExecArray | null;
   while ((m = emailRe.exec(s)) !== null) {
-    const email = m[0]
-    const before = s.slice(0, m.index)
-    const parts = before.split(/[\/\n,]/)
-    const lastPart = (parts[parts.length - 1] ?? '').replace(/<.*$/, '').replace(/[=>\-]+$/, '').replace(/\(/, '').trim()
+    const email = m[0];
+    const before = s.slice(0, m.index);
+    const parts = before.split(/[\/\n,]/);
+    const lastPart = (parts[parts.length - 1] ?? '')
+      .replace(/<.*$/, '')
+      .replace(/[=>\-]+$/, '')
+      .replace(/\(/, '')
+      .trim();
     // Discard if the "name" is itself an email address
-    const name = lastPart.length > 1 && lastPart.length < 50 &&
-      /[a-zA-ZáéíóúñÁÉÍÓÚÑ]/.test(lastPart) && !lastPart.includes('@')
-      ? lastPart : undefined
-    results.push({ name, email })
+    const name =
+      lastPart.length > 1 &&
+      lastPart.length < 50 &&
+      /[a-zA-ZáéíóúñÁÉÍÓÚÑ]/.test(lastPart) &&
+      !lastPart.includes('@')
+        ? lastPart
+        : undefined;
+    results.push({ name, email });
   }
-  return results
+  return results;
 }
 
 /** Build ContactInfo[] from a single Excel row's Contacto / Tel 1 / Mail fields */
 function parseContactsFromRow(
   contacto: string | null,
   tel1: unknown,
-  mail: unknown,
+  mail: unknown
 ): ContactInfo[] {
-  const phones = parsePhoneCell(tel1)
-  const emails = parseEmailCell(mail)
-  const contacts: ContactInfo[] = []
+  const phones = parsePhoneCell(tel1);
+  const emails = parseEmailCell(mail);
+  const contacts: ContactInfo[] = [];
 
   // Merge phones and emails by matching on name when possible
-  const usedEmailIdxs = new Set<number>()
+  const usedEmailIdxs = new Set<number>();
 
   for (const p of phones) {
     // Try to find a matching email by name
-    let matchedEmail: string | undefined
+    let matchedEmail: string | undefined;
     if (p.name) {
       const idx = emails.findIndex(
         (e, i) =>
           !usedEmailIdxs.has(i) &&
           e.name &&
-          e.name.toLowerCase().includes(p.name!.toLowerCase().split(' ')[0]),
-      )
+          e.name.toLowerCase().includes(p.name!.toLowerCase().split(' ')[0])
+      );
       if (idx !== -1) {
-        matchedEmail = emails[idx].email
-        usedEmailIdxs.add(idx)
+        matchedEmail = emails[idx].email;
+        usedEmailIdxs.add(idx);
       }
     }
-    contacts.push({ name: p.name, phone: p.phone, email: matchedEmail })
+    contacts.push({ name: p.name, phone: p.phone, email: matchedEmail });
   }
 
   // Add remaining unmatched emails
   for (let i = 0; i < emails.length; i++) {
     if (!usedEmailIdxs.has(i)) {
-      contacts.push({ name: emails[i].name, email: emails[i].email })
+      contacts.push({ name: emails[i].name, email: emails[i].email });
     }
   }
 
   // If nothing was extracted but we have a Contacto name, create a name-only entry
   if (contacts.length === 0 && contacto) {
-    contacts.push({ name: contacto })
+    contacts.push({ name: contacto });
   }
 
   // If we have contacts but none has a name, assign Contacto to first entry
   if (contacts.length > 0 && !contacts[0].name && contacto) {
-    contacts[0] = { ...contacts[0], name: contacto }
+    contacts[0] = { ...contacts[0], name: contacto };
   }
 
-  return contacts
+  return contacts;
 }
 
 function parseScheduledAt(val: unknown): string | null {
@@ -291,7 +308,10 @@ export const useImportStore = create<ImportState>()((set) => ({
       const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
 
       if (!isCsv && !isExcel) {
-        set({ importing: false, error: 'Seleccioná un archivo Excel (.xlsx) o CSV (.csv)' });
+        set({
+          importing: false,
+          error: 'Seleccioná un archivo Excel (.xlsx) o CSV (.csv)',
+        });
         return;
       }
 
@@ -315,7 +335,8 @@ export const useImportStore = create<ImportState>()((set) => ({
           const b64 = await readAsStringAsync(uri, { encoding: 'base64' });
           const binary = atob(b64);
           const bytes = new Uint8Array(binary.length);
-          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          for (let i = 0; i < binary.length; i++)
+            bytes[i] = binary.charCodeAt(i);
           return bytes.buffer;
         }
         return fetch(uri).then((r) => r.arrayBuffer());
@@ -328,12 +349,17 @@ export const useImportStore = create<ImportState>()((set) => ({
 
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         if (sheet) {
-          const raw = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: null });
+          const raw = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+            header: 1,
+            defval: null,
+          });
           if (raw.length >= 2) {
             const headers = raw[0] as string[];
             const dataRows = raw.slice(1).map((r) => {
               const obj: RawRow = {};
-              headers.forEach((h, i) => { if (h) obj[h] = (r as unknown[])[i]; });
+              headers.forEach((h, i) => {
+                if (h) obj[h] = (r as unknown[])[i];
+              });
               return obj;
             });
             allRows.push(...dataRows.filter((r) => str(r['Cliente'])));
@@ -346,7 +372,9 @@ export const useImportStore = create<ImportState>()((set) => ({
 
         const KNOWN_SHEETS = new Set(['Etapa 1', 'Etapa 2']);
         // Process named sheets first; fall back to all sheets if none match.
-        const sheetsToProcess = workbook.SheetNames.some((n) => KNOWN_SHEETS.has(n))
+        const sheetsToProcess = workbook.SheetNames.some((n) =>
+          KNOWN_SHEETS.has(n)
+        )
           ? workbook.SheetNames.filter((n) => KNOWN_SHEETS.has(n))
           : workbook.SheetNames;
 
@@ -364,15 +392,20 @@ export const useImportStore = create<ImportState>()((set) => ({
           // Find the row index that contains 'Cliente' — that's the header row.
           const EXPECTED_HEADER = 'Cliente';
           const headerRowIndex = allRaw.findIndex(
-            (r) => Array.isArray(r) && r.some((cell) => String(cell ?? '').trim() === EXPECTED_HEADER),
+            (r) =>
+              Array.isArray(r) &&
+              r.some((cell) => String(cell ?? '').trim() === EXPECTED_HEADER)
           );
 
-          if (headerRowIndex < 0 || headerRowIndex >= allRaw.length - 1) continue;
+          if (headerRowIndex < 0 || headerRowIndex >= allRaw.length - 1)
+            continue;
 
           const headers = allRaw[headerRowIndex] as string[];
           const dataRows = allRaw.slice(headerRowIndex + 1).map((r) => {
             const obj: RawRow = {};
-            headers.forEach((h, i) => { if (h) obj[h] = (r as unknown[])[i]; });
+            headers.forEach((h, i) => {
+              if (h) obj[h] = (r as unknown[])[i];
+            });
             return obj;
           });
           allRows.push(...dataRows.filter((r) => str(r['Cliente'])));
@@ -429,7 +462,7 @@ export const useImportStore = create<ImportState>()((set) => ({
 
       // Read user's gap preference (same key used by the visit form)
       const gapStr = await AsyncStorage.getItem(GAP_KEY);
-      const gap = gapStr ? (parseInt(gapStr, 10) || DEFAULT_GAP) : DEFAULT_GAP;
+      const gap = gapStr ? parseInt(gapStr, 10) || DEFAULT_GAP : DEFAULT_GAP;
 
       // ── 7. Process rows ─────────────────────────────────────────────────
 
@@ -442,8 +475,22 @@ export const useImportStore = create<ImportState>()((set) => ({
       };
 
       // Collect clients and visits to insert in batches
-      const clientsToInsert: Array<{ owner_user_id: string; name: string; industry: string | null; address: string | null; city: string | null; contacts: any; notes: null }> = [];
-      const visitsToInsert: Array<{ owner_user_id: string; client_id: string; scheduled_at: string; status: string; notes: string | null }> = [];
+      const clientsToInsert: Array<{
+        owner_user_id: string;
+        name: string;
+        industry: string | null;
+        address: string | null;
+        city: string | null;
+        contacts: any;
+        notes: null;
+      }> = [];
+      const visitsToInsert: Array<{
+        owner_user_id: string;
+        client_id: string;
+        scheduled_at: string;
+        status: string;
+        notes: string | null;
+      }> = [];
       const rowToClientMap = new Map<number, string>(); // row index → clientId for visits
 
       // First pass: collect clients to insert
@@ -469,7 +516,7 @@ export const useImportStore = create<ImportState>()((set) => ({
             contacts: parseContactsFromRow(
               str(row['Contacto']),
               row['Tel 1'],
-              row['Mail'],
+              row['Mail']
             ),
             notes: null,
           });
@@ -549,9 +596,7 @@ export const useImportStore = create<ImportState>()((set) => ({
       // Batch insert visits in chunks of 50
       for (let i = 0; i < visitsToInsert.length; i += BATCH_SIZE) {
         const batch = visitsToInsert.slice(i, i + BATCH_SIZE);
-        const { error: batchErr } = await supabase
-          .from('visits')
-          .insert(batch);
+        const { error: batchErr } = await supabase.from('visits').insert(batch);
 
         if (batchErr) {
           result.errors += batch.length;

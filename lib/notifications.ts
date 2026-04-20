@@ -1,10 +1,10 @@
-import * as Notifications from 'expo-notifications'
-import { SchedulableTriggerInputTypes } from 'expo-notifications'
-import { Platform } from 'react-native'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import dayjs from './dayjs'
-import type { Visit } from '../types'
-import type { DateTriggerInput } from 'expo-notifications'
+import * as Notifications from 'expo-notifications';
+import { SchedulableTriggerInputTypes } from 'expo-notifications';
+import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import dayjs from './dayjs';
+import type { Visit } from '../types';
+import type { DateTriggerInput } from 'expo-notifications';
 
 /**
  * Schedule a reminder notification for a visit.
@@ -24,37 +24,39 @@ import type { DateTriggerInput } from 'expo-notifications'
 export async function scheduleVisitReminder(
   visit: Visit,
   clientName: string,
-  gapMinutes: number,
+  gapMinutes: number
 ): Promise<string | null> {
   // No notification support on web
   if (Platform.OS === 'web') {
-    return null
+    return null;
   }
 
   // Check if notifications are enabled in settings (default: true)
   try {
-    const notificationsEnabled = await AsyncStorage.getItem('notifications-enabled')
+    const notificationsEnabled = await AsyncStorage.getItem(
+      'notifications-enabled'
+    );
     if (notificationsEnabled === 'false') {
-      return null
+      return null;
     }
   } catch (error) {
-    console.error('Failed to check notifications setting:', error)
+    console.error('Failed to check notifications setting:', error);
     // Default to allowing notifications if we can't read the setting
   }
 
   // Compute fire time: scheduled_at + gap - 10 minutes
-  const fireTime = dayjs(visit.scheduled_at).add(gapMinutes - 10, 'minutes')
+  const fireTime = dayjs(visit.scheduled_at).add(gapMinutes - 10, 'minutes');
 
   // If fire time is in the past, don't schedule
   if (fireTime.isBefore(dayjs())) {
-    return null
+    return null;
   }
 
   try {
     const trigger: DateTriggerInput = {
       type: SchedulableTriggerInputTypes.DATE,
       date: fireTime.toDate(),
-    }
+    };
 
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
@@ -63,12 +65,12 @@ export async function scheduleVisitReminder(
         data: { visitId: visit.id },
       } as any,
       trigger,
-    } as any)
+    } as any);
 
-    return notificationId
+    return notificationId;
   } catch (error) {
-    console.error('Failed to schedule visit reminder:', error)
-    return null
+    console.error('Failed to schedule visit reminder:', error);
+    return null;
   }
 }
 
@@ -79,10 +81,12 @@ export async function scheduleVisitReminder(
  *
  * @param notificationId - The notification ID to cancel
  */
-export async function cancelVisitReminder(notificationId: string): Promise<void> {
+export async function cancelVisitReminder(
+  notificationId: string
+): Promise<void> {
   try {
-    await Notifications.cancelScheduledNotificationAsync(notificationId)
+    await Notifications.cancelScheduledNotificationAsync(notificationId);
   } catch (error) {
-    console.error('Failed to cancel visit reminder:', error)
+    console.error('Failed to cancel visit reminder:', error);
   }
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -10,24 +10,24 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native'
-import { useNavigation, useRouter } from 'expo-router'
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
-import TourStep from '@/components/tour/TourStep'
+} from 'react-native';
+import { useNavigation, useRouter } from 'expo-router';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import TourStep from '@/components/tour/TourStep';
 
-import dayjs from '@/lib/dayjs'
+import dayjs from '@/lib/dayjs';
 import {
   borderRadius,
   colors,
   fontSize,
   fontWeight,
   spacing,
-} from '@/constants/theme'
-import { VisitStatus, VisitType, VisitWithClient } from '@/types'
-import { useVisits } from '@/hooks/useVisits'
-import { useUsersStore } from '@/stores/usersStore'
-import { VisitRow } from '@/components/visits/VisitRow'
-import AppDatePicker from '@/components/ui/AppDatePicker'
+} from '@/constants/theme';
+import { VisitStatus, VisitType, VisitWithClient } from '@/types';
+import { useVisits } from '@/hooks/useVisits';
+import { useUsersStore } from '@/stores/usersStore';
+import { VisitRow } from '@/components/visits/VisitRow';
+import AppDatePicker from '@/components/ui/AppDatePicker';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -38,42 +38,42 @@ const VISIT_TYPE_OPTIONS: { value: VisitType; label: string }[] = [
   { value: 'call', label: 'Llamada' },
   { value: 'quote', label: 'Cotización' },
   { value: 'sale', label: 'Venta' },
-]
+];
 
 const VISIT_STATUS_OPTIONS: { value: VisitStatus; label: string }[] = [
   { value: 'pending', label: 'Pendiente' },
   { value: 'completed', label: 'Completada' },
   { value: 'canceled', label: 'Cancelada' },
-]
+];
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function VisitsIndexScreen() {
-  const router = useRouter()
-  const navigation = useNavigation()
+  const router = useRouter();
+  const navigation = useNavigation();
 
   // ── Applied filter state ────────────────────────────────────────────────
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedTypes, setSelectedTypes] = useState<VisitType[]>([])
-  const [selectedStatuses, setSelectedStatuses] = useState<VisitStatus[]>([])
-  const [selectedOwners, setSelectedOwners] = useState<string[]>([])
-  const [dateFrom, setDateFrom] = useState<Date | null>(null)
-  const [dateTo, setDateTo] = useState<Date | null>(null)
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTypes, setSelectedTypes] = useState<VisitType[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<VisitStatus[]>([]);
+  const [selectedOwners, setSelectedOwners] = useState<string[]>([]);
+  const [dateFrom, setDateFrom] = useState<Date | null>(null);
+  const [dateTo, setDateTo] = useState<Date | null>(null);
 
   // ── Modal visibility ────────────────────────────────────────────────────
-  const [filterVisible, setFilterVisible] = useState(false)
+  const [filterVisible, setFilterVisible] = useState(false);
 
   // ── Draft filter state (applied only on "Aplicar") ──────────────────────
-  const [draftTypes, setDraftTypes] = useState<VisitType[]>([])
-  const [draftStatuses, setDraftStatuses] = useState<VisitStatus[]>([])
-  const [draftOwners, setDraftOwners] = useState<string[]>([])
-  const [draftFrom, setDraftFrom] = useState<Date>(new Date())
-  const [draftTo, setDraftTo] = useState<Date>(new Date())
-  const [draftDateActive, setDraftDateActive] = useState(false)
-  const [showFromPicker, setShowFromPicker] = useState(false)
-  const [showToPicker, setShowToPicker] = useState(false)
+  const [draftTypes, setDraftTypes] = useState<VisitType[]>([]);
+  const [draftStatuses, setDraftStatuses] = useState<VisitStatus[]>([]);
+  const [draftOwners, setDraftOwners] = useState<string[]>([]);
+  const [draftFrom, setDraftFrom] = useState<Date>(new Date());
+  const [draftTo, setDraftTo] = useState<Date>(new Date());
+  const [draftDateActive, setDraftDateActive] = useState(false);
+  const [showFromPicker, setShowFromPicker] = useState(false);
+  const [showToPicker, setShowToPicker] = useState(false);
 
   const {
     visits: hookVisits,
@@ -88,105 +88,111 @@ export default function VisitsIndexScreen() {
     undefined,
     undefined,
     selectedOwners.length > 0 ? selectedOwners : undefined,
-    selectedTypes.length > 0 ? selectedTypes : undefined,
-  )
+    selectedTypes.length > 0 ? selectedTypes : undefined
+  );
 
-  const { users, fetchUsers } = useUsersStore()
-
-  useEffect(() => {
-    fetchVisits()
-  }, [])
+  const { users, fetchUsers } = useUsersStore();
 
   useEffect(() => {
-    if (isAdminOrRoot) fetchUsers()
-  }, [isAdminOrRoot])
+    fetchVisits();
+  }, []);
+
+  useEffect(() => {
+    if (isAdminOrRoot) fetchUsers();
+  }, [isAdminOrRoot]);
 
   // Clean header — no calendar button
   useLayoutEffect(() => {
-    navigation.setOptions({ headerRight: undefined })
-  }, [navigation])
+    navigation.setOptions({ headerRight: undefined });
+  }, [navigation]);
 
   // ── Client-side filters (search, status, date) ──────────────────────────
   const visits = hookVisits.filter((v) => {
     if (searchQuery) {
-      const q = searchQuery.toLowerCase()
-      if (!v.client?.name?.toLowerCase().includes(q)) return false
+      const q = searchQuery.toLowerCase();
+      if (!v.client?.name?.toLowerCase().includes(q)) return false;
     }
-    if (selectedStatuses.length > 0 && !selectedStatuses.includes(v.status)) return false
-    if (dateFrom && dayjs(v.scheduled_at).isBefore(dayjs(dateFrom).startOf('day'))) return false
-    if (dateTo && dayjs(v.scheduled_at).isAfter(dayjs(dateTo).endOf('day'))) return false
-    return true
-  })
+    if (selectedStatuses.length > 0 && !selectedStatuses.includes(v.status))
+      return false;
+    if (
+      dateFrom &&
+      dayjs(v.scheduled_at).isBefore(dayjs(dateFrom).startOf('day'))
+    )
+      return false;
+    if (dateTo && dayjs(v.scheduled_at).isAfter(dayjs(dateTo).endOf('day')))
+      return false;
+    return true;
+  });
 
   // ── Filter count ────────────────────────────────────────────────────────
   const activeFilterCount =
     selectedTypes.length +
     selectedStatuses.length +
     selectedOwners.length +
-    (dateFrom || dateTo ? 1 : 0)
+    (dateFrom || dateTo ? 1 : 0);
 
   // ── Modal handlers ───────────────────────────────────────────────────────
 
   function openFilter() {
-    setDraftTypes([...selectedTypes])
-    setDraftStatuses([...selectedStatuses])
-    setDraftOwners([...selectedOwners])
-    setDraftFrom(dateFrom ?? new Date())
-    setDraftTo(dateTo ?? new Date())
-    setDraftDateActive(Boolean(dateFrom || dateTo))
-    setShowFromPicker(false)
-    setShowToPicker(false)
-    setFilterVisible(true)
+    setDraftTypes([...selectedTypes]);
+    setDraftStatuses([...selectedStatuses]);
+    setDraftOwners([...selectedOwners]);
+    setDraftFrom(dateFrom ?? new Date());
+    setDraftTo(dateTo ?? new Date());
+    setDraftDateActive(Boolean(dateFrom || dateTo));
+    setShowFromPicker(false);
+    setShowToPicker(false);
+    setFilterVisible(true);
   }
 
   function applyFilter() {
-    setSelectedTypes(draftTypes)
-    setSelectedStatuses(draftStatuses)
-    setSelectedOwners(draftOwners)
-    setDateFrom(draftDateActive ? draftFrom : null)
-    setDateTo(draftDateActive ? draftTo : null)
-    setFilterVisible(false)
+    setSelectedTypes(draftTypes);
+    setSelectedStatuses(draftStatuses);
+    setSelectedOwners(draftOwners);
+    setDateFrom(draftDateActive ? draftFrom : null);
+    setDateTo(draftDateActive ? draftTo : null);
+    setFilterVisible(false);
   }
 
   function clearFilter() {
-    setDraftTypes([])
-    setDraftStatuses([])
-    setDraftOwners([])
-    setDraftDateActive(false)
+    setDraftTypes([]);
+    setDraftStatuses([]);
+    setDraftOwners([]);
+    setDraftDateActive(false);
   }
 
   function toggleDraftType(value: VisitType) {
     setDraftTypes((prev) =>
       prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
-    )
+    );
   }
 
   function toggleDraftStatus(value: VisitStatus) {
     setDraftStatuses((prev) =>
       prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
-    )
+    );
   }
 
   function toggleDraftOwner(id: string) {
     setDraftOwners((prev) =>
       prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
-    )
+    );
   }
 
   const draftFilterCount =
     draftTypes.length +
     draftStatuses.length +
     draftOwners.length +
-    (draftDateActive ? 1 : 0)
+    (draftDateActive ? 1 : 0);
 
   // ── Render helpers ────────────────────────────────────────────────────────
 
   function handleRowPress(visit: VisitWithClient) {
-    router.push(`/visits/${visit.id}`)
+    router.push(`/visits/${visit.id}`);
   }
 
   function handleFabPress() {
-    router.push('/visits/form')
+    router.push('/visits/form');
   }
 
   function renderItem({ item }: { item: VisitWithClient }) {
@@ -197,11 +203,11 @@ export default function VisitsIndexScreen() {
         showType
         showOwner={isAdminOrRoot}
       />
-    )
+    );
   }
 
   function renderSeparator() {
-    return <View style={styles.rowGap} />
+    return <View style={styles.rowGap} />;
   }
 
   function renderEmpty() {
@@ -210,28 +216,32 @@ export default function VisitsIndexScreen() {
         <View style={styles.emptyContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      )
+      );
     }
     if (error) {
       return (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyError}>{error}</Text>
         </View>
-      )
+      );
     }
-    return null
+    return null;
   }
 
   // ── Root render ───────────────────────────────────────────────────────────
 
   return (
     <View style={styles.container}>
-
       {/* ── Search bar + filter button ── */}
       <View style={styles.searchWrapper}>
         <View style={styles.searchBarZone}>
           <View style={styles.searchBar}>
-            <Ionicons name="search" size={18} color={colors.textSecondary} style={styles.searchIcon} />
+            <Ionicons
+              name="search"
+              size={18}
+              color={colors.textSecondary}
+              style={styles.searchIcon}
+            />
             <TextInput
               style={styles.searchInput}
               value={searchQuery}
@@ -252,7 +262,10 @@ export default function VisitsIndexScreen() {
           routePath="/(tabs)/visits"
         >
           <Pressable
-            style={[styles.filterButton, activeFilterCount > 0 && styles.filterButtonActive]}
+            style={[
+              styles.filterButton,
+              activeFilterCount > 0 && styles.filterButtonActive,
+            ]}
             onPress={openFilter}
             accessibilityRole="button"
             accessibilityLabel={`Filtros${activeFilterCount > 0 ? `, ${activeFilterCount} activos` : ''}`}
@@ -260,7 +273,11 @@ export default function VisitsIndexScreen() {
             <MaterialCommunityIcons
               name="tune-variant"
               size={20}
-              color={activeFilterCount > 0 ? colors.textOnPrimary : colors.textSecondary}
+              color={
+                activeFilterCount > 0
+                  ? colors.textOnPrimary
+                  : colors.textSecondary
+              }
             />
             {activeFilterCount > 0 && (
               <View style={styles.filterBadge}>
@@ -283,70 +300,99 @@ export default function VisitsIndexScreen() {
               <Pressable
                 key={t}
                 style={styles.activeChip}
-                onPress={() => setSelectedTypes(selectedTypes.filter((v) => v !== t))}
+                onPress={() =>
+                  setSelectedTypes(selectedTypes.filter((v) => v !== t))
+                }
                 accessibilityLabel={`Quitar filtro ${t}`}
                 hitSlop={{ top: 10, bottom: 10, left: 0, right: 0 }}
               >
                 <Text style={styles.activeChipText} numberOfLines={1}>
                   {VISIT_TYPE_OPTIONS.find((o) => o.value === t)?.label ?? t}
                 </Text>
-                <MaterialCommunityIcons name="close" size={14} color={colors.primary} />
+                <MaterialCommunityIcons
+                  name="close"
+                  size={14}
+                  color={colors.primary}
+                />
               </Pressable>
             ))}
             {selectedStatuses.map((s) => (
               <Pressable
                 key={s}
                 style={styles.activeChip}
-                onPress={() => setSelectedStatuses(selectedStatuses.filter((v) => v !== s))}
+                onPress={() =>
+                  setSelectedStatuses(selectedStatuses.filter((v) => v !== s))
+                }
                 accessibilityLabel={`Quitar filtro ${s}`}
                 hitSlop={{ top: 10, bottom: 10, left: 0, right: 0 }}
               >
                 <Text style={styles.activeChipText} numberOfLines={1}>
                   {VISIT_STATUS_OPTIONS.find((o) => o.value === s)?.label ?? s}
                 </Text>
-                <MaterialCommunityIcons name="close" size={14} color={colors.primary} />
+                <MaterialCommunityIcons
+                  name="close"
+                  size={14}
+                  color={colors.primary}
+                />
               </Pressable>
             ))}
             {selectedOwners.map((id) => {
-              const user = users.find((u) => u.id === id)
+              const user = users.find((u) => u.id === id);
               return (
                 <Pressable
                   key={id}
                   style={styles.activeChip}
-                  onPress={() => setSelectedOwners(selectedOwners.filter((v) => v !== id))}
+                  onPress={() =>
+                    setSelectedOwners(selectedOwners.filter((v) => v !== id))
+                  }
                   accessibilityLabel={`Quitar filtro vendedor`}
                   hitSlop={{ top: 10, bottom: 10, left: 0, right: 0 }}
                 >
                   <Text style={styles.activeChipText} numberOfLines={1}>
                     {user?.full_name ?? id}
                   </Text>
-                  <MaterialCommunityIcons name="close" size={14} color={colors.primary} />
+                  <MaterialCommunityIcons
+                    name="close"
+                    size={14}
+                    color={colors.primary}
+                  />
                 </Pressable>
-              )
+              );
             })}
             {(dateFrom || dateTo) && (
               <Pressable
                 style={styles.activeChip}
-                onPress={() => { setDateFrom(null); setDateTo(null) }}
+                onPress={() => {
+                  setDateFrom(null);
+                  setDateTo(null);
+                }}
                 accessibilityLabel="Quitar filtro de fecha"
                 hitSlop={{ top: 10, bottom: 10, left: 0, right: 0 }}
               >
-                <MaterialCommunityIcons name="calendar-range" size={14} color={colors.primary} />
+                <MaterialCommunityIcons
+                  name="calendar-range"
+                  size={14}
+                  color={colors.primary}
+                />
                 <Text style={styles.activeChipText} numberOfLines={1}>
                   {dateFrom ? dayjs(dateFrom).format('DD/MM') : '…'}
                   {' – '}
                   {dateTo ? dayjs(dateTo).format('DD/MM') : '…'}
                 </Text>
-                <MaterialCommunityIcons name="close" size={14} color={colors.primary} />
+                <MaterialCommunityIcons
+                  name="close"
+                  size={14}
+                  color={colors.primary}
+                />
               </Pressable>
             )}
             <Pressable
               onPress={() => {
-                setSelectedTypes([])
-                setSelectedStatuses([])
-                setSelectedOwners([])
-                setDateFrom(null)
-                setDateTo(null)
+                setSelectedTypes([]);
+                setSelectedStatuses([]);
+                setSelectedOwners([]);
+                setDateFrom(null);
+                setDateTo(null);
               }}
               accessibilityLabel="Limpiar todos los filtros"
             >
@@ -372,7 +418,9 @@ export default function VisitsIndexScreen() {
             styles.listContent,
             visits.length === 0 ? styles.listEmptyContent : undefined,
           ]}
-          onEndReached={() => { if (hasMore && !loadingMore) fetchMoreVisits() }}
+          onEndReached={() => {
+            if (hasMore && !loadingMore) fetchMoreVisits();
+          }}
           onEndReachedThreshold={0.3}
           ListFooterComponent={
             loadingMore
@@ -400,7 +448,11 @@ export default function VisitsIndexScreen() {
             accessibilityRole="button"
             accessibilityLabel="Agregar visita"
           >
-            <MaterialCommunityIcons name="plus" size={28} color={colors.textOnPrimary} />
+            <MaterialCommunityIcons
+              name="plus"
+              size={28}
+              color={colors.textOnPrimary}
+            />
           </Pressable>
         </TourStep>
       </View>
@@ -412,7 +464,10 @@ export default function VisitsIndexScreen() {
         transparent
         onRequestClose={() => setFilterVisible(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setFilterVisible(false)} />
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setFilterVisible(false)}
+        />
 
         <View style={styles.modalSheet}>
           {/* Header */}
@@ -423,34 +478,60 @@ export default function VisitsIndexScreen() {
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityLabel="Cerrar filtros"
             >
-              <MaterialCommunityIcons name="close" size={22} color={colors.textSecondary} />
+              <MaterialCommunityIcons
+                name="close"
+                size={22}
+                color={colors.textSecondary}
+              />
             </Pressable>
           </View>
 
-          <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-
+          <ScrollView
+            style={styles.modalScroll}
+            showsVerticalScrollIndicator={false}
+          >
             {/* TIPO DE GESTIÓN */}
             <View style={styles.filterSection}>
               <Text style={styles.filterSectionTitle}>TIPO DE GESTIÓN</Text>
               {VISIT_TYPE_OPTIONS.map(({ value, label }) => {
-                const checked = draftTypes.includes(value)
+                const checked = draftTypes.includes(value);
                 return (
                   <Pressable
                     key={value}
-                    style={({ pressed }) => [styles.checkRow, pressed && styles.checkRowPressed]}
+                    style={({ pressed }) => [
+                      styles.checkRow,
+                      pressed && styles.checkRowPressed,
+                    ]}
                     onPress={() => toggleDraftType(value)}
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked }}
                     accessibilityLabel={label}
                   >
-                    <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-                      {checked && <MaterialCommunityIcons name="check" size={14} color={colors.textOnPrimary} />}
+                    <View
+                      style={[
+                        styles.checkbox,
+                        checked && styles.checkboxChecked,
+                      ]}
+                    >
+                      {checked && (
+                        <MaterialCommunityIcons
+                          name="check"
+                          size={14}
+                          color={colors.textOnPrimary}
+                        />
+                      )}
                     </View>
-                    <Text style={[styles.checkLabel, checked && styles.checkLabelSelected]} numberOfLines={1}>
+                    <Text
+                      style={[
+                        styles.checkLabel,
+                        checked && styles.checkLabelSelected,
+                      ]}
+                      numberOfLines={1}
+                    >
                       {label}
                     </Text>
                   </Pressable>
-                )
+                );
               })}
             </View>
 
@@ -458,24 +539,44 @@ export default function VisitsIndexScreen() {
             <View style={styles.filterSection}>
               <Text style={styles.filterSectionTitle}>ESTADO</Text>
               {VISIT_STATUS_OPTIONS.map(({ value, label }) => {
-                const checked = draftStatuses.includes(value)
+                const checked = draftStatuses.includes(value);
                 return (
                   <Pressable
                     key={value}
-                    style={({ pressed }) => [styles.checkRow, pressed && styles.checkRowPressed]}
+                    style={({ pressed }) => [
+                      styles.checkRow,
+                      pressed && styles.checkRowPressed,
+                    ]}
                     onPress={() => toggleDraftStatus(value)}
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked }}
                     accessibilityLabel={label}
                   >
-                    <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-                      {checked && <MaterialCommunityIcons name="check" size={14} color={colors.textOnPrimary} />}
+                    <View
+                      style={[
+                        styles.checkbox,
+                        checked && styles.checkboxChecked,
+                      ]}
+                    >
+                      {checked && (
+                        <MaterialCommunityIcons
+                          name="check"
+                          size={14}
+                          color={colors.textOnPrimary}
+                        />
+                      )}
                     </View>
-                    <Text style={[styles.checkLabel, checked && styles.checkLabelSelected]} numberOfLines={1}>
+                    <Text
+                      style={[
+                        styles.checkLabel,
+                        checked && styles.checkLabelSelected,
+                      ]}
+                      numberOfLines={1}
+                    >
                       {label}
                     </Text>
                   </Pressable>
-                )
+                );
               })}
             </View>
 
@@ -485,19 +586,39 @@ export default function VisitsIndexScreen() {
 
               {/* Toggle date filter on/off */}
               <Pressable
-                style={({ pressed }) => [styles.checkRow, pressed && styles.checkRowPressed]}
+                style={({ pressed }) => [
+                  styles.checkRow,
+                  pressed && styles.checkRowPressed,
+                ]}
                 onPress={() => {
-                  setDraftDateActive(!draftDateActive)
-                  if (!draftDateActive && Platform.OS === 'android') setShowFromPicker(true)
+                  setDraftDateActive(!draftDateActive);
+                  if (!draftDateActive && Platform.OS === 'android')
+                    setShowFromPicker(true);
                 }}
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: draftDateActive }}
                 accessibilityLabel="Filtrar por rango de fechas"
               >
-                <View style={[styles.checkbox, draftDateActive && styles.checkboxChecked]}>
-                  {draftDateActive && <MaterialCommunityIcons name="check" size={14} color={colors.textOnPrimary} />}
+                <View
+                  style={[
+                    styles.checkbox,
+                    draftDateActive && styles.checkboxChecked,
+                  ]}
+                >
+                  {draftDateActive && (
+                    <MaterialCommunityIcons
+                      name="check"
+                      size={14}
+                      color={colors.textOnPrimary}
+                    />
+                  )}
                 </View>
-                <Text style={[styles.checkLabel, draftDateActive && styles.checkLabelSelected]}>
+                <Text
+                  style={[
+                    styles.checkLabel,
+                    draftDateActive && styles.checkLabelSelected,
+                  ]}
+                >
                   Filtrar por rango de fechas
                 </Text>
               </Pressable>
@@ -509,13 +630,22 @@ export default function VisitsIndexScreen() {
                     <Text style={styles.dateFieldLabel}>Desde</Text>
                     {Platform.OS === 'android' ? (
                       <Pressable
-                        style={({ pressed }) => [styles.dateDisplayButton, pressed && styles.dateDisplayButtonPressed]}
+                        style={({ pressed }) => [
+                          styles.dateDisplayButton,
+                          pressed && styles.dateDisplayButtonPressed,
+                        ]}
                         onPress={() => setShowFromPicker(true)}
                         accessibilityRole="button"
                         accessibilityLabel="Seleccionar fecha desde"
                       >
-                        <Text style={styles.dateDisplayText}>{dayjs(draftFrom).format('DD/MM/YYYY')}</Text>
-                        <MaterialCommunityIcons name="calendar" size={20} color={colors.primary} />
+                        <Text style={styles.dateDisplayText}>
+                          {dayjs(draftFrom).format('DD/MM/YYYY')}
+                        </Text>
+                        <MaterialCommunityIcons
+                          name="calendar"
+                          size={20}
+                          color={colors.primary}
+                        />
                       </Pressable>
                     ) : (
                       <AppDatePicker
@@ -534,13 +664,22 @@ export default function VisitsIndexScreen() {
                     <Text style={styles.dateFieldLabel}>Hasta</Text>
                     {Platform.OS === 'android' ? (
                       <Pressable
-                        style={({ pressed }) => [styles.dateDisplayButton, pressed && styles.dateDisplayButtonPressed]}
+                        style={({ pressed }) => [
+                          styles.dateDisplayButton,
+                          pressed && styles.dateDisplayButtonPressed,
+                        ]}
                         onPress={() => setShowToPicker(true)}
                         accessibilityRole="button"
                         accessibilityLabel="Seleccionar fecha hasta"
                       >
-                        <Text style={styles.dateDisplayText}>{dayjs(draftTo).format('DD/MM/YYYY')}</Text>
-                        <MaterialCommunityIcons name="calendar" size={20} color={colors.primary} />
+                        <Text style={styles.dateDisplayText}>
+                          {dayjs(draftTo).format('DD/MM/YYYY')}
+                        </Text>
+                        <MaterialCommunityIcons
+                          name="calendar"
+                          size={20}
+                          color={colors.primary}
+                        />
                       </Pressable>
                     ) : (
                       <AppDatePicker
@@ -562,7 +701,11 @@ export default function VisitsIndexScreen() {
                   value={draftFrom}
                   mode="date"
                   display="calendar"
-                  onChange={(date) => { setDraftFrom(date); setShowFromPicker(false); setShowToPicker(true) }}
+                  onChange={(date) => {
+                    setDraftFrom(date);
+                    setShowFromPicker(false);
+                    setShowToPicker(true);
+                  }}
                   isAndroidModal
                   onDismiss={() => setShowFromPicker(false)}
                   accentColor={colors.primary}
@@ -574,7 +717,10 @@ export default function VisitsIndexScreen() {
                   value={draftTo}
                   mode="date"
                   display="calendar"
-                  onChange={(date) => { setDraftTo(date); setShowToPicker(false) }}
+                  onChange={(date) => {
+                    setDraftTo(date);
+                    setShowToPicker(false);
+                  }}
                   isAndroidModal
                   onDismiss={() => setShowToPicker(false)}
                   accentColor={colors.primary}
@@ -587,30 +733,51 @@ export default function VisitsIndexScreen() {
             {isAdminOrRoot && users.length > 0 && (
               <View style={styles.filterSection}>
                 <Text style={styles.filterSectionTitle}>VENDEDOR</Text>
-                {users.filter((u) => u.status === 'active').map((user) => {
-                  const checked = draftOwners.includes(user.id)
-                  const name = user.full_name ?? user.email
-                  return (
-                    <Pressable
-                      key={user.id}
-                      style={({ pressed }) => [styles.checkRow, pressed && styles.checkRowPressed]}
-                      onPress={() => toggleDraftOwner(user.id)}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked }}
-                      accessibilityLabel={name}
-                    >
-                      <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-                        {checked && <MaterialCommunityIcons name="check" size={14} color={colors.textOnPrimary} />}
-                      </View>
-                      <Text style={[styles.checkLabel, checked && styles.checkLabelSelected]} numberOfLines={1}>
-                        {name}
-                      </Text>
-                    </Pressable>
-                  )
-                })}
+                {users
+                  .filter((u) => u.status === 'active')
+                  .map((user) => {
+                    const checked = draftOwners.includes(user.id);
+                    const name = user.full_name ?? user.email;
+                    return (
+                      <Pressable
+                        key={user.id}
+                        style={({ pressed }) => [
+                          styles.checkRow,
+                          pressed && styles.checkRowPressed,
+                        ]}
+                        onPress={() => toggleDraftOwner(user.id)}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked }}
+                        accessibilityLabel={name}
+                      >
+                        <View
+                          style={[
+                            styles.checkbox,
+                            checked && styles.checkboxChecked,
+                          ]}
+                        >
+                          {checked && (
+                            <MaterialCommunityIcons
+                              name="check"
+                              size={14}
+                              color={colors.textOnPrimary}
+                            />
+                          )}
+                        </View>
+                        <Text
+                          style={[
+                            styles.checkLabel,
+                            checked && styles.checkLabelSelected,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
               </View>
             )}
-
           </ScrollView>
 
           {/* Footer actions */}
@@ -630,14 +797,16 @@ export default function VisitsIndexScreen() {
               accessibilityLabel="Aplicar filtros"
             >
               <Text style={styles.applyButtonText}>
-                {draftFilterCount > 0 ? `Aplicar (${draftFilterCount})` : 'Aplicar'}
+                {draftFilterCount > 0
+                  ? `Aplicar (${draftFilterCount})`
+                  : 'Aplicar'}
               </Text>
             </Pressable>
           </View>
         </View>
       </Modal>
     </View>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -963,4 +1132,4 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold as '600',
     color: colors.textOnPrimary,
   },
-})
+});

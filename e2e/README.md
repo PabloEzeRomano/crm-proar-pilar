@@ -5,21 +5,25 @@ This directory contains end-to-end tests for the CRM Proar Pilar web application
 ## Quick Start
 
 ### Run all tests
+
 ```bash
 yarn test:e2e
 ```
 
 ### Run tests in UI mode (interactive)
+
 ```bash
 yarn test:e2e:ui
 ```
 
 ### Debug a specific test
+
 ```bash
 yarn test:e2e:debug
 ```
 
 ### Run a specific test file
+
 ```bash
 yarn test:e2e -- e2e/example.spec.ts
 ```
@@ -48,6 +52,7 @@ All test files must end with `.spec.ts` (e.g., `clients.spec.ts`, `visits.spec.t
 ## Writing Tests
 
 ### Basic Example
+
 ```typescript
 import { test, expect } from '@playwright/test';
 
@@ -61,18 +66,21 @@ test('should navigate to clients page', async ({ page }) => {
 ### Common Patterns
 
 **Wait for navigation:**
+
 ```typescript
 await page.click('a[href="/visits"]');
 await page.waitForURL(/.*visits/);
 ```
 
 **Fill forms:**
+
 ```typescript
 await page.fill('input[type="text"]', 'New Client');
 await page.click('button[type="submit"]');
 ```
 
 **Check visibility:**
+
 ```typescript
 const button = page.locator('button:has-text("Save")');
 await expect(button).toBeVisible();
@@ -85,6 +93,7 @@ See [Playwright documentation](https://playwright.dev/docs/writing-tests) for mo
 Config file: `playwright.config.ts` (project root)
 
 Key settings:
+
 - **baseURL:** `http://localhost:8081` (Expo web dev server)
 - **webServer:** Automatically starts `yarn web` before tests
 - **browsers:** Chromium, Firefox
@@ -104,19 +113,25 @@ This disables server reuse and enables stricter retry behavior.
 ## Debugging
 
 ### View Test Report
+
 After a test run, open the HTML report:
+
 ```bash
 npx playwright show-report
 ```
 
 ### Debug Mode
+
 Run tests with the Playwright Inspector:
+
 ```bash
 yarn test:e2e:debug
 ```
 
 ### Slow Motion
+
 See tests run step-by-step:
+
 ```bash
 yarn test:e2e -- --headed --slow-mo=1000
 ```
@@ -124,13 +139,17 @@ yarn test:e2e -- --headed --slow-mo=1000
 ## Troubleshooting
 
 ### Port 8081 already in use
+
 Kill any existing Expo processes:
+
 ```bash
 lsof -i :8081 | awk 'NR==2 {print $2}' | xargs kill -9
 ```
 
 ### Tests timeout
+
 Increase timeout in test:
+
 ```typescript
 test('slow test', async ({ page }) => {
   test.setTimeout(60000); // 60 seconds
@@ -139,12 +158,15 @@ test('slow test', async ({ page }) => {
 ```
 
 ### App doesn't load
+
 Check that the Expo web dev server is running properly:
+
 ```bash
 yarn web
 ```
 
 If it fails to start, check `.expo/` directory or try clearing cache:
+
 ```bash
 rm -rf .expo node_modules && yarn install && yarn web
 ```
@@ -152,6 +174,7 @@ rm -rf .expo node_modules && yarn install && yarn web
 ## Next Steps
 
 After basic setup, implement:
+
 1. **Auth tests** — Login with test credentials
 2. **Import tests** — Excel upload and data validation
 3. **Visit flow tests** — Create, update, complete visits

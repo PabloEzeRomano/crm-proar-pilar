@@ -171,7 +171,7 @@ function formatTime(iso: string): string {
 function generateHtml(
   profile: Profile,
   visits: Visit[],
-  weekLabel: string,
+  weekLabel: string
 ): string {
   // Group visits by date (YYYY-MM-DD)
   const byDate = new Map<string, Visit[]>();
@@ -305,7 +305,9 @@ function generateHtml(
                     <div style="font-size:28px;font-weight:700;color:#16A34A;">${visits.filter((v) => v.status === 'completed').length}</div>
                     <div style="font-size:12px;color:#6B7280;margin-top:2px;">completada${visits.filter((v) => v.status === 'completed').length !== 1 ? 's' : ''}</div>
                   </td>
-                  ${(quotes.length > 0 || sales.length > 0) ? `
+                  ${
+                    quotes.length > 0 || sales.length > 0
+                      ? `
                   <td style="width:12px;"></td>
                   <td style="background:#F5F3FF;border-radius:8px;padding:10px 20px;text-align:center;">
                     <div style="font-size:22px;font-weight:700;color:#7C3AED;">${quotes.length}</div>
@@ -317,7 +319,9 @@ function generateHtml(
                     <div style="font-size:22px;font-weight:700;color:#EA580C;">${sales.length}</div>
                     <div style="font-size:12px;color:#6B7280;">venta${sales.length !== 1 ? 's' : ''}</div>
                     ${saleTotal > 0 ? `<div style="font-size:11px;color:#EA580C;">$${saleTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</div>` : ''}
-                  </td>` : ''}
+                  </td>`
+                      : ''
+                  }
                 </tr>
               </table>
             </td>
@@ -432,21 +436,33 @@ Deno.serve(async (req) => {
     if (bodyUserId) {
       const authHeader = req.headers.get('Authorization');
       if (!authHeader?.startsWith('Bearer ')) {
-        return new Response(JSON.stringify({ ok: false, error: 'Authorization required to target a specific user' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            error: 'Authorization required to target a specific user',
+          }),
+          {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
       }
       const callerJwt = authHeader.slice(7);
       const callerClient = createClient(supabaseUrl, anonKey, {
         global: { headers: { Authorization: `Bearer ${callerJwt}` } },
       });
-      const { data: { user: callerUser }, error: userErr } = await callerClient.auth.getUser();
+      const {
+        data: { user: callerUser },
+        error: userErr,
+      } = await callerClient.auth.getUser();
       if (userErr || !callerUser) {
-        return new Response(JSON.stringify({ ok: false, error: 'Invalid or expired token' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return new Response(
+          JSON.stringify({ ok: false, error: 'Invalid or expired token' }),
+          {
+            status: 401,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
       }
       const { data: callerProfile } = await supabase
         .from('profiles')
@@ -454,10 +470,16 @@ Deno.serve(async (req) => {
         .eq('id', callerUser.id)
         .single<{ role: string }>();
       if (callerProfile?.role !== 'admin' && callerProfile?.role !== 'root') {
-        return new Response(JSON.stringify({ ok: false, error: 'admin or root role required to target a specific user' }), {
-          status: 403,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            error: 'admin or root role required to target a specific user',
+          }),
+          {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
       }
     }
 
@@ -465,9 +487,10 @@ Deno.serve(async (req) => {
     const defaultRange = getLastWeekRange();
     const from = bodyDateFrom ?? defaultRange.from;
     const to = bodyDateTo ?? defaultRange.to;
-    const label = (bodyDateFrom && bodyDateTo)
-      ? getCustomRangeLabel(bodyDateFrom, bodyDateTo)
-      : defaultRange.label;
+    const label =
+      bodyDateFrom && bodyDateTo
+        ? getCustomRangeLabel(bodyDateFrom, bodyDateTo)
+        : defaultRange.label;
 
     // Fetch profiles with email enabled — scope to requesting user if provided
     let profilesQuery = supabase
@@ -482,7 +505,7 @@ Deno.serve(async (req) => {
     if (profilesErr) throw profilesErr;
 
     console.log(
-      `[weekly-email] bodyUserId=${bodyUserId} profiles found=${profiles?.length ?? 0}`,
+      `[weekly-email] bodyUserId=${bodyUserId} profiles found=${profiles?.length ?? 0}`
     );
 
     const results: {
@@ -493,7 +516,7 @@ Deno.serve(async (req) => {
     for (const profile of (profiles as Profile[]) ?? []) {
       const config = profile.email_config;
       console.log(
-        `[weekly-email] profile=${profile.id} config=${JSON.stringify(config)}`,
+        `[weekly-email] profile=${profile.id} config=${JSON.stringify(config)}`
       );
 
       const effectiveRecipients = bodyRecipients?.length
@@ -509,7 +532,10 @@ Deno.serve(async (req) => {
 
       // Validate email_config has required sender fields
       if (!isValidEmailConfig(config)) {
-        results.push({ userId: profile.id, status: 'error: invalid email_config' });
+        results.push({
+          userId: profile.id,
+          status: 'error: invalid email_config',
+        });
         continue;
       }
 
@@ -517,7 +543,7 @@ Deno.serve(async (req) => {
       const { data: visits, error: visitsErr } = await supabase
         .from('visits')
         .select(
-          'id, scheduled_at, status, notes, type, amount, client:clients(id, name, address, city)',
+          'id, scheduled_at, status, notes, type, amount, client:clients(id, name, address, city)'
         )
         .eq('owner_user_id', profile.id)
         .neq('status', 'canceled')
@@ -526,12 +552,18 @@ Deno.serve(async (req) => {
         .order('scheduled_at');
 
       if (visitsErr) {
-        results.push({ userId: profile.id, status: `error: ${visitsErr.message}` });
+        results.push({
+          userId: profile.id,
+          status: `error: ${visitsErr.message}`,
+        });
         continue;
       }
 
       if (!visits?.length) {
-        results.push({ userId: profile.id, status: 'skipped: no visits last week' });
+        results.push({
+          userId: profile.id,
+          status: 'skipped: no visits last week',
+        });
         continue;
       }
 

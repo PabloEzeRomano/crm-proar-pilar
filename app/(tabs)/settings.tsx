@@ -12,14 +12,14 @@
  * All data read/written through useAuthStore. No direct Supabase calls.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { z } from 'zod'
-import Constants from 'expo-constants'
-import { useRouter } from 'expo-router'
-import * as Notifications from 'expo-notifications'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { z } from 'zod';
+import Constants from 'expo-constants';
+import { useRouter } from 'expo-router';
+import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
   Alert,
@@ -32,66 +32,66 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native'
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
-import TourStep from '@/components/tour/TourStep'
-import AppDatePicker from '@/components/ui/AppDatePicker'
+} from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import TourStep from '@/components/tour/TourStep';
+import AppDatePicker from '@/components/ui/AppDatePicker';
 
-import dayjs from '@/lib/dayjs'
-import { brand } from '@/constants/brand'
+import dayjs from '@/lib/dayjs';
+import { brand } from '@/constants/brand';
 import {
   borderRadius,
   colors,
   fontSize,
   fontWeight,
   spacing,
-} from '@/constants/theme'
-import type { EmailConfig } from '@/types'
-import { useAuthStore } from '@/stores/authStore'
-import { useClientsStore } from '@/stores/clientsStore'
-import { useUsersStore } from '@/stores/usersStore'
-import { useImportStore } from '@/stores/importStore'
-import { useTodayStore } from '@/stores/todayStore'
-import { useVisitsStore } from '@/stores/visitsStore'
-import { useTourStore } from '@/stores/tourStore'
+} from '@/constants/theme';
+import type { EmailConfig } from '@/types';
+import { useAuthStore } from '@/stores/authStore';
+import { useClientsStore } from '@/stores/clientsStore';
+import { useUsersStore } from '@/stores/usersStore';
+import { useImportStore } from '@/stores/importStore';
+import { useTodayStore } from '@/stores/todayStore';
+import { useVisitsStore } from '@/stores/visitsStore';
+import { useTourStore } from '@/stores/tourStore';
 
 // ---------------------------------------------------------------------------
 // Email validation schema
 // ---------------------------------------------------------------------------
 
-const emailSchema = z.string().email()
+const emailSchema = z.string().email();
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 function SettingsScreenContent() {
-  const insets = useSafeAreaInsets()
+  const insets = useSafeAreaInsets();
 
-  const router = useRouter()
+  const router = useRouter();
 
-  const startTour = useTourStore((s) => s.startTour)
-  const currentTourIndex = useTourStore((s) => s.currentIndex)
+  const startTour = useTourStore((s) => s.startTour);
+  const currentTourIndex = useTourStore((s) => s.currentIndex);
 
-  const user = useAuthStore((s) => s.user)
-  const profile = useAuthStore((s) => s.profile)
-  const signOut = useAuthStore((s) => s.signOut)
-  const updateEmailConfig = useAuthStore((s) => s.updateEmailConfig)
-  const resetTour = useAuthStore((s) => s.resetTour)
+  const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
+  const signOut = useAuthStore((s) => s.signOut);
+  const updateEmailConfig = useAuthStore((s) => s.updateEmailConfig);
+  const resetTour = useAuthStore((s) => s.resetTour);
 
-  const runImport = useImportStore((s) => s.runImport)
-  const importing = useImportStore((s) => s.importing)
-  const importResult = useImportStore((s) => s.result)
-  const importError = useImportStore((s) => s.error)
-  const clearImportResult = useImportStore((s) => s.clearResult)
+  const runImport = useImportStore((s) => s.runImport);
+  const importing = useImportStore((s) => s.importing);
+  const importResult = useImportStore((s) => s.result);
+  const importError = useImportStore((s) => s.error);
+  const clearImportResult = useImportStore((s) => s.clearResult);
 
-  const fetchTodayVisits = useTodayStore((s) => s.fetchTodayVisits)
-  const fetchVisits = useVisitsStore((s) => s.fetchVisits)
-  const deleteAllVisits = useVisitsStore((s) => s.deleteAllUserVisits)
-  const deleteAllClients = useClientsStore((s) => s.deleteAllUserClients)
+  const fetchTodayVisits = useTodayStore((s) => s.fetchTodayVisits);
+  const fetchVisits = useVisitsStore((s) => s.fetchVisits);
+  const deleteAllVisits = useVisitsStore((s) => s.deleteAllUserVisits);
+  const deleteAllClients = useClientsStore((s) => s.deleteAllUserClients);
 
-  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root'
-  const teamUsers = useUsersStore((s) => s.users)
+  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root';
+  const teamUsers = useUsersStore((s) => s.users);
 
   // -------------------------------------------------------------------------
   // Local state
@@ -103,43 +103,55 @@ function SettingsScreenContent() {
     recipients: profile?.email_config?.recipients ?? [],
     sender_address: profile?.email_config?.sender_address ?? '',
     sender_name: profile?.email_config?.sender_name ?? '',
-  }))
-  const [isDirty, setIsDirty] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [addEmail, setAddEmail] = useState('')
-  const [addEmailError, setAddEmailError] = useState<string | null>(null)
-  const [sendingReport, setSendingReport] = useState(false)
-  const [reportFeedback, setReportFeedback] = useState<{ ok: boolean; message: string } | null>(null)
-  const [showSendModal, setShowSendModal] = useState(false)
-  const [modalAdHocEmails, setModalAdHocEmails] = useState<string[]>([])
-  const [modalAdHocInput, setModalAdHocInput] = useState('')
-  const [modalAdHocError, setModalAdHocError] = useState<string | null>(null)
-  const [modalDateFrom, setModalDateFrom] = useState<Date>(() => dayjs().subtract(1, 'week').startOf('week').add(1, 'day').toDate())
-  const [modalDateTo, setModalDateTo] = useState<Date>(() => dayjs().subtract(1, 'week').endOf('week').add(1, 'day').toDate())
-  const [modalTargetUserId, setModalTargetUserId] = useState<string | undefined>(undefined)
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true)
-  const [testingNotification, setTestingNotification] = useState(false)
-  const [notificationFeedback, setNotificationFeedback] = useState<{ ok: boolean; message: string } | null>(null)
+  }));
+  const [isDirty, setIsDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [addEmail, setAddEmail] = useState('');
+  const [addEmailError, setAddEmailError] = useState<string | null>(null);
+  const [sendingReport, setSendingReport] = useState(false);
+  const [reportFeedback, setReportFeedback] = useState<{
+    ok: boolean;
+    message: string;
+  } | null>(null);
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [modalAdHocEmails, setModalAdHocEmails] = useState<string[]>([]);
+  const [modalAdHocInput, setModalAdHocInput] = useState('');
+  const [modalAdHocError, setModalAdHocError] = useState<string | null>(null);
+  const [modalDateFrom, setModalDateFrom] = useState<Date>(() =>
+    dayjs().subtract(1, 'week').startOf('week').add(1, 'day').toDate()
+  );
+  const [modalDateTo, setModalDateTo] = useState<Date>(() =>
+    dayjs().subtract(1, 'week').endOf('week').add(1, 'day').toDate()
+  );
+  const [modalTargetUserId, setModalTargetUserId] = useState<
+    string | undefined
+  >(undefined);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [testingNotification, setTestingNotification] = useState(false);
+  const [notificationFeedback, setNotificationFeedback] = useState<{
+    ok: boolean;
+    message: string;
+  } | null>(null);
 
   // Restart tour: persist DB flag, navigate to agenda
   function handleRestartTour() {
-    resetTour()        // persist show_tour=true to DB
-    startTour()        // currentIndex = 0
-    router.replace('/(tabs)/agenda')
+    resetTour(); // persist show_tour=true to DB
+    startTour(); // currentIndex = 0
+    router.replace('/(tabs)/agenda');
   }
 
   // Refresh agenda + visits stores after a successful import
   useEffect(() => {
     if (importResult) {
-      fetchTodayVisits()
-      fetchVisits()
+      fetchTodayVisits();
+      fetchVisits();
     }
-  }, [importResult])
+  }, [importResult]);
 
   // Sync from store only when not dirty (profile may load after first render)
   useEffect(() => {
-    console.log('useEffect profile')
-    console.log(profile)
+    console.log('useEffect profile');
+    console.log(profile);
     if (!isDirty && profile?.email_config) {
       setLocalConfig({
         enabled: profile.email_config.enabled,
@@ -147,70 +159,79 @@ function SettingsScreenContent() {
         recipients: profile.email_config.recipients,
         sender_address: profile.email_config.sender_address,
         sender_name: profile.email_config.sender_name,
-      })
+      });
     }
-  }, [profile])
+  }, [profile]);
 
   // Native-only: scroll the settings page to the active tour step section.
   // On web, TourStep handles scrollIntoView via the DOM — doing it here too
   // would race. On native there is no DOM, so we must scroll explicitly.
-  const scrollRef = useRef<import('react-native').ScrollView>(null)
-  const importSectionY = useRef(0)
+  const scrollRef = useRef<import('react-native').ScrollView>(null);
+  const importSectionY = useRef(0);
 
   useEffect(() => {
-    if (Platform.OS === 'web') return
+    if (Platform.OS === 'web') return;
     if (currentTourIndex === 8) {
       // Step 9 — email toggle is near the top; reset to top
-      scrollRef.current?.scrollTo({ y: 0, animated: false })
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
     } else if (currentTourIndex === 9) {
       // Step 10 — import section; scroll to captured y offset
-      scrollRef.current?.scrollTo({ y: importSectionY.current, animated: false })
+      scrollRef.current?.scrollTo({
+        y: importSectionY.current,
+        animated: false,
+      });
     }
-  }, [currentTourIndex])
+  }, [currentTourIndex]);
 
   // Load notifications enabled setting from AsyncStorage on mount
   useEffect(() => {
     async function loadNotificationsEnabled() {
       try {
-        const value = await AsyncStorage.getItem('notifications-enabled')
+        const value = await AsyncStorage.getItem('notifications-enabled');
         // Default to true if not set
-        setNotificationsEnabled(value !== 'false')
+        setNotificationsEnabled(value !== 'false');
       } catch (error) {
-        console.error('Failed to load notifications setting:', error)
+        console.error('Failed to load notifications setting:', error);
         // Default to true on error
-        setNotificationsEnabled(true)
+        setNotificationsEnabled(true);
       }
     }
-    loadNotificationsEnabled()
-  }, [])
+    loadNotificationsEnabled();
+  }, []);
 
   // -------------------------------------------------------------------------
   // Handlers
   // -------------------------------------------------------------------------
 
   function handleToggle(val: boolean) {
-    setLocalConfig((c) => ({ ...c, enabled: val }))
-    setIsDirty(true)
+    setLocalConfig((c) => ({ ...c, enabled: val }));
+    setIsDirty(true);
   }
 
   async function handleNotificationsToggle(val: boolean) {
-    setNotificationsEnabled(val)
+    setNotificationsEnabled(val);
     try {
-      await AsyncStorage.setItem('notifications-enabled', val ? 'true' : 'false')
+      await AsyncStorage.setItem(
+        'notifications-enabled',
+        val ? 'true' : 'false'
+      );
     } catch (error) {
-      console.error('Failed to save notifications setting:', error)
+      console.error('Failed to save notifications setting:', error);
     }
   }
 
   async function handleTestNotification() {
     // Only works on native platforms
     if (Platform.OS === 'web' || !Notifications.scheduleNotificationAsync) {
-      setNotificationFeedback({ ok: false, message: 'No disponible en esta plataforma' })
-      return
+      setNotificationFeedback({
+        ok: false,
+        message: 'No disponible en esta plataforma',
+      });
+      return;
     }
 
-    setTestingNotification(true)
-    setNotificationFeedback(null)
+    setTestingNotification(true);
+    setNotificationFeedback(null);
     try {
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
@@ -218,61 +239,67 @@ function SettingsScreenContent() {
           body: 'Esta es una notificación de prueba para verificar que el sistema funciona.',
         } as any,
         trigger: { type: 'date', date: new Date(Date.now() + 500) }, // Show in 500ms
-      } as any)
-      setNotificationFeedback({ ok: true, message: `Notificación enviada (ID: ${notificationId.slice(0, 8)}...)` })
+      } as any);
+      setNotificationFeedback({
+        ok: true,
+        message: `Notificación enviada (ID: ${notificationId.slice(0, 8)}...)`,
+      });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Error al enviar la notificación de prueba'
-      setNotificationFeedback({ ok: false, message })
-      console.error('Test notification error:', err)
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Error al enviar la notificación de prueba';
+      setNotificationFeedback({ ok: false, message });
+      console.error('Test notification error:', err);
     } finally {
-      setTestingNotification(false)
+      setTestingNotification(false);
     }
   }
 
   function handleSenderChange(text: string) {
-    setLocalConfig((c) => ({ ...c, sender: text }))
-    setIsDirty(true)
+    setLocalConfig((c) => ({ ...c, sender: text }));
+    setIsDirty(true);
   }
 
   function handleAddRecipient() {
-    const trimmed = addEmail.trim()
-    const result = emailSchema.safeParse(trimmed)
+    const trimmed = addEmail.trim();
+    const result = emailSchema.safeParse(trimmed);
     if (!result.success) {
-      setAddEmailError('Email inválido')
-      return
+      setAddEmailError('Email inválido');
+      return;
     }
     if (localConfig.recipients.includes(trimmed)) {
-      setAddEmailError('Ya agregado')
-      return
+      setAddEmailError('Ya agregado');
+      return;
     }
-    setLocalConfig((c) => ({ ...c, recipients: [...c.recipients, trimmed] }))
-    setAddEmail('')
-    setAddEmailError(null)
-    setIsDirty(true)
+    setLocalConfig((c) => ({ ...c, recipients: [...c.recipients, trimmed] }));
+    setAddEmail('');
+    setAddEmailError(null);
+    setIsDirty(true);
   }
 
   function removeRecipient(email: string) {
     setLocalConfig((c) => ({
       ...c,
       recipients: c.recipients.filter((r) => r !== email),
-    }))
-    setIsDirty(true)
+    }));
+    setIsDirty(true);
   }
 
   const handleSave = useCallback(async () => {
-    console.log('handleSave')
-    console.log(localConfig)
-    console.log(profile)
-    setSaving(true)
+    console.log('handleSave');
+    console.log(localConfig);
+    console.log(profile);
+    setSaving(true);
 
     // Validate sender email if provided
     if (localConfig.sender) {
-      const result = emailSchema.safeParse(localConfig.sender)
+      const result = emailSchema.safeParse(localConfig.sender);
       if (!result.success) {
         // Show error
-        alert('Email remitente inválido')
-        setSaving(false)
-        return
+        alert('Email remitente inválido');
+        setSaving(false);
+        return;
       }
     }
 
@@ -282,120 +309,133 @@ function SettingsScreenContent() {
       sender_address: localConfig.sender_address,
       sender_name: localConfig.sender_name,
       recipients: localConfig.recipients,
-    })
-    setSaving(false)
-    setIsDirty(false)
-  }, [localConfig, profile, updateEmailConfig])
+    });
+    setSaving(false);
+    setIsDirty(false);
+  }, [localConfig, profile, updateEmailConfig]);
 
   function handleOpenSendModal() {
-    setModalAdHocEmails([])
-    setModalAdHocInput('')
-    setModalAdHocError(null)
-    setReportFeedback(null)
+    setModalAdHocEmails([]);
+    setModalAdHocInput('');
+    setModalAdHocError(null);
+    setReportFeedback(null);
     // Default date range: last week (Mon–Sun in local time)
-    const today = dayjs()
+    const today = dayjs();
     // dayjs().day() — 0=Sun…6=Sat; convert to Mon-based: Mon=0…Sun=6
-    const dayOfWeek = today.day() === 0 ? 6 : today.day() - 1
-    const lastMonday = today.subtract(dayOfWeek + 7, 'day').startOf('day')
-    const lastSunday = lastMonday.add(6, 'day').endOf('day')
-    setModalDateFrom(lastMonday.toDate())
-    setModalDateTo(lastSunday.toDate())
-    setModalTargetUserId(undefined)
-    setShowSendModal(true)
+    const dayOfWeek = today.day() === 0 ? 6 : today.day() - 1;
+    const lastMonday = today.subtract(dayOfWeek + 7, 'day').startOf('day');
+    const lastSunday = lastMonday.add(6, 'day').endOf('day');
+    setModalDateFrom(lastMonday.toDate());
+    setModalDateTo(lastSunday.toDate());
+    setModalTargetUserId(undefined);
+    setShowSendModal(true);
   }
 
   function handleModalAddEmail() {
-    const trimmed = modalAdHocInput.trim()
-    const result = emailSchema.safeParse(trimmed)
+    const trimmed = modalAdHocInput.trim();
+    const result = emailSchema.safeParse(trimmed);
     if (!result.success) {
-      setModalAdHocError('Email inválido')
-      return
+      setModalAdHocError('Email inválido');
+      return;
     }
-    const allRecipients = [...(profile?.email_config?.recipients ?? []), ...modalAdHocEmails]
+    const allRecipients = [
+      ...(profile?.email_config?.recipients ?? []),
+      ...modalAdHocEmails,
+    ];
     if (allRecipients.includes(trimmed)) {
-      setModalAdHocError('Ya agregado')
-      return
+      setModalAdHocError('Ya agregado');
+      return;
     }
-    setModalAdHocEmails((prev) => [...prev, trimmed])
-    setModalAdHocInput('')
-    setModalAdHocError(null)
+    setModalAdHocEmails((prev) => [...prev, trimmed]);
+    setModalAdHocInput('');
+    setModalAdHocError(null);
   }
 
   function handleModalRemoveAdHoc(email: string) {
-    setModalAdHocEmails((prev) => prev.filter((e) => e !== email))
+    setModalAdHocEmails((prev) => prev.filter((e) => e !== email));
   }
 
   async function handleSendReport() {
-    const invokeWeeklyEmail = useAuthStore.getState().invokeWeeklyEmail
-    const configuredRecipients = profile?.email_config?.recipients ?? []
-    const allRecipients = [...configuredRecipients, ...modalAdHocEmails]
-    setSendingReport(true)
-    setReportFeedback(null)
+    const invokeWeeklyEmail = useAuthStore.getState().invokeWeeklyEmail;
+    const configuredRecipients = profile?.email_config?.recipients ?? [];
+    const allRecipients = [...configuredRecipients, ...modalAdHocEmails];
+    setSendingReport(true);
+    setReportFeedback(null);
     try {
       await invokeWeeklyEmail(
         allRecipients.length > 0 ? allRecipients : undefined,
         dayjs(modalDateFrom).startOf('day').toISOString(),
         dayjs(modalDateTo).endOf('day').toISOString(),
-        modalTargetUserId,
-      )
-      const error = useAuthStore.getState().error
-      if (error) throw new Error(error)
-      setReportFeedback({ ok: true, message: 'Enviado correctamente' })
-      setShowSendModal(false)
+        modalTargetUserId
+      );
+      const error = useAuthStore.getState().error;
+      if (error) throw new Error(error);
+      setReportFeedback({ ok: true, message: 'Enviado correctamente' });
+      setShowSendModal(false);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Error al enviar el reporte'
-      setReportFeedback({ ok: false, message })
+      const message =
+        err instanceof Error ? err.message : 'Error al enviar el reporte';
+      setReportFeedback({ ok: false, message });
     } finally {
-      setSendingReport(false)
+      setSendingReport(false);
     }
   }
 
   async function handleDevReset() {
-    const confirmed = Platform.OS === 'web'
-      ? window.confirm('Esto eliminará TODOS los clientes y visitas del usuario. ¿Continuar?')
-      : await new Promise<boolean>((resolve) =>
-          Alert.alert(
-            'Borrar todos los datos',
-            'Esto eliminará TODOS los clientes y visitas del usuario. ¿Continuar?',
-            [
-              { text: 'Cancelar', style: 'cancel', onPress: () => resolve(false) },
-              { text: 'Borrar todo', style: 'destructive', onPress: () => resolve(true) },
-            ],
+    const confirmed =
+      Platform.OS === 'web'
+        ? window.confirm(
+            'Esto eliminará TODOS los clientes y visitas del usuario. ¿Continuar?'
           )
-        )
-    if (!confirmed) return
-    await deleteAllVisits()
-    await deleteAllClients()
-    fetchVisits()
-    fetchTodayVisits()
+        : await new Promise<boolean>((resolve) =>
+            Alert.alert(
+              'Borrar todos los datos',
+              'Esto eliminará TODOS los clientes y visitas del usuario. ¿Continuar?',
+              [
+                {
+                  text: 'Cancelar',
+                  style: 'cancel',
+                  onPress: () => resolve(false),
+                },
+                {
+                  text: 'Borrar todo',
+                  style: 'destructive',
+                  onPress: () => resolve(true),
+                },
+              ]
+            )
+          );
+    if (!confirmed) return;
+    await deleteAllVisits();
+    await deleteAllClients();
+    fetchVisits();
+    fetchTodayVisits();
   }
 
   function handleSignOut() {
     if (Platform.OS === 'web') {
-      if (window.confirm('¿Estás seguro que querés cerrar sesión?')) signOut()
-      return
+      if (window.confirm('¿Estás seguro que querés cerrar sesión?')) signOut();
+      return;
     }
-    Alert.alert(
-      'Cerrar sesión',
-      '¿Estás seguro que querés cerrar sesión?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Cerrar sesión', style: 'destructive', onPress: signOut },
-      ],
-    )
+    Alert.alert('Cerrar sesión', '¿Estás seguro que querés cerrar sesión?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Cerrar sesión', style: 'destructive', onPress: signOut },
+    ]);
   }
 
   // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
 
-  const scrollPaddingBottom = spacing[16] + insets.bottom
+  const scrollPaddingBottom = spacing[16] + insets.bottom;
 
   return (
     <View style={styles.flex}>
       <KeyboardAwareScrollView
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        innerRef={(r: any) => { scrollRef.current = r }}
+        innerRef={(r: any) => {
+          scrollRef.current = r;
+        }}
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
@@ -443,18 +483,32 @@ function SettingsScreenContent() {
               accessibilityRole="button"
               accessibilityLabel="Enviar reporte ahora"
             >
-              <MaterialCommunityIcons name="email-fast-outline" size={18} color={colors.textOnPrimary} />
+              <MaterialCommunityIcons
+                name="email-fast-outline"
+                size={18}
+                color={colors.textOnPrimary}
+              />
               <Text style={styles.importButtonLabel}>Enviar reporte ahora</Text>
             </Pressable>
 
             {reportFeedback && !showSendModal && (
-              <View style={[styles.importResult, !reportFeedback.ok && styles.importResultError]}>
+              <View
+                style={[
+                  styles.importResult,
+                  !reportFeedback.ok && styles.importResultError,
+                ]}
+              >
                 <MaterialCommunityIcons
                   name={reportFeedback.ok ? 'check-circle' : 'alert-circle'}
                   size={16}
                   color={reportFeedback.ok ? colors.success : colors.error}
                 />
-                <Text style={[styles.importResultText, !reportFeedback.ok && styles.importResultErrorText]}>
+                <Text
+                  style={[
+                    styles.importResultText,
+                    !reportFeedback.ok && styles.importResultErrorText,
+                  ]}
+                >
                   {reportFeedback.message}
                 </Text>
               </View>
@@ -472,7 +526,8 @@ function SettingsScreenContent() {
                 </Text>
                 <View style={[styles.input, styles.inputReadOnly]}>
                   <Text style={styles.inputReadOnlyText}>
-                    {profile?.email_config?.sender_name && profile?.email_config?.sender_address
+                    {profile?.email_config?.sender_name &&
+                    profile?.email_config?.sender_address
                       ? `${profile.email_config.sender_name} <${profile.email_config.sender_address}>`
                       : '—'}
                   </Text>
@@ -506,10 +561,7 @@ function SettingsScreenContent() {
                   <View style={styles.chipsContainer}>
                     {localConfig.recipients.map((email) => (
                       <View key={email} style={styles.chip}>
-                        <Text
-                          style={styles.chipText}
-                          numberOfLines={1}
-                        >
+                        <Text style={styles.chipText} numberOfLines={1}>
                           {email}
                         </Text>
                         <Pressable
@@ -534,8 +586,8 @@ function SettingsScreenContent() {
                     style={[styles.input, styles.addInput]}
                     value={addEmail}
                     onChangeText={(text) => {
-                      setAddEmail(text)
-                      if (addEmailError) setAddEmailError(null)
+                      setAddEmail(text);
+                      if (addEmailError) setAddEmailError(null);
                     }}
                     placeholder="correo@ejemplo.com"
                     placeholderTextColor={colors.textDisabled}
@@ -572,7 +624,9 @@ function SettingsScreenContent() {
           <View style={[styles.row, styles.rowNoBorder]}>
             <View style={styles.rowContent}>
               <Text style={styles.rowLabel}>Recordatorios de visitas</Text>
-              <Text style={styles.rowSubtitle}>Recibir notificaciones antes de las visitas</Text>
+              <Text style={styles.rowSubtitle}>
+                Recibir notificaciones antes de las visitas
+              </Text>
             </View>
             <Switch
               value={notificationsEnabled}
@@ -588,31 +642,60 @@ function SettingsScreenContent() {
           {__DEV__ && (
             <View style={[styles.row, styles.rowColumn, styles.rowBorderTop]}>
               <Pressable
-                style={[styles.sendReportButton, testingNotification && styles.importButtonDisabled]}
+                style={[
+                  styles.sendReportButton,
+                  testingNotification && styles.importButtonDisabled,
+                ]}
                 onPress={handleTestNotification}
                 disabled={testingNotification}
                 accessibilityRole="button"
                 accessibilityLabel="Enviar notificación de prueba"
-                accessibilityState={{ disabled: testingNotification, busy: testingNotification }}
+                accessibilityState={{
+                  disabled: testingNotification,
+                  busy: testingNotification,
+                }}
               >
                 {testingNotification ? (
-                  <ActivityIndicator color={colors.textOnPrimary} size="small" />
+                  <ActivityIndicator
+                    color={colors.textOnPrimary}
+                    size="small"
+                  />
                 ) : (
                   <>
-                    <MaterialCommunityIcons name="bell-ring-outline" size={18} color={colors.textOnPrimary} />
-                    <Text style={styles.importButtonLabel}>Prueba de notificación</Text>
+                    <MaterialCommunityIcons
+                      name="bell-ring-outline"
+                      size={18}
+                      color={colors.textOnPrimary}
+                    />
+                    <Text style={styles.importButtonLabel}>
+                      Prueba de notificación
+                    </Text>
                   </>
                 )}
               </Pressable>
 
               {notificationFeedback && (
-                <View style={[styles.importResult, !notificationFeedback.ok && styles.importResultError]}>
+                <View
+                  style={[
+                    styles.importResult,
+                    !notificationFeedback.ok && styles.importResultError,
+                  ]}
+                >
                   <MaterialCommunityIcons
-                    name={notificationFeedback.ok ? 'check-circle' : 'alert-circle'}
+                    name={
+                      notificationFeedback.ok ? 'check-circle' : 'alert-circle'
+                    }
                     size={16}
-                    color={notificationFeedback.ok ? colors.success : colors.error}
+                    color={
+                      notificationFeedback.ok ? colors.success : colors.error
+                    }
                   />
-                  <Text style={[styles.importResultText, !notificationFeedback.ok && styles.importResultErrorText]}>
+                  <Text
+                    style={[
+                      styles.importResultText,
+                      !notificationFeedback.ok && styles.importResultErrorText,
+                    ]}
+                  >
                     {notificationFeedback.message}
                   </Text>
                 </View>
@@ -626,8 +709,12 @@ function SettingsScreenContent() {
         ================================================================ */}
         <Text
           style={styles.sectionHeader}
-          onLayout={(e) => { importSectionY.current = e.nativeEvent.layout.y }}
-        >IMPORTAR DATOS</Text>
+          onLayout={(e) => {
+            importSectionY.current = e.nativeEvent.layout.y;
+          }}
+        >
+          IMPORTAR DATOS
+        </Text>
 
         <View style={styles.section}>
           {/* ── Tour step 10: Import button ── */}
@@ -646,10 +733,13 @@ function SettingsScreenContent() {
               </View>
 
               <Pressable
-                style={[styles.importButton, importing && styles.importButtonDisabled]}
+                style={[
+                  styles.importButton,
+                  importing && styles.importButtonDisabled,
+                ]}
                 onPress={() => {
-                  clearImportResult()
-                  runImport()
+                  clearImportResult();
+                  runImport();
                 }}
                 disabled={importing}
                 accessibilityRole="button"
@@ -657,7 +747,10 @@ function SettingsScreenContent() {
                 accessibilityState={{ disabled: importing, busy: importing }}
               >
                 {importing ? (
-                  <ActivityIndicator color={colors.textOnPrimary} size="small" />
+                  <ActivityIndicator
+                    color={colors.textOnPrimary}
+                    size="small"
+                  />
                 ) : (
                   <>
                     <MaterialCommunityIcons
@@ -665,44 +758,53 @@ function SettingsScreenContent() {
                       size={18}
                       color={colors.textOnPrimary}
                     />
-                    <Text style={styles.importButtonLabel}>Seleccionar archivo</Text>
+                    <Text style={styles.importButtonLabel}>
+                      Seleccionar archivo
+                    </Text>
                   </>
                 )}
               </Pressable>
 
-            {/* Result banner */}
-            {importResult && (
-              <View style={styles.importResult}>
-                <MaterialCommunityIcons
-                  name="check-circle"
-                  size={16}
-                  color={colors.success}
-                />
-                <Text style={styles.importResultText}>
-                  {importResult.clientsCreated} clientes nuevos · {importResult.visitsCreated} visitas nuevas
-                  {importResult.clientsSkipped + importResult.visitsSkipped > 0
-                    ? ` · ${importResult.clientsSkipped + importResult.visitsSkipped} ya existían`
-                    : ''}
-                  {importResult.errors > 0
-                    ? ` · ${importResult.errors} errores`
-                    : ''}
-                </Text>
-              </View>
-            )}
+              {/* Result banner */}
+              {importResult && (
+                <View style={styles.importResult}>
+                  <MaterialCommunityIcons
+                    name="check-circle"
+                    size={16}
+                    color={colors.success}
+                  />
+                  <Text style={styles.importResultText}>
+                    {importResult.clientsCreated} clientes nuevos ·{' '}
+                    {importResult.visitsCreated} visitas nuevas
+                    {importResult.clientsSkipped + importResult.visitsSkipped >
+                    0
+                      ? ` · ${importResult.clientsSkipped + importResult.visitsSkipped} ya existían`
+                      : ''}
+                    {importResult.errors > 0
+                      ? ` · ${importResult.errors} errores`
+                      : ''}
+                  </Text>
+                </View>
+              )}
 
-            {/* Error banner */}
-            {importError && (
-              <View style={[styles.importResult, styles.importResultError]}>
-                <MaterialCommunityIcons
-                  name="alert-circle"
-                  size={16}
-                  color={colors.error}
-                />
-                <Text style={[styles.importResultText, styles.importResultErrorText]}>
-                  {importError}
-                </Text>
-              </View>
-            )}
+              {/* Error banner */}
+              {importError && (
+                <View style={[styles.importResult, styles.importResultError]}>
+                  <MaterialCommunityIcons
+                    name="alert-circle"
+                    size={16}
+                    color={colors.error}
+                  />
+                  <Text
+                    style={[
+                      styles.importResultText,
+                      styles.importResultErrorText,
+                    ]}
+                  >
+                    {importError}
+                  </Text>
+                </View>
+              )}
             </View>
           </TourStep>
         </View>
@@ -731,9 +833,15 @@ function SettingsScreenContent() {
                 accessibilityLabel="Gestión de usuarios"
               >
                 <Text style={styles.rowLabel}>Gestión de usuarios</Text>
-                <Text style={styles.rowSubtitle}>Invitá y administrá el equipo</Text>
+                <Text style={styles.rowSubtitle}>
+                  Invitá y administrá el equipo
+                </Text>
               </Pressable>
-              <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textDisabled} />
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={20}
+                color={colors.textDisabled}
+              />
             </View>
           )}
 
@@ -747,9 +855,15 @@ function SettingsScreenContent() {
                 accessibilityLabel="Gestión de productos"
               >
                 <Text style={styles.rowLabel}>Gestión de productos</Text>
-                <Text style={styles.rowSubtitle}>Catálogo, presentaciones y precios</Text>
+                <Text style={styles.rowSubtitle}>
+                  Catálogo, presentaciones y precios
+                </Text>
               </Pressable>
-              <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textDisabled} />
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={20}
+                color={colors.textDisabled}
+              />
             </View>
           )}
 
@@ -762,9 +876,15 @@ function SettingsScreenContent() {
               accessibilityLabel="Ver tour de nuevo"
             >
               <Text style={styles.rowLabel}>Ver tour de nuevo</Text>
-              <Text style={styles.rowSubtitle}>Reinicia el tutorial de bienvenida</Text>
+              <Text style={styles.rowSubtitle}>
+                Reinicia el tutorial de bienvenida
+              </Text>
             </Pressable>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textDisabled} />
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={20}
+              color={colors.textDisabled}
+            />
           </View>
 
           {/* Sign out button */}
@@ -794,8 +914,14 @@ function SettingsScreenContent() {
                   accessibilityRole="button"
                   accessibilityLabel="Borrar todos los clientes y visitas"
                 >
-                  <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors.error} />
-                  <Text style={styles.devResetButtonText}>Borrar clientes y visitas</Text>
+                  <MaterialCommunityIcons
+                    name="trash-can-outline"
+                    size={18}
+                    color={colors.error}
+                  />
+                  <Text style={styles.devResetButtonText}>
+                    Borrar clientes y visitas
+                  </Text>
                 </Pressable>
               </View>
             </View>
@@ -807,7 +933,9 @@ function SettingsScreenContent() {
         ================================================================ */}
         <View style={styles.appInfo}>
           <Text style={styles.appInfoText}>{brand.appName}</Text>
-          <Text style={styles.appInfoText}>Versión {Constants.expoConfig?.version || 'desconocida'}</Text>
+          <Text style={styles.appInfoText}>
+            Versión {Constants.expoConfig?.version || 'desconocida'}
+          </Text>
         </View>
       </KeyboardAwareScrollView>
 
@@ -821,14 +949,26 @@ function SettingsScreenContent() {
         onRequestClose={() => setShowSendModal(false)}
         statusBarTranslucent
       >
-        <Pressable style={styles.modalBackdrop} onPress={() => setShowSendModal(false)} />
-        <View style={[styles.modalSheet, { paddingBottom: spacing[4] + insets.bottom }]}>
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setShowSendModal(false)}
+        />
+        <View
+          style={[
+            styles.modalSheet,
+            { paddingBottom: spacing[4] + insets.bottom },
+          ]}
+        >
           {/* Handle */}
           <View style={styles.modalHandle} />
 
           {/* Header */}
           <View style={styles.modalHeader}>
-            <MaterialCommunityIcons name="email-fast-outline" size={20} color={colors.primary} />
+            <MaterialCommunityIcons
+              name="email-fast-outline"
+              size={20}
+              color={colors.primary}
+            />
             <Text style={styles.modalTitle}>Enviar reporte de visitas</Text>
             <Pressable
               onPress={() => setShowSendModal(false)}
@@ -836,7 +976,11 @@ function SettingsScreenContent() {
               accessibilityRole="button"
               accessibilityLabel="Cerrar"
             >
-              <MaterialCommunityIcons name="close" size={22} color={colors.textSecondary} />
+              <MaterialCommunityIcons
+                name="close"
+                size={22}
+                color={colors.textSecondary}
+              />
             </Pressable>
           </View>
 
@@ -850,11 +994,15 @@ function SettingsScreenContent() {
             {/* Configured recipients (read-only chips) */}
             {(profile?.email_config?.recipients ?? []).length > 0 && (
               <View style={styles.modalSection}>
-                <Text style={styles.modalSectionLabel}>Destinatarios configurados</Text>
+                <Text style={styles.modalSectionLabel}>
+                  Destinatarios configurados
+                </Text>
                 <View style={styles.chipsContainer}>
                   {(profile?.email_config?.recipients ?? []).map((email) => (
                     <View key={email} style={styles.chip}>
-                      <Text style={styles.chipText} numberOfLines={1}>{email}</Text>
+                      <Text style={styles.chipText} numberOfLines={1}>
+                        {email}
+                      </Text>
                     </View>
                   ))}
                 </View>
@@ -863,20 +1011,32 @@ function SettingsScreenContent() {
 
             {/* Ad-hoc recipients */}
             <View style={styles.modalSection}>
-              <Text style={styles.modalSectionLabel}>Agregar destinatarios adicionales</Text>
-              <Text style={styles.rowSubtitle}>No se guardarán — solo para este envío</Text>
+              <Text style={styles.modalSectionLabel}>
+                Agregar destinatarios adicionales
+              </Text>
+              <Text style={styles.rowSubtitle}>
+                No se guardarán — solo para este envío
+              </Text>
 
               {modalAdHocEmails.length > 0 && (
-                <View style={[styles.chipsContainer, { marginTop: spacing[2] }]}>
+                <View
+                  style={[styles.chipsContainer, { marginTop: spacing[2] }]}
+                >
                   {modalAdHocEmails.map((email) => (
                     <View key={email} style={styles.chip}>
-                      <Text style={styles.chipText} numberOfLines={1}>{email}</Text>
+                      <Text style={styles.chipText} numberOfLines={1}>
+                        {email}
+                      </Text>
                       <Pressable
                         onPress={() => handleModalRemoveAdHoc(email)}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         accessibilityLabel={`Eliminar ${email}`}
                       >
-                        <MaterialCommunityIcons name="close" size={16} color={colors.textSecondary} />
+                        <MaterialCommunityIcons
+                          name="close"
+                          size={16}
+                          color={colors.textSecondary}
+                        />
                       </Pressable>
                     </View>
                   ))}
@@ -888,8 +1048,8 @@ function SettingsScreenContent() {
                   style={[styles.input, styles.addInput]}
                   value={modalAdHocInput}
                   onChangeText={(text) => {
-                    setModalAdHocInput(text)
-                    if (modalAdHocError) setModalAdHocError(null)
+                    setModalAdHocInput(text);
+                    if (modalAdHocError) setModalAdHocError(null);
                   }}
                   placeholder="correo@ejemplo.com"
                   placeholderTextColor={colors.textDisabled}
@@ -944,25 +1104,37 @@ function SettingsScreenContent() {
             {isAdminOrRoot && teamUsers.length > 0 && (
               <View style={styles.modalSection}>
                 <Text style={styles.modalSectionLabel}>Usuario</Text>
-                <Text style={styles.rowSubtitle}>Por defecto: tu propio reporte</Text>
+                <Text style={styles.rowSubtitle}>
+                  Por defecto: tu propio reporte
+                </Text>
                 <View style={styles.userPickerList}>
                   <Pressable
                     style={[
                       styles.userPickerRow,
-                      modalTargetUserId === undefined && styles.userPickerRowActive,
+                      modalTargetUserId === undefined &&
+                        styles.userPickerRowActive,
                     ]}
                     onPress={() => setModalTargetUserId(undefined)}
                     accessibilityRole="radio"
-                    accessibilityState={{ checked: modalTargetUserId === undefined }}
+                    accessibilityState={{
+                      checked: modalTargetUserId === undefined,
+                    }}
                   >
-                    <Text style={[
-                      styles.userPickerRowText,
-                      modalTargetUserId === undefined && styles.userPickerRowTextActive,
-                    ]}>
+                    <Text
+                      style={[
+                        styles.userPickerRowText,
+                        modalTargetUserId === undefined &&
+                          styles.userPickerRowTextActive,
+                      ]}
+                    >
                       Mi reporte
                     </Text>
                     {modalTargetUserId === undefined && (
-                      <MaterialCommunityIcons name="check" size={16} color={colors.primary} />
+                      <MaterialCommunityIcons
+                        name="check"
+                        size={16}
+                        color={colors.primary}
+                      />
                     )}
                   </Pressable>
                   {teamUsers
@@ -972,20 +1144,31 @@ function SettingsScreenContent() {
                         key={u.id}
                         style={[
                           styles.userPickerRow,
-                          modalTargetUserId === u.id && styles.userPickerRowActive,
+                          modalTargetUserId === u.id &&
+                            styles.userPickerRowActive,
                         ]}
                         onPress={() => setModalTargetUserId(u.id)}
                         accessibilityRole="radio"
-                        accessibilityState={{ checked: modalTargetUserId === u.id }}
+                        accessibilityState={{
+                          checked: modalTargetUserId === u.id,
+                        }}
                       >
-                        <Text style={[
-                          styles.userPickerRowText,
-                          modalTargetUserId === u.id && styles.userPickerRowTextActive,
-                        ]} numberOfLines={1}>
+                        <Text
+                          style={[
+                            styles.userPickerRowText,
+                            modalTargetUserId === u.id &&
+                              styles.userPickerRowTextActive,
+                          ]}
+                          numberOfLines={1}
+                        >
                           {u.full_name ?? u.email}
                         </Text>
                         {modalTargetUserId === u.id && (
-                          <MaterialCommunityIcons name="check" size={16} color={colors.primary} />
+                          <MaterialCommunityIcons
+                            name="check"
+                            size={16}
+                            color={colors.primary}
+                          />
                         )}
                       </Pressable>
                     ))}
@@ -996,8 +1179,17 @@ function SettingsScreenContent() {
             {/* Error feedback inside modal */}
             {reportFeedback && !reportFeedback.ok && (
               <View style={[styles.importResult, styles.importResultError]}>
-                <MaterialCommunityIcons name="alert-circle" size={16} color={colors.error} />
-                <Text style={[styles.importResultText, styles.importResultErrorText]}>
+                <MaterialCommunityIcons
+                  name="alert-circle"
+                  size={16}
+                  color={colors.error}
+                />
+                <Text
+                  style={[
+                    styles.importResultText,
+                    styles.importResultErrorText,
+                  ]}
+                >
                   {reportFeedback.message}
                 </Text>
               </View>
@@ -1015,18 +1207,29 @@ function SettingsScreenContent() {
               <Text style={styles.modalCancelLabel}>Cancelar</Text>
             </Pressable>
             <Pressable
-              style={[styles.sendReportButton, styles.modalSendButton, sendingReport && styles.importButtonDisabled]}
+              style={[
+                styles.sendReportButton,
+                styles.modalSendButton,
+                sendingReport && styles.importButtonDisabled,
+              ]}
               onPress={handleSendReport}
               disabled={sendingReport}
               accessibilityRole="button"
               accessibilityLabel="Enviar reporte"
-              accessibilityState={{ disabled: sendingReport, busy: sendingReport }}
+              accessibilityState={{
+                disabled: sendingReport,
+                busy: sendingReport,
+              }}
             >
               {sendingReport ? (
                 <ActivityIndicator color={colors.textOnPrimary} size="small" />
               ) : (
                 <>
-                  <MaterialCommunityIcons name="send" size={16} color={colors.textOnPrimary} />
+                  <MaterialCommunityIcons
+                    name="send"
+                    size={16}
+                    color={colors.textOnPrimary}
+                  />
                   <Text style={styles.importButtonLabel}>Enviar</Text>
                 </>
               )}
@@ -1062,10 +1265,10 @@ function SettingsScreenContent() {
         </View>
       )}
     </View>
-  )
+  );
 }
 
-export default SettingsScreenContent
+export default SettingsScreenContent;
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -1507,4 +1710,4 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold as '600',
     color: colors.textOnPrimary,
   },
-})
+});

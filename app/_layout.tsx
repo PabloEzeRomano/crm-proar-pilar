@@ -69,7 +69,7 @@ function useRefreshLookupsOnFocus(): void {
   useFocusEffect(
     useCallback(() => {
       refetchIfStale();
-    }, [refetchIfStale]),
+    }, [refetchIfStale])
   );
 }
 
@@ -118,7 +118,9 @@ function useDeepLinkHandler(): void {
     const params = parseFragmentParams(hash);
 
     if (params.error) {
-      useAuthStore.getState().setError(params.error_description || params.error);
+      useAuthStore
+        .getState()
+        .setError(params.error_description || params.error);
       return;
     }
 
@@ -126,16 +128,20 @@ function useDeepLinkHandler(): void {
       // Block the auth guard while we establish the session (prevents redirect-to-login race).
       useAuthStore.getState().setInviteSetup(true);
       // Clean the fragment from the URL bar.
-      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      window.history.replaceState(
+        null,
+        '',
+        window.location.pathname + window.location.search
+      );
       const { error } = await supabase.auth.setSession({
         access_token: params.access_token,
         refresh_token: params.refresh_token,
       });
       // Atomically clear inviteSetup and (if invite) mark user as needing password setup.
       // A two-step set would let the guard briefly see userId+no flags → redirect to /agenda.
-      useAuthStore.getState().completeInviteFlow(
-        !error && params.type === 'invite'
-      );
+      useAuthStore
+        .getState()
+        .completeInviteFlow(!error && params.type === 'invite');
       if (error) {
         useAuthStore.getState().setError(error.message);
       }
@@ -143,7 +149,11 @@ function useDeepLinkHandler(): void {
     }
 
     if (params.code) {
-      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      window.history.replaceState(
+        null,
+        '',
+        window.location.pathname + window.location.search
+      );
       const { error } = await supabase.auth.exchangeCodeForSession(params.code);
       if (error) {
         useAuthStore.getState().setError(error.message);
@@ -171,15 +181,21 @@ function useDeepLinkHandler(): void {
           ? params.error_description[0]
           : params.error_description
         : null;
-      const error = Array.isArray(params.error) ? params.error[0] : params.error;
+      const error = Array.isArray(params.error)
+        ? params.error[0]
+        : params.error;
       useAuthStore.getState().setError(errDesc || error);
       return;
     }
 
     // Handle direct token in fragment (implicit flow or email confirmation)
     if (params.access_token && params.refresh_token) {
-      const accessToken = Array.isArray(params.access_token) ? params.access_token[0] : params.access_token
-      const refreshToken = Array.isArray(params.refresh_token) ? params.refresh_token[0] : params.refresh_token
+      const accessToken = Array.isArray(params.access_token)
+        ? params.access_token[0]
+        : params.access_token;
+      const refreshToken = Array.isArray(params.refresh_token)
+        ? params.refresh_token[0]
+        : params.refresh_token;
       const { error } = await supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken,
@@ -267,7 +283,7 @@ function useNotificationPermission(): void {
       } catch (error) {
         console.warn(
           'Notification permission unavailable (might be Expo Go):',
-          error,
+          error
         );
       }
     };
@@ -309,7 +325,7 @@ function useNotificationResponseListener(): void {
         } catch (error) {
           console.error('Failed to handle notification response:', error);
         }
-      },
+      }
     );
 
     return () => {

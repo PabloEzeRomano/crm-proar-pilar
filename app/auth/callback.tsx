@@ -21,7 +21,7 @@
  * crm-proar://auth/callback#... is handled by useDeepLinkHandler in _layout.tsx.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -29,90 +29,92 @@ import {
   StyleSheet,
   Text,
   View,
-} from 'react-native'
-import { useRouter } from 'expo-router'
-import { supabase } from '@/lib/supabase'
-import { useAuthStore } from '@/stores/authStore'
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
 import {
   borderRadius,
   colors,
   fontSize,
   fontWeight,
   spacing,
-} from '@/constants/theme'
-import { brand } from '@/constants/brand'
+} from '@/constants/theme';
+import { brand } from '@/constants/brand';
 
 // ---------------------------------------------------------------------------
 // Fragment parser (mirrors parseFragmentParams in _layout.tsx)
 // ---------------------------------------------------------------------------
 
 function parseFragment(hash: string): Record<string, string> {
-  const fragment = hash.startsWith('#') ? hash.slice(1) : hash
-  const params: Record<string, string> = {}
+  const fragment = hash.startsWith('#') ? hash.slice(1) : hash;
+  const params: Record<string, string> = {};
   fragment.split('&').forEach((pair) => {
-    const [key, value] = pair.split('=')
-    if (key) params[key] = value ? decodeURIComponent(value) : ''
-  })
-  return params
+    const [key, value] = pair.split('=');
+    if (key) params[key] = value ? decodeURIComponent(value) : '';
+  });
+  return params;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-type ScreenState = 'loading' | 'error' | 'done'
+type ScreenState = 'loading' | 'error' | 'done';
 
 export default function AuthCallbackScreen() {
-  const router = useRouter()
-  const setInviteSetup = useAuthStore((s) => s.setInviteSetup)
-  const [state, setState] = useState<ScreenState>('loading')
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const router = useRouter();
+  const setInviteSetup = useAuthStore((s) => s.setInviteSetup);
+  const [state, setState] = useState<ScreenState>('loading');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     // Only relevant on web — native deep links are handled by useDeepLinkHandler.
     if (Platform.OS !== 'web') {
-      setInviteSetup(false)
-      return
+      setInviteSetup(false);
+      return;
     }
 
     // Prevent the auth guard from redirecting while we establish the session.
-    setInviteSetup(true)
+    setInviteSetup(true);
 
     async function setupSession() {
-      const hash = typeof window !== 'undefined' ? window.location.hash : ''
-      const params = parseFragment(hash)
+      const hash = typeof window !== 'undefined' ? window.location.hash : '';
+      const params = parseFragment(hash);
 
-      const accessToken = params['access_token']
-      const refreshToken = params['refresh_token']
+      const accessToken = params['access_token'];
+      const refreshToken = params['refresh_token'];
 
       if (!accessToken || !refreshToken) {
-        setInviteSetup(false)
-        setErrorMessage('No se encontraron los tokens de sesión en el enlace. Volvé al email de invitación y hacé clic en "Usar versión web".')
-        setState('error')
-        return
+        setInviteSetup(false);
+        setErrorMessage(
+          'No se encontraron los tokens de sesión en el enlace. Volvé al email de invitación y hacé clic en "Usar versión web".'
+        );
+        setState('error');
+        return;
       }
 
       const { error } = await supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken,
-      })
+      });
 
       if (error) {
-        setInviteSetup(false)
-        setErrorMessage(`No se pudo establecer la sesión: ${error.message}`)
-        setState('error')
-        return
+        setInviteSetup(false);
+        setErrorMessage(`No se pudo establecer la sesión: ${error.message}`);
+        setState('error');
+        return;
       }
 
       // Session established — clear the invite setup flag.
       // onAuthStateChange fires SIGNED_IN, authStore sets userId,
       // and useAuthGuard (now unblocked) routes to /(tabs)/agenda.
-      setState('done')
-      setInviteSetup(false)
+      setState('done');
+      setInviteSetup(false);
     }
 
-    setupSession()
-  }, [])
+    setupSession();
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Loading
@@ -131,7 +133,7 @@ export default function AuthCallbackScreen() {
           </View>
         </View>
       </View>
-    )
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -152,7 +154,7 @@ export default function AuthCallbackScreen() {
           </View>
         </View>
       </View>
-    )
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -179,7 +181,7 @@ export default function AuthCallbackScreen() {
         </View>
       </View>
     </View>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -262,4 +264,4 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold as '600',
     color: colors.textOnPrimary,
   },
-})
+});

@@ -9,7 +9,13 @@
  * - All Supabase access goes through useClients hook (store)
  */
 
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -22,43 +28,43 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router'
-import { ZodError } from 'zod'
+} from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { ZodError } from 'zod';
 
-import { useClients } from '@/hooks/useClients'
-import { useClientsStore } from '@/stores/clientsStore'
-import { useLookupsStore } from '@/stores/lookupsStore'
-import { useProductsStore } from '@/stores/productsStore'
-import SearchableSelect from '@/components/ui/SearchableSelect'
+import { useClients } from '@/hooks/useClients';
+import { useClientsStore } from '@/stores/clientsStore';
+import { useLookupsStore } from '@/stores/lookupsStore';
+import { useProductsStore } from '@/stores/productsStore';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 import {
   createClientSchema,
   updateClientSchema,
   type CreateClientInput,
-} from '@/validators/client'
+} from '@/validators/client';
 import {
   borderRadius,
   colors,
   fontSize,
   fontWeight,
   spacing,
-} from '@/constants/theme'
-import type { ClientProduct, ContactInfo, Product } from '@/types'
+} from '@/constants/theme';
+import type { ClientProduct, ContactInfo, Product } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 type FormFields = {
-  name: string
-  industry: string
-  address: string
-  city: string
-  notes: string
-}
+  name: string;
+  industry: string;
+  address: string;
+  city: string;
+  notes: string;
+};
 
-type FieldErrors = Partial<Record<keyof FormFields, string>>
+type FieldErrors = Partial<Record<keyof FormFields, string>>;
 
 const EMPTY_FORM: FormFields = {
   name: '',
@@ -66,25 +72,25 @@ const EMPTY_FORM: FormFields = {
   address: '',
   city: '',
   notes: '',
-}
+};
 
 // ---------------------------------------------------------------------------
 // Nominatim types
 // ---------------------------------------------------------------------------
 
 interface NominatimResult {
-  display_name: string
-  lat: string
-  lon: string
+  display_name: string;
+  lat: string;
+  lon: string;
   address: {
-    road?: string
-    house_number?: string
-    city?: string
-    town?: string
-    village?: string
-    suburb?: string
-    county?: string
-  }
+    road?: string;
+    house_number?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    suburb?: string;
+    county?: string;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -94,7 +100,7 @@ interface NominatimResult {
 function formToInput(
   form: FormFields,
   contactList: ContactInfo[],
-  coords?: { lat: number; lon: number } | null,
+  coords?: { lat: number; lon: number } | null
 ): CreateClientInput {
   return {
     name: form.name,
@@ -111,18 +117,18 @@ function formToInput(
       .filter((c) => c.name || c.phone || c.email),
     latitude: coords?.lat ?? undefined,
     longitude: coords?.lon ?? undefined,
-  }
+  };
 }
 
 function extractZodErrors(err: ZodError): FieldErrors {
-  const result: FieldErrors = {}
+  const result: FieldErrors = {};
   for (const issue of err.issues) {
-    const key = issue.path[0] as keyof FormFields | undefined
+    const key = issue.path[0] as keyof FormFields | undefined;
     if (key && !result[key]) {
-      result[key] = issue.message
+      result[key] = issue.message;
     }
   }
-  return result
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -130,15 +136,15 @@ function extractZodErrors(err: ZodError): FieldErrors {
 // ---------------------------------------------------------------------------
 
 export default function ClientFormScreen() {
-  const router = useRouter()
-  const navigation = useNavigation()
-  const { clientId } = useLocalSearchParams<{ clientId?: string }>()
+  const router = useRouter();
+  const navigation = useNavigation();
+  const { clientId } = useLocalSearchParams<{ clientId?: string }>();
 
-  const isEditMode = Boolean(clientId)
+  const isEditMode = Boolean(clientId);
 
   const existingClient = useClientsStore((state) =>
-    clientId ? state.clients.find((c) => c.id === clientId) : undefined,
-  )
+    clientId ? state.clients.find((c) => c.id === clientId) : undefined
+  );
 
   // Pre-fill form in edit mode
   const [form, setForm] = useState<FormFields>(() => {
@@ -149,99 +155,109 @@ export default function ClientFormScreen() {
         address: existingClient.address ?? '',
         city: existingClient.city ?? '',
         notes: existingClient.notes ?? '',
-      }
+      };
     }
-    return EMPTY_FORM
-  })
+    return EMPTY_FORM;
+  });
 
   const [contacts, setContacts] = useState<ContactInfo[]>(() =>
-    existingClient?.contacts?.length ? existingClient.contacts : [{ name: '', phone: '', email: '' }],
-  )
+    existingClient?.contacts?.length
+      ? existingClient.contacts
+      : [{ name: '', phone: '', email: '' }]
+  );
 
-  const [errors, setErrors] = useState<FieldErrors>({})
-  const [focusedField, setFocusedField] = useState<string | null>(null)
-  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Address autocomplete
-  const [showAddressSearch, setShowAddressSearch] = useState(false)
-  const [addressQuery, setAddressQuery] = useState('')
-  const [addressResults, setAddressResults] = useState<NominatimResult[]>([])
-  const [addressSearching, setAddressSearching] = useState(false)
-  const [addressCoords, setAddressCoords] = useState<{ lat: number; lon: number } | null>(
+  const [showAddressSearch, setShowAddressSearch] = useState(false);
+  const [addressQuery, setAddressQuery] = useState('');
+  const [addressResults, setAddressResults] = useState<NominatimResult[]>([]);
+  const [addressSearching, setAddressSearching] = useState(false);
+  const [addressCoords, setAddressCoords] = useState<{
+    lat: number;
+    lon: number;
+  } | null>(
     existingClient?.latitude && existingClient?.longitude
       ? { lat: existingClient.latitude, lon: existingClient.longitude }
-      : null,
-  )
-  const addressDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+      : null
+  );
+  const addressDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const rubros = useLookupsStore((s) => s.rubros)
-  const localidades = useLookupsStore((s) => s.localidades)
-  const addLookup = useLookupsStore((s) => s.addLookup)
+  const rubros = useLookupsStore((s) => s.rubros);
+  const localidades = useLookupsStore((s) => s.localidades);
+  const addLookup = useLookupsStore((s) => s.addLookup);
 
-  const [addingRubro, setAddingRubro] = useState(false)
-  const [addingLocalidad, setAddingLocalidad] = useState(false)
-  const [newRubroText, setNewRubroText] = useState('')
-  const [newLocalidadText, setNewLocalidadText] = useState('')
-  const [addingLoading, setAddingLoading] = useState(false)
+  const [addingRubro, setAddingRubro] = useState(false);
+  const [addingLocalidad, setAddingLocalidad] = useState(false);
+  const [newRubroText, setNewRubroText] = useState('');
+  const [newLocalidadText, setNewLocalidadText] = useState('');
+  const [addingLoading, setAddingLoading] = useState(false);
 
-  const newRubroRef = useRef<TextInput>(null)
-  const newLocalidadRef = useRef<TextInput>(null)
+  const newRubroRef = useRef<TextInput>(null);
+  const newLocalidadRef = useRef<TextInput>(null);
 
-  const { createClient, updateClient, loading } = useClients()
+  const { createClient, updateClient, loading } = useClients();
 
   // Habitual products (edit mode only — read-only display)
-  const products = useProductsStore((s) => s.products)
-  const clientProducts = useProductsStore((s) => s.clientProducts)
-  const fetchClientProducts = useProductsStore((s) => s.fetchClientProducts)
+  const products = useProductsStore((s) => s.products);
+  const clientProducts = useProductsStore((s) => s.clientProducts);
+  const fetchClientProducts = useProductsStore((s) => s.fetchClientProducts);
 
   useEffect(() => {
-    if (isEditMode && clientId) fetchClientProducts(clientId)
-  }, [isEditMode, clientId])
+    if (isEditMode && clientId) fetchClientProducts(clientId);
+  }, [isEditMode, clientId]);
 
   const resolvedClientProducts = clientProducts
     .filter((cp) => cp.client_id === clientId)
     .map((cp) => {
-      const product = products.find((p) => p.id === cp.product_id)
+      const product = products.find((p) => p.id === cp.product_id);
       const presentation = product?.presentations.find(
-        (pr) => pr.id === cp.product_presentation_id,
-      )
-      return { cp, product, presentation }
+        (pr) => pr.id === cp.product_presentation_id
+      );
+      return { cp, product, presentation };
     })
     .filter(
-      (r): r is { cp: ClientProduct; product: Product; presentation: NonNullable<typeof r.presentation> } =>
-        r.product != null && r.presentation != null,
-    )
+      (
+        r
+      ): r is {
+        cp: ClientProduct;
+        product: Product;
+        presentation: NonNullable<typeof r.presentation>;
+      } => r.product != null && r.presentation != null
+    );
 
   // Sync contacts when existingClient loads asynchronously (edit mode)
   useEffect(() => {
-    if (!isEditMode || !existingClient) return
+    if (!isEditMode || !existingClient) return;
     setForm({
       name: existingClient.name ?? '',
       industry: existingClient.industry ?? '',
       address: existingClient.address ?? '',
       city: existingClient.city ?? '',
       notes: existingClient.notes ?? '',
-    })
+    });
     setContacts(
       existingClient.contacts?.length
         ? existingClient.contacts
-        : [{ name: '', phone: '', email: '' }],
-    )
-  }, [isEditMode, existingClient])
+        : [{ name: '', phone: '', email: '' }]
+    );
+  }, [isEditMode, existingClient]);
 
   // -------------------------------------------------------------------------
   // Validate helper
   // -------------------------------------------------------------------------
 
   function validate(): boolean {
-    const schema = isEditMode ? updateClientSchema : createClientSchema
-    const result = schema.safeParse(formToInput(form, contacts, addressCoords))
+    const schema = isEditMode ? updateClientSchema : createClientSchema;
+    const result = schema.safeParse(formToInput(form, contacts, addressCoords));
     if (!result.success) {
-      setErrors(extractZodErrors(result.error))
-      return false
+      setErrors(extractZodErrors(result.error));
+      return false;
     }
-    setErrors({})
-    return true
+    setErrors({});
+    return true;
   }
 
   // -------------------------------------------------------------------------
@@ -249,40 +265,43 @@ export default function ClientFormScreen() {
   // -------------------------------------------------------------------------
 
   useEffect(() => {
-    if (!showAddressSearch) return
-    if (addressDebounceRef.current) clearTimeout(addressDebounceRef.current)
-    const q = addressQuery.trim()
+    if (!showAddressSearch) return;
+    if (addressDebounceRef.current) clearTimeout(addressDebounceRef.current);
+    const q = addressQuery.trim();
     if (q.length < 3) {
-      setAddressResults([])
-      return
+      setAddressResults([]);
+      return;
     }
     addressDebounceRef.current = setTimeout(async () => {
-      setAddressSearching(true)
+      setAddressSearching(true);
       try {
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=5&countrycodes=ar`
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=5&countrycodes=ar`;
         const res = await fetch(url, {
           headers: { 'User-Agent': 'crm-proar-pilar' },
-        })
-        const json: NominatimResult[] = await res.json()
-        setAddressResults(json)
+        });
+        const json: NominatimResult[] = await res.json();
+        setAddressResults(json);
       } catch {
-        setAddressResults([])
+        setAddressResults([]);
       } finally {
-        setAddressSearching(false)
+        setAddressSearching(false);
       }
-    }, 500)
-  }, [addressQuery, showAddressSearch])
+    }, 500);
+  }, [addressQuery, showAddressSearch]);
 
   function handleAddressSelect(result: NominatimResult) {
-    const { road, house_number, city, town, village } = result.address
-    const streetLine = [road, house_number].filter(Boolean).join(' ')
-    const cityLine = city || town || village || ''
-    setField('address', streetLine)
-    setField('city', cityLine)
-    setAddressCoords({ lat: parseFloat(result.lat), lon: parseFloat(result.lon) })
-    setShowAddressSearch(false)
-    setAddressQuery('')
-    setAddressResults([])
+    const { road, house_number, city, town, village } = result.address;
+    const streetLine = [road, house_number].filter(Boolean).join(' ');
+    const cityLine = city || town || village || '';
+    setField('address', streetLine);
+    setField('city', cityLine);
+    setAddressCoords({
+      lat: parseFloat(result.lat),
+      lon: parseFloat(result.lon),
+    });
+    setShowAddressSearch(false);
+    setAddressQuery('');
+    setAddressResults([]);
   }
 
   // -------------------------------------------------------------------------
@@ -290,29 +309,29 @@ export default function ClientFormScreen() {
   // -------------------------------------------------------------------------
 
   async function handleAddRubro() {
-    if (!newRubroText.trim()) return
-    setAddingLoading(true)
-    const inserted = await addLookup('rubro', newRubroText)
-    setAddingLoading(false)
+    if (!newRubroText.trim()) return;
+    setAddingLoading(true);
+    const inserted = await addLookup('rubro', newRubroText);
+    setAddingLoading(false);
     if (inserted) {
-      setField('industry', inserted)
+      setField('industry', inserted);
       // setShowRubroPicker(false)
     }
-    setAddingRubro(false)
-    setNewRubroText('')
+    setAddingRubro(false);
+    setNewRubroText('');
   }
 
   async function handleAddLocalidad() {
-    if (!newLocalidadText.trim()) return
-    setAddingLoading(true)
-    const inserted = await addLookup('localidad', newLocalidadText)
-    setAddingLoading(false)
+    if (!newLocalidadText.trim()) return;
+    setAddingLoading(true);
+    const inserted = await addLookup('localidad', newLocalidadText);
+    setAddingLoading(false);
     if (inserted) {
-      setField('city', inserted)
+      setField('city', inserted);
       // setShowLocalidadPicker(false)
     }
-    setAddingLocalidad(false)
-    setNewLocalidadText('')
+    setAddingLocalidad(false);
+    setNewLocalidadText('');
   }
 
   // -------------------------------------------------------------------------
@@ -320,35 +339,44 @@ export default function ClientFormScreen() {
   // -------------------------------------------------------------------------
 
   const handleSave = useCallback(async () => {
-    if (!validate()) return
-    setSubmitError(null)
+    if (!validate()) return;
+    setSubmitError(null);
 
-    const input = formToInput(form, contacts, addressCoords)
+    const input = formToInput(form, contacts, addressCoords);
 
     if (isEditMode && clientId) {
-      await updateClient(clientId, input)
-      const storeError = useClientsStore.getState().error
+      await updateClient(clientId, input);
+      const storeError = useClientsStore.getState().error;
       if (storeError) {
-        setSubmitError(storeError)
-        return
+        setSubmitError(storeError);
+        return;
       }
     } else {
-      const created = await createClient(input)
+      const created = await createClient(input);
       if (!created) {
-        const storeError = useClientsStore.getState().error
-        setSubmitError(storeError ?? 'Error al guardar el cliente')
-        return
+        const storeError = useClientsStore.getState().error;
+        setSubmitError(storeError ?? 'Error al guardar el cliente');
+        return;
       }
     }
 
-    router.dismiss()
-  }, [form, contacts, addressCoords, isEditMode, clientId, createClient, updateClient, router])
+    router.dismiss();
+  }, [
+    form,
+    contacts,
+    addressCoords,
+    isEditMode,
+    clientId,
+    createClient,
+    updateClient,
+    router,
+  ]);
 
   // -------------------------------------------------------------------------
   // Is form valid for submit button state
   // -------------------------------------------------------------------------
 
-  const isFormValid = form.name.trim().length > 0
+  const isFormValid = form.name.trim().length > 0;
 
   // -------------------------------------------------------------------------
   // Dynamic header — title + Cancelar / Guardar buttons
@@ -388,18 +416,18 @@ export default function ClientFormScreen() {
           )}
         </Pressable>
       ),
-    })
-  }, [navigation, isEditMode, isFormValid, loading, handleSave, router])
+    });
+  }, [navigation, isEditMode, isFormValid, loading, handleSave, router]);
 
   // -------------------------------------------------------------------------
   // Field helpers
   // -------------------------------------------------------------------------
 
   function setField(key: keyof FormFields, value: string) {
-    setForm((prev) => ({ ...prev, [key]: value }))
+    setForm((prev) => ({ ...prev, [key]: value }));
     // Clear field error on change
     if (errors[key]) {
-      setErrors((prev) => ({ ...prev, [key]: undefined }))
+      setErrors((prev) => ({ ...prev, [key]: undefined }));
     }
   }
 
@@ -409,26 +437,32 @@ export default function ClientFormScreen() {
       multiline && styles.inputMultiline,
       focusedField === key && styles.inputFocused,
       errors[key] ? styles.inputError : null,
-    ]
+    ];
   }
 
   // -------------------------------------------------------------------------
   // Contact helpers
   // -------------------------------------------------------------------------
 
-  function updateContact(index: number, field: keyof ContactInfo, value: string) {
-    setContacts((prev) => prev.map((c, i) => i === index ? { ...c, [field]: value } : c))
+  function updateContact(
+    index: number,
+    field: keyof ContactInfo,
+    value: string
+  ) {
+    setContacts((prev) =>
+      prev.map((c, i) => (i === index ? { ...c, [field]: value } : c))
+    );
   }
 
   function removeContact(index: number) {
     setContacts((prev) => {
-      const next = prev.filter((_, i) => i !== index)
-      return next.length > 0 ? next : [{ name: '', phone: '', email: '' }]
-    })
+      const next = prev.filter((_, i) => i !== index);
+      return next.length > 0 ? next : [{ name: '', phone: '', email: '' }];
+    });
   }
 
   function addContact() {
-    setContacts((prev) => [...prev, { name: '', phone: '', email: '' }])
+    setContacts((prev) => [...prev, { name: '', phone: '', email: '' }]);
   }
 
   // -------------------------------------------------------------------------
@@ -461,8 +495,8 @@ export default function ClientFormScreen() {
             onChangeText={(text) => setField('name', text)}
             onFocus={() => setFocusedField('name')}
             onBlur={() => {
-              setFocusedField(null)
-              validate()
+              setFocusedField(null);
+              validate();
             }}
             placeholder="Nombre de la empresa"
             placeholderTextColor={colors.textDisabled}
@@ -484,7 +518,10 @@ export default function ClientFormScreen() {
             onChange={(vals) => setField('industry', vals[0] ?? '')}
             multiple={false}
             placeholder="Seleccionar rubro…"
-            onAddNew={() => { setAddingRubro(true); setNewRubroText('') }}
+            onAddNew={() => {
+              setAddingRubro(true);
+              setNewRubroText('');
+            }}
           />
           {addingRubro && (
             <View style={styles.pickerAddRow}>
@@ -501,21 +538,37 @@ export default function ClientFormScreen() {
                 autoFocus
               />
               <Pressable
-                style={[styles.pickerAddConfirm, (!newRubroText.trim() || addingLoading) && styles.pickerAddConfirmDisabled]}
+                style={[
+                  styles.pickerAddConfirm,
+                  (!newRubroText.trim() || addingLoading) &&
+                    styles.pickerAddConfirmDisabled,
+                ]}
                 onPress={handleAddRubro}
                 disabled={!newRubroText.trim() || addingLoading}
               >
-                {addingLoading
-                  ? <ActivityIndicator size="small" color={colors.background} />
-                  : <MaterialCommunityIcons name="check" size={16} color={colors.background} />
-                }
+                {addingLoading ? (
+                  <ActivityIndicator size="small" color={colors.background} />
+                ) : (
+                  <MaterialCommunityIcons
+                    name="check"
+                    size={16}
+                    color={colors.background}
+                  />
+                )}
               </Pressable>
               <Pressable
                 style={styles.pickerAddCancel}
-                onPress={() => { setAddingRubro(false); setNewRubroText('') }}
+                onPress={() => {
+                  setAddingRubro(false);
+                  setNewRubroText('');
+                }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <MaterialCommunityIcons name="close" size={16} color={colors.textSecondary} />
+                <MaterialCommunityIcons
+                  name="close"
+                  size={16}
+                  color={colors.textSecondary}
+                />
               </Pressable>
             </View>
           )}
@@ -532,8 +585,8 @@ export default function ClientFormScreen() {
               style={[getInputStyle('address'), styles.addressInput]}
               value={form.address}
               onChangeText={(text) => {
-                setField('address', text)
-                setAddressCoords(null) // reset coords when manually edited
+                setField('address', text);
+                setAddressCoords(null); // reset coords when manually edited
               }}
               onFocus={() => setFocusedField('address')}
               onBlur={() => setFocusedField(null)}
@@ -548,14 +601,18 @@ export default function ClientFormScreen() {
                 pressed && styles.addressSearchBtnPressed,
               ]}
               onPress={() => {
-                setAddressQuery(form.address)
-                setShowAddressSearch(true)
+                setAddressQuery(form.address);
+                setShowAddressSearch(true);
               }}
               accessibilityRole="button"
               accessibilityLabel="Buscar dirección"
               hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
             >
-              <MaterialCommunityIcons name="magnify" size={22} color={colors.primary} />
+              <MaterialCommunityIcons
+                name="magnify"
+                size={22}
+                color={colors.primary}
+              />
             </Pressable>
           </View>
           {errors.address ? (
@@ -576,20 +633,28 @@ export default function ClientFormScreen() {
               <Text style={styles.searchModalTitle}>Buscar dirección</Text>
               <Pressable
                 onPress={() => {
-                  setShowAddressSearch(false)
-                  setAddressQuery('')
-                  setAddressResults([])
+                  setShowAddressSearch(false);
+                  setAddressQuery('');
+                  setAddressResults([]);
                 }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 accessibilityLabel="Cerrar búsqueda"
               >
-                <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
+                <MaterialCommunityIcons
+                  name="close"
+                  size={24}
+                  color={colors.textPrimary}
+                />
               </Pressable>
             </View>
 
             {/* Search input */}
             <View style={styles.searchInputRow}>
-              <MaterialCommunityIcons name="magnify" size={20} color={colors.textSecondary} />
+              <MaterialCommunityIcons
+                name="magnify"
+                size={20}
+                color={colors.textSecondary}
+              />
               <TextInput
                 style={styles.searchInput}
                 value={addressQuery}
@@ -632,12 +697,16 @@ export default function ClientFormScreen() {
                   </Text>
                 </Pressable>
               )}
-              ItemSeparatorComponent={() => <View style={styles.searchDivider} />}
+              ItemSeparatorComponent={() => (
+                <View style={styles.searchDivider} />
+              )}
               ListEmptyComponent={
                 !addressSearching && addressQuery.trim().length >= 3
                   ? () => (
                       <View style={styles.searchEmpty}>
-                        <Text style={styles.searchEmptyText}>Sin resultados</Text>
+                        <Text style={styles.searchEmptyText}>
+                          Sin resultados
+                        </Text>
                       </View>
                     )
                   : null
@@ -658,7 +727,10 @@ export default function ClientFormScreen() {
             onChange={(vals) => setField('city', vals[0] ?? '')}
             multiple={false}
             placeholder="Seleccionar localidad…"
-            onAddNew={() => { setAddingLocalidad(true); setNewLocalidadText('') }}
+            onAddNew={() => {
+              setAddingLocalidad(true);
+              setNewLocalidadText('');
+            }}
           />
           {addingLocalidad && (
             <View style={styles.pickerAddRow}>
@@ -675,21 +747,37 @@ export default function ClientFormScreen() {
                 autoFocus
               />
               <Pressable
-                style={[styles.pickerAddConfirm, (!newLocalidadText.trim() || addingLoading) && styles.pickerAddConfirmDisabled]}
+                style={[
+                  styles.pickerAddConfirm,
+                  (!newLocalidadText.trim() || addingLoading) &&
+                    styles.pickerAddConfirmDisabled,
+                ]}
                 onPress={handleAddLocalidad}
                 disabled={!newLocalidadText.trim() || addingLoading}
               >
-                {addingLoading
-                  ? <ActivityIndicator size="small" color={colors.background} />
-                  : <MaterialCommunityIcons name="check" size={16} color={colors.background} />
-                }
+                {addingLoading ? (
+                  <ActivityIndicator size="small" color={colors.background} />
+                ) : (
+                  <MaterialCommunityIcons
+                    name="check"
+                    size={16}
+                    color={colors.background}
+                  />
+                )}
               </Pressable>
               <Pressable
                 style={styles.pickerAddCancel}
-                onPress={() => { setAddingLocalidad(false); setNewLocalidadText('') }}
+                onPress={() => {
+                  setAddingLocalidad(false);
+                  setNewLocalidadText('');
+                }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <MaterialCommunityIcons name="close" size={16} color={colors.textSecondary} />
+                <MaterialCommunityIcons
+                  name="close"
+                  size={16}
+                  color={colors.textSecondary}
+                />
               </Pressable>
             </View>
           )}
@@ -714,7 +802,11 @@ export default function ClientFormScreen() {
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     accessibilityLabel="Eliminar contacto"
                   >
-                    <MaterialCommunityIcons name="close-circle" size={20} color={colors.textDisabled} />
+                    <MaterialCommunityIcons
+                      name="close-circle"
+                      size={20}
+                      color={colors.textDisabled}
+                    />
                   </Pressable>
                 ) : null}
               </View>
@@ -750,7 +842,11 @@ export default function ClientFormScreen() {
           ))}
 
           <Pressable onPress={addContact} style={styles.addContactButton}>
-            <MaterialCommunityIcons name="plus" size={16} color={colors.primary} />
+            <MaterialCommunityIcons
+              name="plus"
+              size={16}
+              color={colors.primary}
+            />
             <Text style={styles.addContactButtonText}>Agregar contacto</Text>
           </Pressable>
         </View>
@@ -798,7 +894,7 @@ export default function ClientFormScreen() {
         )}
       </ScrollView>
     </KeyboardAvoidingView>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -1170,4 +1266,4 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textPrimary,
   },
-})
+});

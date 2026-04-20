@@ -10,11 +10,11 @@
 
 The root navigator is a bottom tab bar with **3 tabs**.
 
-| # | Tab name | Icon (MaterialCommunityIcons) | Route           |
-|---|----------|-------------------------------|-----------------|
-| 1 | Today    | `home-outline` / `home`       | `/(tabs)/`      |
-| 2 | Clients  | `account-group-outline` / `account-group` | `/(tabs)/clients/` |
-| 3 | Visits   | `calendar-outline` / `calendar` | `/(tabs)/visits/` |
+| #   | Tab name | Icon (MaterialCommunityIcons)             | Route              |
+| --- | -------- | ----------------------------------------- | ------------------ |
+| 1   | Today    | `home-outline` / `home`                   | `/(tabs)/`         |
+| 2   | Clients  | `account-group-outline` / `account-group` | `/(tabs)/clients/` |
+| 3   | Visits   | `calendar-outline` / `calendar`           | `/(tabs)/visits/`  |
 
 ### Tab bar visual rules
 
@@ -34,37 +34,37 @@ The root navigator is a bottom tab bar with **3 tabs**.
 
 ### Auth group — `/(auth)/`
 
-| Route             | Screen title | Tab       | Description                                  |
-|-------------------|--------------|-----------|----------------------------------------------|
-| `/(auth)/login`   | Login        | (none)    | Email + password form. Redirects to `/(tabs)/` on success. No back button. |
+| Route           | Screen title | Tab    | Description                                                                |
+| --------------- | ------------ | ------ | -------------------------------------------------------------------------- |
+| `/(auth)/login` | Login        | (none) | Email + password form. Redirects to `/(tabs)/` on success. No back button. |
 
 ### Tab group — `/(tabs)/`
 
 #### Today tab
 
-| Route        | Screen title     | Tab   | Description                                                          |
-|--------------|------------------|-------|----------------------------------------------------------------------|
-| `/(tabs)/`   | Today            | Today | Dashboard showing today's scheduled visits, summary cards, and quick-access actions. |
+| Route      | Screen title | Tab   | Description                                                                          |
+| ---------- | ------------ | ----- | ------------------------------------------------------------------------------------ |
+| `/(tabs)/` | Today        | Today | Dashboard showing today's scheduled visits, summary cards, and quick-access actions. |
 
 #### Clients tab
 
-| Route                      | Screen title    | Tab     | Description                                                               |
-|----------------------------|-----------------|---------|---------------------------------------------------------------------------|
-| `/(tabs)/clients/`         | Clients         | Clients | Searchable flat list of all clients. Tapping a row pushes `[id]`.         |
-| `/(tabs)/clients/[id]`     | Client Detail   | Clients | Client profile: name, contact info, address, visit history. Edit button in header. |
+| Route                  | Screen title  | Tab     | Description                                                                        |
+| ---------------------- | ------------- | ------- | ---------------------------------------------------------------------------------- |
+| `/(tabs)/clients/`     | Clients       | Clients | Searchable flat list of all clients. Tapping a row pushes `[id]`.                  |
+| `/(tabs)/clients/[id]` | Client Detail | Clients | Client profile: name, contact info, address, visit history. Edit button in header. |
 
 #### Visits tab
 
-| Route                     | Screen title   | Tab    | Description                                                                           |
-|---------------------------|----------------|--------|---------------------------------------------------------------------------------------|
-| `/(tabs)/visits/`         | Visits         | Visits | Filterable list of all visits (by date / status). Tapping a row pushes `[id]`.        |
-| `/(tabs)/visits/[id]`     | Visit Detail   | Visits | Visit info, status badge, notes form, and a mark-complete action. Edit opens a modal. |
+| Route                 | Screen title | Tab    | Description                                                                           |
+| --------------------- | ------------ | ------ | ------------------------------------------------------------------------------------- |
+| `/(tabs)/visits/`     | Visits       | Visits | Filterable list of all visits (by date / status). Tapping a row pushes `[id]`.        |
+| `/(tabs)/visits/[id]` | Visit Detail | Visits | Visit info, status badge, notes form, and a mark-complete action. Edit opens a modal. |
 
 #### Settings (accessible from Today tab header)
 
-| Route                  | Screen title | Tab   | Description                                                     |
-|------------------------|--------------|-------|-----------------------------------------------------------------|
-| `/(tabs)/settings`     | Settings     | Today | Email configuration (SMTP / outbox settings). Reached via a gear icon in the Today header. |
+| Route              | Screen title | Tab   | Description                                                                                |
+| ------------------ | ------------ | ----- | ------------------------------------------------------------------------------------------ |
+| `/(tabs)/settings` | Settings     | Today | Email configuration (SMTP / outbox settings). Reached via a gear icon in the Today header. |
 
 ---
 
@@ -118,15 +118,16 @@ Tapping the background or dragging down dismisses the modal with a discard-chang
 
 ### Action buttons (right side)
 
-| Screen                    | Right action                           |
-|---------------------------|----------------------------------------|
-| `/(tabs)/`                | Gear icon → navigate to `/(tabs)/settings` |
-| `/(tabs)/clients/[id]`    | "Edit" text button → open edit modal   |
-| `/(tabs)/visits/[id]`     | "Edit" text button → open edit modal   |
-| `/(tabs)/settings`        | (none)                                 |
-| `/(auth)/login`           | (none)                                 |
+| Screen                 | Right action                               |
+| ---------------------- | ------------------------------------------ |
+| `/(tabs)/`             | Gear icon → navigate to `/(tabs)/settings` |
+| `/(tabs)/clients/[id]` | "Edit" text button → open edit modal       |
+| `/(tabs)/visits/[id]`  | "Edit" text button → open edit modal       |
+| `/(tabs)/settings`     | (none)                                     |
+| `/(auth)/login`        | (none)                                     |
 
 Right action buttons:
+
 - Text buttons: `fontSize.base` (16px), color `colors.primary`, weight `fontWeight.medium`.
 - Icon buttons: 24px icon, minimum touch area `MIN_TOUCH_TARGET` (48px).
 

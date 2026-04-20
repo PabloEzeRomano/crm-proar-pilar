@@ -84,7 +84,7 @@ export default function TeamIndexScreen() {
   const allVisits = useVisitsStore((s) => s.allVisits);
   const allVisitsLoading = useVisitsStore((s) => s.allVisitsLoading);
   const fetchAllVisitsForAdmin = useVisitsStore(
-    (s) => s.fetchAllVisitsForAdmin,
+    (s) => s.fetchAllVisitsForAdmin
   );
 
   const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root';
@@ -116,17 +116,17 @@ export default function TeamIndexScreen() {
 
   const now = dayjs();
   const thisMonthVisits = allVisits.filter((v) =>
-    dayjs(v.scheduled_at).isSame(now, 'month'),
+    dayjs(v.scheduled_at).isSame(now, 'month')
   );
   const quotesThisMonth = thisMonthVisits.filter((v) => v.type === 'quote');
   const salesThisMonth = thisMonthVisits.filter((v) => v.type === 'sale');
   const quoteAmountTotal = quotesThisMonth.reduce(
     (s, v) => s + (v.amount ?? 0),
-    0,
+    0
   );
   const saleAmountTotal = salesThisMonth.reduce(
     (s, v) => s + (v.amount ?? 0),
-    0,
+    0
   );
 
   // ---------------------------------------------------------------------------
@@ -161,7 +161,12 @@ export default function TeamIndexScreen() {
                 {quotesThisMonth.length}
               </Text>
               <Text style={[styles.statCardAmount, styles.statCardAmountQuote]}>
-                ${quoteAmountTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                $
+                {quoteAmountTotal.toLocaleString('en-US', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{' '}
+                USD
               </Text>
             </View>
 
@@ -172,7 +177,12 @@ export default function TeamIndexScreen() {
                 {salesThisMonth.length}
               </Text>
               <Text style={[styles.statCardAmount, styles.statCardAmountSale]}>
-                ${saleAmountTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
+                $
+                {saleAmountTotal.toLocaleString('en-US', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{' '}
+                USD
               </Text>
             </View>
           </View>

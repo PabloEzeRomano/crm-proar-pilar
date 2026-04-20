@@ -17,64 +17,64 @@
  *   SUPABASE_ANON_KEY
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type UserRole = 'user' | 'admin' | 'root'
+type UserRole = 'user' | 'admin' | 'root';
 
 interface Profile {
-  id: string
-  role: UserRole
-  full_name: string | null
-  email_config: { sender?: string; sender_name?: string } | null
+  id: string;
+  role: UserRole;
+  full_name: string | null;
+  email_config: { sender?: string; sender_name?: string } | null;
 }
 
 interface ContactInfo {
-  name?: string
-  phone?: string
-  email?: string
+  name?: string;
+  phone?: string;
+  email?: string;
 }
 
 interface Client {
-  id: string
-  name: string
-  address: string | null
-  city: string | null
-  contacts: ContactInfo[]
+  id: string;
+  name: string;
+  address: string | null;
+  city: string | null;
+  contacts: ContactInfo[];
 }
 
 interface QuoteItem {
-  product_id: string
-  product_name: string
-  product_code: string | null
-  presentation_id: string
-  presentation_label: string
-  unit: string
-  presentation_quantity_kg: number | null
-  custom_quantity_kg?: number | null
-  quantity: number
-  unit_price_usd: number
-  margin_pct: number
-  total_usd: number | null
+  product_id: string;
+  product_name: string;
+  product_code: string | null;
+  presentation_id: string;
+  presentation_label: string;
+  unit: string;
+  presentation_quantity_kg: number | null;
+  custom_quantity_kg?: number | null;
+  quantity: number;
+  unit_price_usd: number;
+  margin_pct: number;
+  total_usd: number | null;
 }
 
 interface Visit {
-  id: string
-  owner_user_id: string
-  type: string
-  scheduled_at: string
-  items: QuoteItem[] | null
-  amount: number | null
-  client: Client
+  id: string;
+  owner_user_id: string;
+  type: string;
+  scheduled_at: string;
+  items: QuoteItem[] | null;
+  amount: number | null;
+  client: Client;
 }
 
 interface RequestBody {
-  visitId: string
-  recipientEmail: string
-  recipientName?: string
+  visitId: string;
+  recipientEmail: string;
+  recipientName?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -84,25 +84,26 @@ interface RequestBody {
 function corsHeaders(): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  }
+    'Access-Control-Allow-Headers':
+      'authorization, x-client-info, apikey, content-type',
+  };
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'Content-Type': 'application/json', ...corsHeaders() },
-  })
+  });
 }
 
 function escapeHtml(text: string | null | undefined): string {
-  if (!text) return ''
+  if (!text) return '';
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
+    .replace(/'/g, '&#39;');
 }
 
 function formatDate(iso: string): string {
@@ -112,11 +113,14 @@ function formatDate(iso: string): string {
     month: 'long',
     year: 'numeric',
     timeZone: 'America/Argentina/Buenos_Aires',
-  })
+  });
 }
 
 function formatAmount(n: number): string {
-  return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return n.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -124,34 +128,55 @@ function formatAmount(n: number): string {
 // ---------------------------------------------------------------------------
 
 function generateQuoteHtml(opts: {
-  clientName: string
-  recipientName: string | null
-  senderName: string | null
-  dateLabel: string
-  items: QuoteItem[]
-  total: number
-  visitType: string
+  clientName: string;
+  recipientName: string | null;
+  senderName: string | null;
+  dateLabel: string;
+  items: QuoteItem[];
+  total: number;
+  visitType: string;
 }): string {
-  const { clientName, recipientName, senderName, dateLabel, items, total, visitType } = opts
+  const {
+    clientName,
+    recipientName,
+    senderName,
+    dateLabel,
+    items,
+    total,
+    visitType,
+  } = opts;
 
-  const greeting = recipientName ? `Estimado/a ${escapeHtml(recipientName)}` : 'Estimado/a cliente'
+  const greeting = recipientName
+    ? `Estimado/a ${escapeHtml(recipientName)}`
+    : 'Estimado/a cliente';
 
-  let tableHead: string
-  let itemRows: string
-  let tableFoot: string
+  let tableHead: string;
+  let itemRows: string;
+  let tableFoot: string;
 
   if (visitType === 'quote') {
     tableHead = `
                   <tr style="background:#F3F4F6;">
                     <th style="padding:8px 12px;text-align:left;font-size:12px;color:#6B7280;font-weight:600;">PRODUCTO</th>
                     <th style="padding:8px 12px;text-align:right;font-size:12px;color:#6B7280;font-weight:600;">PRECIO / KG</th>
-                  </tr>`
+                  </tr>`;
 
-    itemRows = items.map((item) => {
-      const code_span = item.product_code ? `<span style="color:#6B7280;font-size:12px;">[${escapeHtml(item.product_code)}]</span> ` : ''
-      const custom_qty_note = item.custom_quantity_kg ? ` · ~${item.custom_quantity_kg} ${escapeHtml(item.unit)}` : ''
-      const effectivePrice = (item.unit_price_usd * (1 + item.margin_pct / 100)).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
-      return `
+    itemRows = items
+      .map((item) => {
+        const code_span = item.product_code
+          ? `<span style="color:#6B7280;font-size:12px;">[${escapeHtml(item.product_code)}]</span> `
+          : '';
+        const custom_qty_note = item.custom_quantity_kg
+          ? ` · ~${item.custom_quantity_kg} ${escapeHtml(item.unit)}`
+          : '';
+        const effectivePrice = (
+          item.unit_price_usd *
+          (1 + item.margin_pct / 100)
+        ).toLocaleString('en-US', {
+          minimumFractionDigits: 4,
+          maximumFractionDigits: 4,
+        });
+        return `
     <tr style="border-bottom:1px solid #E5E7EB;">
       <td style="padding:10px 12px;font-size:14px;color:#111827;">
         ${code_span}${escapeHtml(item.product_name)}
@@ -160,10 +185,11 @@ function generateQuoteHtml(opts: {
       <td style="padding:10px 12px;text-align:right;font-size:14px;font-weight:600;color:#1D4ED8;">
         $${effectivePrice} USD/${escapeHtml(item.unit)}
       </td>
-    </tr>`
-    }).join('')
+    </tr>`;
+      })
+      .join('');
 
-    tableFoot = ''
+    tableFoot = '';
   } else {
     tableHead = `
                   <tr style="background:#F3F4F6;">
@@ -172,9 +198,11 @@ function generateQuoteHtml(opts: {
                     <th style="padding:8px 12px;text-align:center;font-size:12px;color:#6B7280;font-weight:600;">CANT.</th>
                     <th style="padding:8px 12px;text-align:right;font-size:12px;color:#6B7280;font-weight:600;">PRECIO UNIT.</th>
                     <th style="padding:8px 12px;text-align:right;font-size:12px;color:#6B7280;font-weight:600;">TOTAL</th>
-                  </tr>`
+                  </tr>`;
 
-    itemRows = items.map((item) => `
+    itemRows = items
+      .map(
+        (item) => `
     <tr style="border-bottom:1px solid #E5E7EB;">
       <td style="padding:10px 12px;font-size:14px;color:#111827;">
         ${item.product_code ? `<span style="color:#6B7280;font-size:12px;">[${escapeHtml(item.product_code)}]</span> ` : ''}${escapeHtml(item.product_name)}
@@ -184,7 +212,9 @@ function generateQuoteHtml(opts: {
       <td style="padding:10px 12px;text-align:center;font-size:14px;color:#374151;">${item.quantity}</td>
       <td style="padding:10px 12px;text-align:right;font-size:14px;color:#374151;">$${formatAmount(item.unit_price_usd)}</td>
       <td style="padding:10px 12px;text-align:right;font-size:14px;font-weight:600;color:#1D4ED8;">$${formatAmount(item.total_usd ?? 0)}</td>
-    </tr>`).join('')
+    </tr>`
+      )
+      .join('');
 
     tableFoot = `
                 <tfoot>
@@ -192,10 +222,12 @@ function generateQuoteHtml(opts: {
                     <td colspan="4" style="padding:12px;font-weight:700;text-align:right;font-size:15px;color:#111827;">TOTAL</td>
                     <td style="padding:12px;font-weight:700;text-align:right;font-size:15px;color:#1D4ED8;">$${formatAmount(total)} USD</td>
                   </tr>
-                </tfoot>`
+                </tfoot>`;
   }
 
-  const footerSender = senderName ? `<p style="margin:4px 0 0;font-size:13px;color:#374151;">${escapeHtml(senderName)}</p>` : ''
+  const footerSender = senderName
+    ? `<p style="margin:4px 0 0;font-size:13px;color:#374151;">${escapeHtml(senderName)}</p>`
+    : '';
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -257,7 +289,7 @@ function generateQuoteHtml(opts: {
     </tr>
   </table>
 </body>
-</html>`
+</html>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -265,22 +297,22 @@ function generateQuoteHtml(opts: {
 // ---------------------------------------------------------------------------
 
 async function sendEmail(opts: {
-  from: string
-  replyTo?: string
-  to: string[]
-  subject: string
-  html: string
+  from: string;
+  replyTo?: string;
+  to: string[];
+  subject: string;
+  html: string;
 }): Promise<void> {
-  const apiKey = Deno.env.get('RESEND_API_KEY')
-  if (!apiKey) throw new Error('RESEND_API_KEY secret not set')
+  const apiKey = Deno.env.get('RESEND_API_KEY');
+  if (!apiKey) throw new Error('RESEND_API_KEY secret not set');
 
   const payload: Record<string, unknown> = {
     from: opts.from,
     to: opts.to,
     subject: opts.subject,
     html: opts.html,
-  }
-  if (opts.replyTo) payload['reply_to'] = opts.replyTo
+  };
+  if (opts.replyTo) payload['reply_to'] = opts.replyTo;
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -289,11 +321,11 @@ async function sendEmail(opts: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),
-  })
+  });
 
   if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`Resend error ${res.status}: ${text}`)
+    const text = await res.text();
+    throw new Error(`Resend error ${res.status}: ${text}`);
   }
 }
 
@@ -303,61 +335,68 @@ async function sendEmail(opts: {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders() })
+    return new Response('ok', { headers: corsHeaders() });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
     // ── 1. Authenticate caller ──────────────────────────────────────────────
 
-    const authHeader = req.headers.get('Authorization')
+    const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return jsonResponse({ error: 'Missing authorization header' }, 401)
+      return jsonResponse({ error: 'Missing authorization header' }, 401);
     }
-    const callerJwt = authHeader.slice(7)
+    const callerJwt = authHeader.slice(7);
 
     const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: `Bearer ${callerJwt}` } },
-    })
+    });
 
-    const { data: { user: callerUser }, error: userErr } = await callerClient.auth.getUser()
+    const {
+      data: { user: callerUser },
+      error: userErr,
+    } = await callerClient.auth.getUser();
     if (userErr || !callerUser) {
-      return jsonResponse({ error: 'Invalid or expired token' }, 401)
+      return jsonResponse({ error: 'Invalid or expired token' }, 401);
     }
 
     // ── 2. Load caller's profile ────────────────────────────────────────────
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey)
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     const { data: callerProfile, error: profileErr } = await adminClient
       .from('profiles')
       .select('id, role, full_name, email_config')
       .eq('id', callerUser.id)
-      .single<Profile>()
+      .single<Profile>();
 
     if (profileErr || !callerProfile) {
-      return jsonResponse({ error: 'Caller profile not found' }, 403)
+      return jsonResponse({ error: 'Caller profile not found' }, 403);
     }
 
     // ── 3. Parse request body ───────────────────────────────────────────────
 
-    let body: RequestBody
+    let body: RequestBody;
     try {
-      body = await req.json() as RequestBody
+      body = (await req.json()) as RequestBody;
     } catch {
-      return jsonResponse({ error: 'Invalid JSON body' }, 400)
+      return jsonResponse({ error: 'Invalid JSON body' }, 400);
     }
 
-    const { visitId, recipientEmail, recipientName } = body
+    const { visitId, recipientEmail, recipientName } = body;
 
     if (!visitId || typeof visitId !== 'string') {
-      return jsonResponse({ error: 'visitId is required' }, 400)
+      return jsonResponse({ error: 'visitId is required' }, 400);
     }
-    if (!recipientEmail || typeof recipientEmail !== 'string' || !recipientEmail.includes('@')) {
-      return jsonResponse({ error: 'Valid recipientEmail is required' }, 400)
+    if (
+      !recipientEmail ||
+      typeof recipientEmail !== 'string' ||
+      !recipientEmail.includes('@')
+    ) {
+      return jsonResponse({ error: 'Valid recipientEmail is required' }, 400);
     }
 
     // ── 4. Fetch visit with client ──────────────────────────────────────────
@@ -366,38 +405,47 @@ Deno.serve(async (req) => {
       .from('visits')
       .select('*, client:clients(*)')
       .eq('id', visitId)
-      .single<Visit>()
+      .single<Visit>();
 
     if (visitErr || !visit) {
-      return jsonResponse({ error: 'Visit not found' }, 404)
+      return jsonResponse({ error: 'Visit not found' }, 404);
     }
 
     // ── 5. Validate: must be a quote, caller must own it or be admin/root ───
 
     if (visit.type !== 'quote' && visit.type !== 'sale') {
-      return jsonResponse({ error: 'Visit is not a quote or sale' }, 400)
+      return jsonResponse({ error: 'Visit is not a quote or sale' }, 400);
     }
 
-    const isOwner = visit.owner_user_id === callerUser.id
-    const isAdmin = callerProfile.role === 'admin' || callerProfile.role === 'root'
+    const isOwner = visit.owner_user_id === callerUser.id;
+    const isAdmin =
+      callerProfile.role === 'admin' || callerProfile.role === 'root';
 
     if (!isOwner && !isAdmin) {
-      return jsonResponse({ error: 'Forbidden: you do not own this visit' }, 403)
+      return jsonResponse(
+        { error: 'Forbidden: you do not own this visit' },
+        403
+      );
     }
 
     // ── 6. Build and send email ─────────────────────────────────────────────
 
-    const items = visit.items ?? []
-    const total = visit.amount ?? items.reduce((s, i) => s + (i.total_usd ?? 0), 0)
+    const items = visit.items ?? [];
+    const total =
+      visit.amount ?? items.reduce((s, i) => s + (i.total_usd ?? 0), 0);
 
-    const clientName = visit.client.name
-    const dateLabel = formatDate(visit.scheduled_at)
+    const clientName = visit.client.name;
+    const dateLabel = formatDate(visit.scheduled_at);
 
-    const senderName = callerProfile.full_name ?? callerProfile.email_config?.sender_name ?? null
-    const replyTo = callerProfile.email_config?.sender
+    const senderName =
+      callerProfile.full_name ??
+      callerProfile.email_config?.sender_name ??
+      null;
+    const replyTo = callerProfile.email_config?.sender;
 
-    const mailFromName = Deno.env.get('MAIL_FROM_NAME') ?? 'CRM'
-    const mailFromAddress = Deno.env.get('MAIL_FROM_ADDRESS') ?? 'noreply@send.gemm-apps.com'
+    const mailFromName = Deno.env.get('MAIL_FROM_NAME') ?? 'CRM';
+    const mailFromAddress =
+      Deno.env.get('MAIL_FROM_ADDRESS') ?? 'noreply@send.gemm-apps.com';
 
     const html = generateQuoteHtml({
       clientName,
@@ -407,7 +455,7 @@ Deno.serve(async (req) => {
       items,
       total,
       visitType: visit.type,
-    })
+    });
 
     await sendEmail({
       from: `${mailFromName} <${mailFromAddress}>`,
@@ -415,12 +463,12 @@ Deno.serve(async (req) => {
       to: [recipientEmail],
       subject: `Cotización para ${clientName} — ${dateLabel}`,
       html,
-    })
+    });
 
-    return jsonResponse({ ok: true })
+    return jsonResponse({ ok: true });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err)
-    console.error('send-quote error:', message)
-    return jsonResponse({ ok: false, error: message }, 500)
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('send-quote error:', message);
+    return jsonResponse({ ok: false, error: message }, 500);
   }
-})
+});

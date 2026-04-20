@@ -14,10 +14,10 @@
  *   - Today's date as subtitle in header
  */
 
-import TourStep from '@/components/tour/TourStep'
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
-import { useFocusEffect, useNavigation, useRouter } from 'expo-router'
-import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react'
+import TourStep from '@/components/tour/TourStep';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect, useNavigation, useRouter } from 'expo-router';
+import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -27,10 +27,10 @@ import {
   StyleSheet,
   Text,
   View,
-} from 'react-native'
+} from 'react-native';
 
-import { StatsModal } from '@/components/today/StatsCard'
-import { VisitRow } from '@/components/visits/VisitRow'
+import { StatsModal } from '@/components/today/StatsCard';
+import { VisitRow } from '@/components/visits/VisitRow';
 import {
   borderRadius,
   colors,
@@ -38,12 +38,12 @@ import {
   fontWeight,
   shadows,
   spacing,
-} from '@/constants/theme'
-import { useToday } from '@/hooks/useToday'
-import dayjs from '@/lib/dayjs'
-import { useAuthStore } from '@/stores/authStore'
-import { TodaySpan, useTodayStore } from '@/stores/todayStore'
-import { VisitWithClient } from '@/types'
+} from '@/constants/theme';
+import { useToday } from '@/hooks/useToday';
+import dayjs from '@/lib/dayjs';
+import { useAuthStore } from '@/stores/authStore';
+import { TodaySpan, useTodayStore } from '@/stores/todayStore';
+import { VisitWithClient } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -54,11 +54,11 @@ import { VisitWithClient } from '@/types'
  * Uses the absolute value, e.g. -25 → "25 minutos", 90 → "1 h 30 min".
  */
 function formatMinutes(mins: number): string {
-  const abs = Math.abs(mins)
-  if (abs < 60) return `${abs} minuto${abs !== 1 ? 's' : ''}`
-  const h = Math.floor(abs / 60)
-  const m = abs % 60
-  return m > 0 ? `${h} h ${m} min` : `${h} h`
+  const abs = Math.abs(mins);
+  if (abs < 60) return `${abs} minuto${abs !== 1 ? 's' : ''}`;
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  return m > 0 ? `${h} h ${m} min` : `${h} h`;
 }
 
 // ---------------------------------------------------------------------------
@@ -66,12 +66,12 @@ function formatMinutes(mins: number): string {
 // ---------------------------------------------------------------------------
 
 function TodayScreenContent() {
-  const router = useRouter()
-  const navigation = useNavigation()
-  const [sortLoading, setSortLoading] = useState(false)
-  const [statsVisible, setStatsVisible] = useState(false)
-  const profile = useAuthStore((state) => state.profile)
-  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root'
+  const router = useRouter();
+  const navigation = useNavigation();
+  const [sortLoading, setSortLoading] = useState(false);
+  const [statsVisible, setStatsVisible] = useState(false);
+  const profile = useAuthStore((state) => state.profile);
+  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root';
 
   const {
     visits,
@@ -82,51 +82,59 @@ function TodayScreenContent() {
     isStale,
     lastFetched,
     fetchTodayVisits,
-  } = useToday(isAdminOrRoot)
+  } = useToday(isAdminOrRoot);
 
-  console.log('TodayScreenContent', visits.map((v) => v.owner))
+  console.log(
+    'TodayScreenContent',
+    visits.map((v) => v.owner)
+  );
 
-  const sortedByDistance = useTodayStore((s) => s.sortedByDistance)
-  const sortByDistance = useTodayStore((s) => s.sortByDistance)
-  const resetDistanceSort = useTodayStore((s) => s.resetDistanceSort)
+  const sortedByDistance = useTodayStore((s) => s.sortedByDistance);
+  const sortByDistance = useTodayStore((s) => s.sortByDistance);
+  const resetDistanceSort = useTodayStore((s) => s.resetDistanceSort);
 
   const handleToggleSort = async () => {
     if (sortedByDistance) {
-      resetDistanceSort()
-      return
+      resetDistanceSort();
+      return;
     }
 
-    setSortLoading(true)
+    setSortLoading(true);
     try {
-      await sortByDistance()
+      await sortByDistance();
     } catch (error) {
-      Alert.alert('Error', 'No se pudieron obtener coordenadas de ubicación')
+      Alert.alert('Error', 'No se pudieron obtener coordenadas de ubicación');
     } finally {
-      setSortLoading(false)
+      setSortLoading(false);
     }
-  }
+  };
 
   // ── Auto-refresh while screen is focused ────────────────────────────────
   useFocusEffect(
     useCallback(() => {
-      fetchTodayVisits(span)
-      const interval = setInterval(() => fetchTodayVisits(span), 60_000)
-      return () => clearInterval(interval)
+      fetchTodayVisits(span);
+      const interval = setInterval(() => fetchTodayVisits(span), 60_000);
+      return () => clearInterval(interval);
     }, [span])
-  )
+  );
 
   // ── Header: gear icon + date subtitle ───────────────────────────────────
   const headerSubtitle = useMemo(() => {
-    if (span === 'today') return dayjs().format('dddd D [de] MMMM')
+    if (span === 'today') return dayjs().format('dddd D [de] MMMM');
     if (span === 'week') {
-      const start = dayjs().startOf('week')
-      const end = dayjs().endOf('week')
-      return `${start.format('D')} – ${end.format('D [de] MMMM')}`
+      const start = dayjs().startOf('week');
+      const end = dayjs().endOf('week');
+      return `${start.format('D')} – ${end.format('D [de] MMMM')}`;
     }
-    return dayjs().format('MMMM YYYY')
-  }, [span])
+    return dayjs().format('MMMM YYYY');
+  }, [span]);
 
-  const sectionTitle = span === 'today' ? 'Agenda de hoy' : span === 'week' ? 'Esta semana' : 'Este mes'
+  const sectionTitle =
+    span === 'today'
+      ? 'Agenda de hoy'
+      : span === 'week'
+        ? 'Esta semana'
+        : 'Este mes';
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -138,7 +146,11 @@ function TodayScreenContent() {
             style={styles.headerIconBtn}
             accessibilityLabel="Estadísticas"
           >
-            <MaterialCommunityIcons name="chart-bar" size={22} color={colors.primary} />
+            <MaterialCommunityIcons
+              name="chart-bar"
+              size={22}
+              color={colors.primary}
+            />
           </Pressable>
           <Pressable
             onPress={() => router.push('/(tabs)/settings')}
@@ -146,75 +158,83 @@ function TodayScreenContent() {
             style={styles.headerIconBtn}
             accessibilityLabel="Configuración"
           >
-            <Ionicons name="settings-outline" size={22} color={colors.primary} />
+            <Ionicons
+              name="settings-outline"
+              size={22}
+              color={colors.primary}
+            />
           </Pressable>
         </View>
       ),
       headerTitle: () => (
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>
-            {span === 'today' ? 'Agenda' : span === 'week' ? 'Esta semana' : 'Este mes'}
+            {span === 'today'
+              ? 'Agenda'
+              : span === 'week'
+                ? 'Esta semana'
+                : 'Este mes'}
           </Text>
           <Text style={styles.headerSubtitle}>{headerSubtitle}</Text>
         </View>
       ),
-    })
-  }, [navigation, router, span, headerSubtitle])
+    });
+  }, [navigation, router, span, headerSubtitle]);
 
   // ── Next visit card state ────────────────────────────────────────────────
   const cardState: 'loading' | 'done' | 'overdue' | 'upcoming' =
     loading && visits.length === 0
       ? 'loading'
       : nextVisit === null
-      ? 'done'
-      : isNextOverdue
-      ? 'overdue'
-      : 'upcoming'
+        ? 'done'
+        : isNextOverdue
+          ? 'overdue'
+          : 'upcoming';
 
   // Compute fresh display minutes from scheduled_at on every render
   // (so the countdown stays accurate within the 60s refresh cycle)
   const liveMinutesUntilNext = useMemo<number | null>(() => {
-    if (!nextVisit) return null
-    return dayjs(nextVisit.scheduled_at).diff(dayjs(), 'minute')
-  }, [nextVisit])
+    if (!nextVisit) return null;
+    return dayjs(nextVisit.scheduled_at).diff(dayjs(), 'minute');
+  }, [nextVisit]);
   // Note: this is intentionally recalculated on each render, not only when
   // nextVisit changes. The dependency on nextVisit is still correct —
   // a new render triggered by the 60s interval will recompute the value.
 
   // ── Derived strings for next-visit card ─────────────────────────────────
   const nextVisitTimeLabel = useMemo<string>(() => {
-    if (!nextVisit) return ''
-    return dayjs(nextVisit.scheduled_at).format('HH:mm')
-  }, [nextVisit])
+    if (!nextVisit) return '';
+    return dayjs(nextVisit.scheduled_at).format('HH:mm');
+  }, [nextVisit]);
 
   const nextVisitCountdownLabel = useMemo<string>(() => {
-    if (liveMinutesUntilNext === null) return ''
+    if (liveMinutesUntilNext === null) return '';
     if (liveMinutesUntilNext >= 0) {
-      return `en ${formatMinutes(liveMinutesUntilNext)}`
+      return `en ${formatMinutes(liveMinutesUntilNext)}`;
     }
-    return `Atrasado por ${formatMinutes(liveMinutesUntilNext)}`
-  }, [liveMinutesUntilNext])
+    return `Atrasado por ${formatMinutes(liveMinutesUntilNext)}`;
+  }, [liveMinutesUntilNext]);
 
   // ── Offline banner last-fetched label ───────────────────────────────────
   const lastFetchedLabel = useMemo<string>(() => {
-    if (!lastFetched) return ''
-    return ` · ${dayjs(lastFetched).format('HH:mm')}`
-  }, [lastFetched])
+    if (!lastFetched) return '';
+    return ` · ${dayjs(lastFetched).format('HH:mm')}`;
+  }, [lastFetched]);
 
   // ── Helpers ─────────────────────────────────────────────────────────────
 
   function handleVisitPress(visit: VisitWithClient) {
-    router.push(`/(tabs)/agenda/visits/${visit.id}`)
+    router.push(`/(tabs)/agenda/visits/${visit.id}`);
   }
 
   function handleNextCardPress() {
     if (nextVisit) {
-      router.push(`/(tabs)/agenda/visits/${nextVisit.id}`)
+      router.push(`/(tabs)/agenda/visits/${nextVisit.id}`);
     }
   }
 
   function handleNewVisitPress() {
-    router.push('/visits/form')
+    router.push('/visits/form');
   }
 
   // ── Render: Next visit card ──────────────────────────────────────────────
@@ -225,7 +245,7 @@ function TodayScreenContent() {
         <View style={[styles.nextCard, styles.nextCardLoading]}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      )
+      );
     }
 
     if (cardState === 'done') {
@@ -244,7 +264,7 @@ function TodayScreenContent() {
             No quedan visitas pendientes
           </Text>
         </View>
-      )
+      );
     }
 
     if (cardState === 'overdue') {
@@ -260,8 +280,14 @@ function TodayScreenContent() {
           accessibilityLabel={`Visita atrasada: ${nextVisit?.client.name}`}
         >
           <View style={styles.nextCardLabelRow}>
-            <MaterialCommunityIcons name="alert-circle" size={14} color={colors.warning} />
-            <Text style={[styles.nextCardLabel, { color: colors.warning }]}>ATRASADO</Text>
+            <MaterialCommunityIcons
+              name="alert-circle"
+              size={14}
+              color={colors.warning}
+            />
+            <Text style={[styles.nextCardLabel, { color: colors.warning }]}>
+              ATRASADO
+            </Text>
           </View>
           <Text style={styles.nextCardClientName} numberOfLines={1}>
             {nextVisit?.client.name}
@@ -270,7 +296,7 @@ function TodayScreenContent() {
             {nextVisitCountdownLabel}
           </Text>
         </Pressable>
-      )
+      );
     }
 
     // cardState === 'upcoming'
@@ -286,8 +312,14 @@ function TodayScreenContent() {
         accessibilityLabel={`Siguiente visita: ${nextVisit?.client.name}`}
       >
         <View style={styles.nextCardLabelRow}>
-          <MaterialCommunityIcons name="clock-outline" size={14} color={colors.primary} />
-          <Text style={[styles.nextCardLabel, { color: colors.primary }]}>SIGUIENTE</Text>
+          <MaterialCommunityIcons
+            name="clock-outline"
+            size={14}
+            color={colors.primary}
+          />
+          <Text style={[styles.nextCardLabel, { color: colors.primary }]}>
+            SIGUIENTE
+          </Text>
         </View>
         <Text style={styles.nextCardClientName} numberOfLines={1}>
           {nextVisit?.client.name}
@@ -296,7 +328,7 @@ function TodayScreenContent() {
           {nextVisitTimeLabel} · {nextVisitCountdownLabel}
         </Text>
       </Pressable>
-    )
+    );
   }
 
   // ── Render: Visit row ────────────────────────────────────────────────────
@@ -309,7 +341,7 @@ function TodayScreenContent() {
         onPress={() => handleVisitPress(visit)}
         showOwner={isAdminOrRoot && !!visit.owner}
       />
-    )
+    );
   }
 
   // ── Render: Empty state ──────────────────────────────────────────────────
@@ -317,13 +349,17 @@ function TodayScreenContent() {
   function renderEmptyState() {
     return (
       <View style={styles.emptyContainer}>
-        <MaterialCommunityIcons name="calendar-blank" size={40} color={colors.textDisabled} />
+        <MaterialCommunityIcons
+          name="calendar-blank"
+          size={40}
+          color={colors.textDisabled}
+        />
         <Text style={styles.emptyText}>
           {span === 'today'
             ? 'No hay visitas programadas para hoy'
             : span === 'week'
-            ? 'No hay visitas esta semana'
-            : 'No hay visitas este mes'}
+              ? 'No hay visitas esta semana'
+              : 'No hay visitas este mes'}
         </Text>
         <Pressable
           style={({ pressed }) => [
@@ -337,7 +373,7 @@ function TodayScreenContent() {
           <Text style={styles.emptyButtonText}>Nueva visita</Text>
         </Pressable>
       </View>
-    )
+    );
   }
 
   // ── Root render ──────────────────────────────────────────────────────────
@@ -376,8 +412,13 @@ function TodayScreenContent() {
         >
           <View style={styles.spanRow}>
             {(['today', 'week', 'month'] as TodaySpan[]).map((s) => {
-              const label = s === 'today' ? 'Hoy' : s === 'week' ? 'Esta semana' : 'Este mes'
-              const active = span === s
+              const label =
+                s === 'today'
+                  ? 'Hoy'
+                  : s === 'week'
+                    ? 'Esta semana'
+                    : 'Este mes';
+              const active = span === s;
               return (
                 <Pressable
                   key={s}
@@ -387,11 +428,16 @@ function TodayScreenContent() {
                   accessibilityState={{ selected: active }}
                   accessibilityLabel={label}
                 >
-                  <Text style={[styles.spanPillText, active && styles.spanPillTextActive]}>
+                  <Text
+                    style={[
+                      styles.spanPillText,
+                      active && styles.spanPillTextActive,
+                    ]}
+                  >
                     {label}
                   </Text>
                 </Pressable>
-              )
+              );
             })}
           </View>
         </TourStep>
@@ -421,7 +467,8 @@ function TodayScreenContent() {
                 <>
                   <View style={styles.countBadge}>
                     <Text style={styles.countBadgeText}>
-                      {visits.length} {visits.length === 1 ? 'visita' : 'visitas'}
+                      {visits.length}{' '}
+                      {visits.length === 1 ? 'visita' : 'visitas'}
                     </Text>
                   </View>
                   {/* Sort toggle button — only on native platforms (expo-location not available on web) */}
@@ -434,13 +481,24 @@ function TodayScreenContent() {
                       onPress={handleToggleSort}
                       disabled={sortLoading}
                       accessibilityRole="button"
-                      accessibilityLabel={sortedByDistance ? 'Ordenar por hora' : 'Ordenar por distancia'}
+                      accessibilityLabel={
+                        sortedByDistance
+                          ? 'Ordenar por hora'
+                          : 'Ordenar por distancia'
+                      }
                     >
                       {sortLoading ? (
-                        <ActivityIndicator size="small" color={colors.textSecondary} />
+                        <ActivityIndicator
+                          size="small"
+                          color={colors.textSecondary}
+                        />
                       ) : (
                         <MaterialCommunityIcons
-                          name={sortedByDistance ? 'clock-outline' : 'map-marker-distance'}
+                          name={
+                            sortedByDistance
+                              ? 'clock-outline'
+                              : 'map-marker-distance'
+                          }
                           size={20}
                           color={colors.textSecondary}
                         />
@@ -463,10 +521,10 @@ function TodayScreenContent() {
         </View>
       </ScrollView>
     </>
-  )
+  );
 }
 
-export default TodayScreenContent
+export default TodayScreenContent;
 
 // ---------------------------------------------------------------------------
 // Styles
@@ -691,4 +749,4 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold as '600',
     color: colors.textOnPrimary,
   },
-})
+});

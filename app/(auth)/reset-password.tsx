@@ -6,7 +6,7 @@
  * After successful save, signs out and redirects to login.
  */
 
-import { useState } from 'react'
+import { useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -17,83 +17,88 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+} from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { useAuthStore } from '@/stores/authStore'
-import { resetPasswordSchema, type ResetPasswordInput } from '@/validators/auth'
+import { useAuthStore } from '@/stores/authStore';
+import {
+  resetPasswordSchema,
+  type ResetPasswordInput,
+} from '@/validators/auth';
 import {
   borderRadius,
   colors,
   fontSize,
   fontWeight,
   spacing,
-} from '@/constants/theme'
+} from '@/constants/theme';
 
 // ---------------------------------------------------------------------------
 // Validation
 // ---------------------------------------------------------------------------
 
-type FieldErrors = Partial<Record<keyof ResetPasswordInput, string>>
+type FieldErrors = Partial<Record<keyof ResetPasswordInput, string>>;
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function ResetPasswordScreen() {
-  const updatePassword = useAuthStore((s) => s.updatePassword)
+  const updatePassword = useAuthStore((s) => s.updatePassword);
 
-  const [password, setPassword] = useState('')
-  const [passwordConfirm, setPasswordConfirm] = useState('')
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  const [passwordFocused, setPasswordFocused] = useState(false)
-  const [confirmFocused, setConfirmFocused] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [confirmFocused, setConfirmFocused] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   // ------------------------------------------------------------------
   // Handlers
   // ------------------------------------------------------------------
 
   function handlePasswordChange(text: string) {
-    setPassword(text)
-    if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }))
+    setPassword(text);
+    if (fieldErrors.password)
+      setFieldErrors((prev) => ({ ...prev, password: undefined }));
   }
 
   function handleConfirmChange(text: string) {
-    setPasswordConfirm(text)
-    if (fieldErrors.passwordConfirm) setFieldErrors((prev) => ({ ...prev, passwordConfirm: undefined }))
+    setPasswordConfirm(text);
+    if (fieldErrors.passwordConfirm)
+      setFieldErrors((prev) => ({ ...prev, passwordConfirm: undefined }));
   }
 
   async function handleSubmit() {
-    const result = resetPasswordSchema.safeParse({ password, passwordConfirm })
+    const result = resetPasswordSchema.safeParse({ password, passwordConfirm });
 
     if (!result.success) {
-      const errors: FieldErrors = {}
+      const errors: FieldErrors = {};
       for (const issue of result.error.issues) {
-        const field = issue.path[0] as keyof ResetPasswordInput
-        if (!errors[field]) errors[field] = issue.message
+        const field = issue.path[0] as keyof ResetPasswordInput;
+        if (!errors[field]) errors[field] = issue.message;
       }
-      setFieldErrors(errors)
-      return
+      setFieldErrors(errors);
+      return;
     }
 
-    setFieldErrors({})
-    setLoading(true)
-    const { error } = await updatePassword(result.data.password)
-    setLoading(false)
+    setFieldErrors({});
+    setLoading(true);
+    const { error } = await updatePassword(result.data.password);
+    setLoading(false);
 
     if (error) {
       // Error is set in fieldErrors or shown as a banner
       // For simplicity, just show an error alert or banner
-      setFieldErrors({ password: error })
-      return
+      setFieldErrors({ password: error });
+      return;
     }
 
-    setSuccess(true)
+    setSuccess(true);
     // updatePassword calls signOut → onAuthStateChange SIGNED_OUT → guard redirects to login
   }
 
@@ -104,14 +109,14 @@ export default function ResetPasswordScreen() {
   const passwordBorderColor = fieldErrors.password
     ? colors.error
     : passwordFocused
-    ? colors.primary
-    : colors.border
+      ? colors.primary
+      : colors.border;
 
   const confirmBorderColor = fieldErrors.passwordConfirm
     ? colors.error
     : confirmFocused
-    ? colors.primary
-    : colors.border
+      ? colors.primary
+      : colors.border;
 
   // ------------------------------------------------------------------
   // Render: success state
@@ -127,7 +132,7 @@ export default function ResetPasswordScreen() {
           </View>
         </View>
       </View>
-    )
+    );
   }
 
   // ------------------------------------------------------------------
@@ -152,7 +157,11 @@ export default function ResetPasswordScreen() {
             <Text style={styles.label}>Contraseña</Text>
             <View style={styles.passwordFieldContainer}>
               <TextInput
-                style={[styles.input, styles.passwordInput, { borderColor: passwordBorderColor }]}
+                style={[
+                  styles.input,
+                  styles.passwordInput,
+                  { borderColor: passwordBorderColor },
+                ]}
                 value={password}
                 onChangeText={handlePasswordChange}
                 onFocus={() => setPasswordFocused(true)}
@@ -168,7 +177,9 @@ export default function ResetPasswordScreen() {
               <Pressable
                 onPress={() => setShowPassword(!showPassword)}
                 style={styles.passwordToggle}
-                accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                accessibilityLabel={
+                  showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                }
                 accessibilityRole="button"
               >
                 <MaterialCommunityIcons
@@ -188,7 +199,11 @@ export default function ResetPasswordScreen() {
             <Text style={styles.label}>Confirmar contraseña</Text>
             <View style={styles.passwordFieldContainer}>
               <TextInput
-                style={[styles.input, styles.passwordInput, { borderColor: confirmBorderColor }]}
+                style={[
+                  styles.input,
+                  styles.passwordInput,
+                  { borderColor: confirmBorderColor },
+                ]}
                 value={passwordConfirm}
                 onChangeText={handleConfirmChange}
                 onFocus={() => setConfirmFocused(true)}
@@ -204,7 +219,9 @@ export default function ResetPasswordScreen() {
               <Pressable
                 onPress={() => setShowConfirm(!showConfirm)}
                 style={styles.passwordToggle}
-                accessibilityLabel={showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                accessibilityLabel={
+                  showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                }
                 accessibilityRole="button"
               >
                 <MaterialCommunityIcons
@@ -215,7 +232,9 @@ export default function ResetPasswordScreen() {
               </Pressable>
             </View>
             {fieldErrors.passwordConfirm ? (
-              <Text style={styles.fieldError}>{fieldErrors.passwordConfirm}</Text>
+              <Text style={styles.fieldError}>
+                {fieldErrors.passwordConfirm}
+              </Text>
             ) : null}
           </View>
 
@@ -236,7 +255,7 @@ export default function ResetPasswordScreen() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -347,4 +366,4 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     textAlign: 'center',
   },
-})
+});

@@ -1,5 +1,5 @@
-import { useRouter } from 'expo-router'
-import React, { useState } from 'react'
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -8,7 +8,7 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native'
+} from 'react-native';
 
 import {
   borderRadius,
@@ -16,10 +16,10 @@ import {
   fontSize,
   fontWeight,
   spacing,
-} from '@/constants/theme'
-import { useProductsStore } from '@/stores/productsStore'
-import type { ProductType } from '@/types'
-import type { CreatePresentationInput } from '@/validators/product'
+} from '@/constants/theme';
+import { useProductsStore } from '@/stores/productsStore';
+import type { ProductType } from '@/types';
+import type { CreatePresentationInput } from '@/validators/product';
 
 // ---------------------------------------------------------------------------
 // Type selector
@@ -28,41 +28,41 @@ import type { CreatePresentationInput } from '@/validators/product'
 const TYPE_OPTIONS: { value: ProductType; label: string }[] = [
   { value: 'commodity', label: 'Commodity' },
   { value: 'formulated', label: 'Formulado' },
-]
+];
 
 // ---------------------------------------------------------------------------
 // Screen
 // ---------------------------------------------------------------------------
 
 export default function NewProductScreen() {
-  const router = useRouter()
-  const createProduct = useProductsStore((s) => s.createProduct)
+  const router = useRouter();
+  const createProduct = useProductsStore((s) => s.createProduct);
 
-  const [name, setName] = useState('')
-  const [code, setCode] = useState('')
-  const [type, setType] = useState<ProductType>('commodity')
-  const [notes, setNotes] = useState('')
-  const [saving, setSaving] = useState(false)
+  const [name, setName] = useState('');
+  const [code, setCode] = useState('');
+  const [type, setType] = useState<ProductType>('commodity');
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
 
   // First presentation
-  const [presLabel, setPresLabel] = useState('')
-  const [presUnit, setPresUnit] = useState('')
-  const [presQty, setPresQty] = useState('')
-  const [presPrice, setPresPrice] = useState('')
+  const [presLabel, setPresLabel] = useState('');
+  const [presUnit, setPresUnit] = useState('');
+  const [presQty, setPresQty] = useState('');
+  const [presPrice, setPresPrice] = useState('');
 
   async function handleCreate() {
     if (!name.trim()) {
-      Alert.alert('Error', 'El nombre es requerido')
-      return
+      Alert.alert('Error', 'El nombre es requerido');
+      return;
     }
     if (!presLabel.trim() || !presUnit.trim()) {
-      Alert.alert('Error', 'Completá la presentación (etiqueta y unidad)')
-      return
+      Alert.alert('Error', 'Completá la presentación (etiqueta y unidad)');
+      return;
     }
-    const priceVal = parseFloat(presPrice)
+    const priceVal = parseFloat(presPrice);
     if (isNaN(priceVal) || priceVal < 0) {
-      Alert.alert('Error', 'Ingresá un precio válido')
-      return
+      Alert.alert('Error', 'Ingresá un precio válido');
+      return;
     }
 
     const presentation: CreatePresentationInput = {
@@ -70,20 +70,20 @@ export default function NewProductScreen() {
       unit: presUnit.trim(),
       price_usd: priceVal,
       quantity: presQty.trim() ? parseFloat(presQty) || null : null,
-    }
+    };
 
-    setSaving(true)
+    setSaving(true);
     const result = await createProduct({
       name: name.trim(),
       code: code.trim() || null,
       type,
       notes: notes.trim() || null,
       presentations: [presentation],
-    })
-    setSaving(false)
+    });
+    setSaving(false);
 
     if (result) {
-      router.replace(`/products/${result.id}` as never)
+      router.replace(`/products/${result.id}` as never);
     }
   }
 
@@ -115,7 +115,12 @@ export default function NewProductScreen() {
             onPress={() => setType(opt.value)}
             accessibilityRole="radio"
           >
-            <Text style={[styles.typeBtnText, type === opt.value && styles.typeBtnTextActive]}>
+            <Text
+              style={[
+                styles.typeBtnText,
+                type === opt.value && styles.typeBtnTextActive,
+              ]}
+            >
               {opt.label}
             </Text>
           </Pressable>
@@ -132,7 +137,9 @@ export default function NewProductScreen() {
         numberOfLines={3}
       />
 
-      <Text style={[styles.sectionTitle, { marginTop: spacing[4] }]}>Primera presentación *</Text>
+      <Text style={[styles.sectionTitle, { marginTop: spacing[4] }]}>
+        Primera presentación *
+      </Text>
 
       <TextInput
         style={styles.input}
@@ -173,10 +180,12 @@ export default function NewProductScreen() {
         disabled={saving}
         accessibilityRole="button"
       >
-        <Text style={styles.saveBtnText}>{saving ? 'Guardando…' : 'Crear producto'}</Text>
+        <Text style={styles.saveBtnText}>
+          {saving ? 'Guardando…' : 'Crear producto'}
+        </Text>
       </Pressable>
     </ScrollView>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -263,4 +272,4 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     fontWeight: fontWeight.semibold as '600',
   },
-})
+});

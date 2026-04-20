@@ -9,8 +9,8 @@
  * Stack's header is rendered (avoids a duplicate title bar).
  */
 
-import { Stack } from 'expo-router'
-import { colors, fontSize, fontWeight } from '@/constants/theme'
+import { Stack } from 'expo-router';
+import { colors, fontSize, fontWeight } from '@/constants/theme';
 
 const headerOptions = {
   headerStyle: { backgroundColor: colors.surface },
@@ -23,14 +23,17 @@ const headerOptions = {
     color: colors.textPrimary,
   },
   headerBackButtonDisplayMode: 'minimal' as const,
-}
+};
 
 export default function AgendaLayout() {
   return (
     <Stack screenOptions={headerOptions}>
       <Stack.Screen name="index" options={{ title: 'Agenda' }} />
       <Stack.Screen name="visits/[id]" options={{ title: 'Visita' }} />
-      <Stack.Screen name="visits/form" options={{ presentation: 'modal', title: 'Editar visita' }} />
+      <Stack.Screen
+        name="visits/form"
+        options={{ presentation: 'modal', title: 'Editar visita' }}
+      />
     </Stack>
-  )
+  );
 }

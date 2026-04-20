@@ -6,29 +6,35 @@
  * Icons: MaterialCommunityIcons from @expo/vector-icons (bundled with Expo).
  */
 
-import { Platform, useWindowDimensions } from 'react-native'
-import { Tabs } from 'expo-router'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+import { Platform, useWindowDimensions } from 'react-native';
+import { Tabs } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { brand } from '@/constants/brand'
-import { colors, fontSize, spacing, BREAKPOINT_WIDE, MAX_CONTAINER_WIDTH } from '@/constants/theme'
-import { useAuthStore } from '@/stores/authStore'
+import { brand } from '@/constants/brand';
+import {
+  colors,
+  fontSize,
+  spacing,
+  BREAKPOINT_WIDE,
+  MAX_CONTAINER_WIDTH,
+} from '@/constants/theme';
+import { useAuthStore } from '@/stores/authStore';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-type MCIconName = React.ComponentProps<typeof MaterialCommunityIcons>['name']
+type MCIconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 // ---------------------------------------------------------------------------
 // Tab icon helper
 // ---------------------------------------------------------------------------
 
 interface TabIconProps {
-  activeIcon: MCIconName
-  inactiveIcon: MCIconName
-  focused: boolean
-  color: string
+  activeIcon: MCIconName;
+  inactiveIcon: MCIconName;
+  focused: boolean;
+  color: string;
 }
 
 function TabIcon({ activeIcon, inactiveIcon, focused, color }: TabIconProps) {
@@ -38,7 +44,7 @@ function TabIcon({ activeIcon, inactiveIcon, focused, color }: TabIconProps) {
       size={24}
       color={color}
     />
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -46,12 +52,12 @@ function TabIcon({ activeIcon, inactiveIcon, focused, color }: TabIconProps) {
 // ---------------------------------------------------------------------------
 
 export default function TabsLayout() {
-  const profile = useAuthStore((state) => state.profile)
-  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root'
-  const { width } = useWindowDimensions()
+  const profile = useAuthStore((state) => state.profile);
+  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root';
+  const { width } = useWindowDimensions();
 
   // On web screens > 768px wide, constrain content to 480px and center it
-  const isWideScreen = Platform.OS === 'web' && width > BREAKPOINT_WIDE
+  const isWideScreen = Platform.OS === 'web' && width > BREAKPOINT_WIDE;
 
   // Screen options with responsive container styling
   const screenOptions = {
@@ -91,7 +97,7 @@ export default function TabsLayout() {
         marginHorizontal: 'auto' as const,
       },
     }),
-  }
+  };
 
   return (
     <Tabs screenOptions={screenOptions}>
@@ -192,5 +198,5 @@ export default function TabsLayout() {
         }}
       />
     </Tabs>
-  )
+  );
 }

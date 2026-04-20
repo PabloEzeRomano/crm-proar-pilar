@@ -1,6 +1,6 @@
-import { Stack } from 'expo-router'
+import { Stack } from 'expo-router';
 
-import { colors, fontSize } from '@/constants/theme'
+import { colors, fontSize } from '@/constants/theme';
 
 export default function ProductsStackLayout() {
   return (
@@ -21,5 +21,5 @@ export default function ProductsStackLayout() {
       <Stack.Screen name="new" options={{ title: 'Nuevo producto' }} />
       <Stack.Screen name="[id]" options={{ title: 'Detalle de producto' }} />
     </Stack>
-  )
+  );
 }

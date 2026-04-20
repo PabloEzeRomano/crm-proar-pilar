@@ -6,24 +6,24 @@
  * Components must consume values from this file; never use magic numbers.
  */
 
-import { brand } from './brand'
+import { brand } from './brand';
 
 // ---------------------------------------------------------------------------
 // Touch target
 // ---------------------------------------------------------------------------
 
 /** Minimum interactive touch target size (px) — WCAG 2.5.5 / Apple HIG */
-export const MIN_TOUCH_TARGET = 48
+export const MIN_TOUCH_TARGET = 48;
 
 // ---------------------------------------------------------------------------
 // Responsive breakpoints
 // ---------------------------------------------------------------------------
 
 /** Breakpoint for wide screens (web only) */
-export const BREAKPOINT_WIDE = 768
+export const BREAKPOINT_WIDE = 768;
 
 /** Max container width for web (mobile design on desktop) */
-export const MAX_CONTAINER_WIDTH = 480
+export const MAX_CONTAINER_WIDTH = 480;
 
 // ---------------------------------------------------------------------------
 // Colors
@@ -36,8 +36,8 @@ export const colors = {
   primaryLight: brand.primaryColorLight,
 
   // Backgrounds
-  background: '#F9FAFB',   // page background
-  surface: '#FFFFFF',      // card / sheet surface
+  background: '#F9FAFB', // page background
+  surface: '#FFFFFF', // card / sheet surface
 
   // Borders
   border: '#E5E7EB',
@@ -47,7 +47,7 @@ export const colors = {
   textPrimary: '#111827',
   textSecondary: '#6B7280',
   textDisabled: '#D1D5DB',
-  textOnPrimary: '#FFFFFF',  // text placed on top of primary color
+  textOnPrimary: '#FFFFFF', // text placed on top of primary color
 
   // Semantic
   success: '#16A34A',
@@ -58,18 +58,18 @@ export const colors = {
   errorLight: '#FEE2E2',
 
   // Visit status
-  statusPending: '#D97706',      // same hue as warning
+  statusPending: '#D97706', // same hue as warning
   statusPendingLight: '#FEF3C7',
-  statusCompleted: '#16A34A',    // same hue as success
+  statusCompleted: '#16A34A', // same hue as success
   statusCompletedLight: '#DCFCE7',
-  statusCanceled: '#DC2626',      // red — same as colors.error
+  statusCanceled: '#DC2626', // red — same as colors.error
   statusCanceledLight: '#FEE2E2', // same as colors.errorLight
 
   // Utility
   white: '#FFFFFF',
   black: '#000000',
   transparent: 'transparent',
-} as const
+} as const;
 
 // ---------------------------------------------------------------------------
 // Visit type colors
@@ -84,7 +84,7 @@ export const visitTypeColors = {
   quoteLight: '#EDE9FE',
   sale: '#EA580C',
   saleLight: '#FFEDD5',
-} as const
+} as const;
 
 // ---------------------------------------------------------------------------
 // Typography
@@ -98,26 +98,26 @@ export const fontSize = {
   xl: 20,
   '2xl': 24,
   '3xl': 30,
-} as const
+} as const;
 
 export const fontWeight = {
   regular: '400',
   medium: '500',
   semibold: '600',
   bold: '700',
-} as const
+} as const;
 
 export const lineHeight = {
-  tight: 1.25,   // headings
-  normal: 1.5,   // body copy
+  tight: 1.25, // headings
+  normal: 1.5, // body copy
   relaxed: 1.75, // readable small text
-} as const
+} as const;
 
 export const typography = {
   fontSize,
   fontWeight,
   lineHeight,
-} as const
+} as const;
 
 // ---------------------------------------------------------------------------
 // Spacing
@@ -137,7 +137,7 @@ export const spacing = {
   8: 32,
   12: 48,
   16: 64,
-} as const
+} as const;
 
 // ---------------------------------------------------------------------------
 // Border radius
@@ -149,7 +149,7 @@ export const borderRadius = {
   lg: 12,
   xl: 16,
   full: 9999,
-} as const
+} as const;
 
 // ---------------------------------------------------------------------------
 // Shadows
@@ -166,7 +166,7 @@ export const shadows = {
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 3,
-    elevation: 2,           // Android
+    elevation: 2, // Android
   },
   none: {
     shadowColor: 'transparent',
@@ -175,7 +175,7 @@ export const shadows = {
     shadowRadius: 0,
     elevation: 0,
   },
-} as const
+} as const;
 
 // ---------------------------------------------------------------------------
 // Convenience re-export
@@ -192,4 +192,4 @@ export const theme = {
   borderRadius,
   shadows,
   MIN_TOUCH_TARGET,
-} as const
+} as const;

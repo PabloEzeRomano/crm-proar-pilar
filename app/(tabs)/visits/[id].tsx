@@ -6,4 +6,4 @@
  * Back button navigates naturally to the Visits list in this stack.
  */
 
-export { default } from '@/components/visits/VisitDetailView'
+export { default } from '@/components/visits/VisitDetailView';

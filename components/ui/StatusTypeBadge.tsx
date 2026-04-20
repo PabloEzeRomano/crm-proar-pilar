@@ -19,11 +19,14 @@ import {
 } from '@/constants/theme';
 import { getStatusLabel } from '@/lib/visitStatus';
 
-type BadgeConfig = Record<VisitStatus | VisitType, {
-  bg: string;
-  color: string;
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
-}>;
+type BadgeConfig = Record<
+  VisitStatus | VisitType,
+  {
+    bg: string;
+    color: string;
+    icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  }
+>;
 
 const STATUS_TYPE_CONFIG: BadgeConfig = {
   pending: {
@@ -63,14 +66,13 @@ const STATUS_TYPE_CONFIG: BadgeConfig = {
   },
 } as const;
 
-
 interface StatusTypeBadgeProps {
   status?: VisitStatus;
   type: VisitType;
   isStatus?: boolean;
 }
 
-export function StatusTypeBadge({ status, type}: StatusTypeBadgeProps) {
+export function StatusTypeBadge({ status, type }: StatusTypeBadgeProps) {
   const config = STATUS_TYPE_CONFIG[status ?? type];
   const label = getStatusLabel(type, status);
   return (

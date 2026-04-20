@@ -83,10 +83,10 @@ function ClientsScreenContent() {
   const [selectedRubros, setSelectedRubros] = useState<string[]>([]);
   const [selectedLocalidades, setSelectedLocalidades] = useState<string[]>([]);
   const [selectedStaleDays, setSelectedStaleDays] = useState<number | null>(
-    null,
+    null
   );
   const [selectedVisitType, setSelectedVisitType] = useState<VisitType | null>(
-    null,
+    null
   );
   const [sortOrder, setSortOrder] = useState<ClientSortOrder>('name-asc');
   const [filterVisible, setFilterVisible] = useState(false);
@@ -109,7 +109,7 @@ function ClientsScreenContent() {
       selectedStaleDays,
       sortOrder,
       selectedVisitType,
-      selectedVendedores,
+      selectedVendedores
     );
   const inactiveClients = useClientsStore((s) => s.inactiveClients);
   const fetchInactiveClients = useClientsStore((s) => s.fetchInactiveClients);
@@ -178,10 +178,10 @@ function ClientsScreenContent() {
   function toggleDraft(
     list: string[],
     value: string,
-    setter: (v: string[]) => void,
+    setter: (v: string[]) => void
   ) {
     setter(
-      list.includes(value) ? list.filter((v) => v !== value) : [...list, value],
+      list.includes(value) ? list.filter((v) => v !== value) : [...list, value]
     );
   }
 
@@ -452,7 +452,7 @@ function ClientsScreenContent() {
                 style={styles.activeChip}
                 onPress={() =>
                   setSelectedLocalidades(
-                    selectedLocalidades.filter((v) => v !== l),
+                    selectedLocalidades.filter((v) => v !== l)
                   )
                 }
                 accessibilityLabel={`Quitar filtro ${l}`}
@@ -495,7 +495,7 @@ function ClientsScreenContent() {
                 <Text style={styles.activeChipText} numberOfLines={1}>
                   {
                     VISIT_TYPE_OPTIONS.find(
-                      (o) => o.value === selectedVisitType,
+                      (o) => o.value === selectedVisitType
                     )?.label
                   }
                 </Text>
@@ -512,7 +512,7 @@ function ClientsScreenContent() {
                 style={styles.activeChip}
                 onPress={() =>
                   setSelectedVendedores(
-                    selectedVendedores.filter((v) => v !== id),
+                    selectedVendedores.filter((v) => v !== id)
                   )
                 }
                 accessibilityLabel={`Quitar filtro vendedor ${ownerProfiles[id]?.full_name ?? id}`}

@@ -9,9 +9,9 @@
  * Visual values come from constants/theme.ts — no hardcoded tokens.
  */
 
-import { Stack } from 'expo-router'
+import { Stack } from 'expo-router';
 
-import { colors, fontSize, fontWeight } from '@/constants/theme'
+import { colors, fontSize, fontWeight } from '@/constants/theme';
 
 const headerOptions = {
   headerStyle: { backgroundColor: colors.surface },
@@ -24,7 +24,7 @@ const headerOptions = {
     color: colors.textPrimary,
   },
   headerBackButtonDisplayMode: 'minimal' as const,
-}
+};
 
 export default function ClientsLayout() {
   return (
@@ -36,5 +36,5 @@ export default function ClientsLayout() {
         options={{ presentation: 'modal', title: 'Nuevo cliente' }}
       />
     </Stack>
-  )
+  );
 }

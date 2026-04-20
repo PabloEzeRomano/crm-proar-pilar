@@ -21,9 +21,7 @@
       [
         "expo-notifications",
         {
-          "icons": [
-            "./assets/notification-icon.png"
-          ],
+          "icons": ["./assets/notification-icon.png"],
           "color": "#ffffff"
         }
       ]
@@ -49,10 +47,7 @@
       "jsEngine": "hermes",
       "enableProguardInReleaseBuilds": true,
       "enableShrinkResourcesInReleaseBuilds": true,
-      "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "POST_NOTIFICATIONS"
-      ]
+      "permissions": ["ACCESS_FINE_LOCATION", "POST_NOTIFICATIONS"]
     },
     "web": {
       "bundler": "metro",

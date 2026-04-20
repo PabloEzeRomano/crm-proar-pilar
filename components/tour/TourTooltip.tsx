@@ -6,23 +6,23 @@
  * All touch targets are ≥ 48px.
  */
 
-import React from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   borderRadius,
   colors,
   fontSize,
   fontWeight,
   spacing,
-} from '@/constants/theme'
+} from '@/constants/theme';
 
 interface TourTooltipProps {
-  text: string
-  currentIndex: number  // 0-based
-  total: number
-  onNext: () => void
-  onPrev: () => void
-  onStop: () => void
+  text: string;
+  currentIndex: number; // 0-based
+  total: number;
+  onNext: () => void;
+  onPrev: () => void;
+  onStop: () => void;
 }
 
 export default function TourTooltip({
@@ -33,7 +33,7 @@ export default function TourTooltip({
   onPrev,
   onStop,
 }: TourTooltipProps) {
-  const isLast = currentIndex === total - 1
+  const isLast = currentIndex === total - 1;
 
   return (
     <View style={styles.container}>
@@ -84,7 +84,7 @@ export default function TourTooltip({
         </Pressable>
       </View>
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -168,4 +168,4 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold as '600',
     color: colors.textOnPrimary,
   },
-})
+});

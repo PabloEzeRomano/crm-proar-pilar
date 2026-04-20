@@ -1,21 +1,27 @@
-import React, { useState } from 'react'
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
-import { MaterialCommunityIcons } from '@expo/vector-icons'
+import React, { useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { borderRadius, colors, fontSize, fontWeight, spacing } from '@/constants/theme'
-import { QuoteItem } from '@/types'
+import {
+  borderRadius,
+  colors,
+  fontSize,
+  fontWeight,
+  spacing,
+} from '@/constants/theme';
+import { QuoteItem } from '@/types';
 
 interface Props {
-  item: QuoteItem
-  visitType: 'quote' | 'sale'
-  onChangeQuantity: (qty: number) => void
-  onChangeMargin: (pct: number) => void
-  onChangeCustomQty?: (kg: number) => void
-  onRemove: () => void
+  item: QuoteItem;
+  visitType: 'quote' | 'sale';
+  onChangeQuantity: (qty: number) => void;
+  onChangeMargin: (pct: number) => void;
+  onChangeCustomQty?: (kg: number) => void;
+  onRemove: () => void;
 }
 
 function effectivePricePerKg(item: QuoteItem): number {
-  return item.unit_price_usd * (1 + item.margin_pct / 100)
+  return item.unit_price_usd * (1 + item.margin_pct / 100);
 }
 
 export default function QuoteItemRow({
@@ -26,40 +32,42 @@ export default function QuoteItemRow({
   onChangeCustomQty,
   onRemove,
 }: Props) {
-  const [qtyText, setQtyText] = useState(String(item.quantity))
-  const [marginText, setMarginText] = useState(String(item.margin_pct))
-  const [customQtyText, setCustomQtyText] = useState(String(item.custom_quantity_kg ?? ''))
+  const [qtyText, setQtyText] = useState(String(item.quantity));
+  const [marginText, setMarginText] = useState(String(item.margin_pct));
+  const [customQtyText, setCustomQtyText] = useState(
+    String(item.custom_quantity_kg ?? '')
+  );
 
-  const isIBC = item.presentation_quantity_kg === null
-  const isQuote = visitType === 'quote'
+  const isIBC = item.presentation_quantity_kg === null;
+  const isQuote = visitType === 'quote';
 
   function handleQtyChange(text: string) {
-    setQtyText(text)
-    const n = parseFloat(text)
-    if (!isNaN(n) && n > 0) onChangeQuantity(n)
+    setQtyText(text);
+    const n = parseFloat(text);
+    if (!isNaN(n) && n > 0) onChangeQuantity(n);
   }
 
   function handleMarginChange(text: string) {
-    setMarginText(text)
-    const n = parseFloat(text)
-    if (!isNaN(n) && n >= 0) onChangeMargin(n)
+    setMarginText(text);
+    const n = parseFloat(text);
+    if (!isNaN(n) && n >= 0) onChangeMargin(n);
   }
 
   function handleCustomQtyChange(text: string) {
-    setCustomQtyText(text)
-    const n = parseFloat(text)
-    if (!isNaN(n) && n > 0) onChangeCustomQty?.(n)
+    setCustomQtyText(text);
+    const n = parseFloat(text);
+    if (!isNaN(n) && n > 0) onChangeCustomQty?.(n);
   }
 
   const priceDisplay = effectivePricePerKg(item).toLocaleString('en-US', {
     minimumFractionDigits: 4,
     maximumFractionDigits: 4,
-  })
+  });
 
   const totalDisplay = (item.total_usd ?? 0).toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })
+  });
 
   return (
     <View style={styles.container}>
@@ -67,7 +75,8 @@ export default function QuoteItemRow({
       <View style={styles.header}>
         <View style={styles.productInfo}>
           <Text style={styles.productName} numberOfLines={1}>
-            {item.product_code ? `[${item.product_code}] ` : ''}{item.product_name}
+            {item.product_code ? `[${item.product_code}] ` : ''}
+            {item.product_name}
           </Text>
           <Text style={styles.presentationLabel}>
             {item.presentation_label} · {item.unit}
@@ -79,7 +88,11 @@ export default function QuoteItemRow({
           accessibilityRole="button"
           accessibilityLabel="Quitar producto"
         >
-          <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors.textSecondary} />
+          <MaterialCommunityIcons
+            name="trash-can-outline"
+            size={18}
+            color={colors.textSecondary}
+          />
         </Pressable>
       </View>
 
@@ -91,14 +104,18 @@ export default function QuoteItemRow({
         {/* IBC/Granel custom kg input */}
         {isIBC && (
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>{isQuote ? 'kg est.' : 'kg/env.'}</Text>
+            <Text style={styles.inputLabel}>
+              {isQuote ? 'kg est.' : 'kg/env.'}
+            </Text>
             <TextInput
               style={styles.input}
               value={customQtyText}
               onChangeText={handleCustomQtyChange}
               keyboardType="numeric"
               selectTextOnFocus
-              accessibilityLabel={isQuote ? 'Kilogramos estimados' : 'Kilogramos por envase'}
+              accessibilityLabel={
+                isQuote ? 'Kilogramos estimados' : 'Kilogramos por envase'
+              }
             />
           </View>
         )}
@@ -143,7 +160,7 @@ export default function QuoteItemRow({
         )}
       </View>
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -234,4 +251,4 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold as '600',
     color: colors.textPrimary,
   },
-})
+});
