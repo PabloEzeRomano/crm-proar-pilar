@@ -28,3 +28,18 @@ export type CreatePresentationInput = z.infer<typeof createPresentationSchema>
 export type UpdatePresentationInput = z.infer<typeof updatePresentationSchema>
 export type CreateProductInput = z.infer<typeof createProductSchema>
 export type UpdateProductInput = z.infer<typeof updateProductSchema>
+
+export const quoteItemSchema = z.object({
+  product_id: z.string().uuid(),
+  product_name: z.string().min(1),
+  product_code: z.string().nullable(),
+  presentation_id: z.string().uuid(),
+  presentation_label: z.string().min(1),
+  unit: z.string().min(1),
+  presentation_quantity_kg: z.number().positive().nullable(),
+  custom_quantity_kg: z.number().positive().nullable().optional(),
+  quantity: z.number().int().min(0),
+  unit_price_usd: z.number().nonnegative(),
+  margin_pct: z.number().min(0),
+  total_usd: z.number().min(0).nullable(),
+})

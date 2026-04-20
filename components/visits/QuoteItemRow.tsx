@@ -7,14 +7,31 @@ import { QuoteItem } from '@/types'
 
 interface Props {
   item: QuoteItem
+  visitType: 'quote' | 'sale'
   onChangeQuantity: (qty: number) => void
   onChangeMargin: (pct: number) => void
+  onChangeCustomQty?: (kg: number) => void
   onRemove: () => void
 }
 
-export default function QuoteItemRow({ item, onChangeQuantity, onChangeMargin, onRemove }: Props) {
+function effectivePricePerKg(item: QuoteItem): number {
+  return item.unit_price_usd * (1 + item.margin_pct / 100)
+}
+
+export default function QuoteItemRow({
+  item,
+  visitType,
+  onChangeQuantity,
+  onChangeMargin,
+  onChangeCustomQty,
+  onRemove,
+}: Props) {
   const [qtyText, setQtyText] = useState(String(item.quantity))
   const [marginText, setMarginText] = useState(String(item.margin_pct))
+  const [customQtyText, setCustomQtyText] = useState(String(item.custom_quantity_kg ?? ''))
+
+  const isIBC = item.presentation_quantity_kg === null
+  const isQuote = visitType === 'quote'
 
   function handleQtyChange(text: string) {
     setQtyText(text)
@@ -28,8 +45,25 @@ export default function QuoteItemRow({ item, onChangeQuantity, onChangeMargin, o
     if (!isNaN(n) && n >= 0) onChangeMargin(n)
   }
 
+  function handleCustomQtyChange(text: string) {
+    setCustomQtyText(text)
+    const n = parseFloat(text)
+    if (!isNaN(n) && n > 0) onChangeCustomQty?.(n)
+  }
+
+  const priceDisplay = effectivePricePerKg(item).toLocaleString('en-US', {
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4,
+  })
+
+  const totalDisplay = (item.total_usd ?? 0).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+
   return (
     <View style={styles.container}>
+      {/* Header: product name + remove button */}
       <View style={styles.header}>
         <View style={styles.productInfo}>
           <Text style={styles.productName} numberOfLines={1}>
@@ -49,19 +83,42 @@ export default function QuoteItemRow({ item, onChangeQuantity, onChangeMargin, o
         </Pressable>
       </View>
 
-      <View style={styles.inputs}>
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Cant.</Text>
-          <TextInput
-            style={styles.input}
-            value={qtyText}
-            onChangeText={handleQtyChange}
-            keyboardType="numeric"
-            selectTextOnFocus
-            accessibilityLabel="Cantidad"
-          />
-        </View>
+      {/* Price per kg — always shown, read-only */}
+      <Text style={styles.pricePerKg}>${priceDisplay} USD/kg</Text>
 
+      {/* Input row */}
+      <View style={styles.inputs}>
+        {/* IBC/Granel custom kg input */}
+        {isIBC && (
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>{isQuote ? 'kg est.' : 'kg/env.'}</Text>
+            <TextInput
+              style={styles.input}
+              value={customQtyText}
+              onChangeText={handleCustomQtyChange}
+              keyboardType="numeric"
+              selectTextOnFocus
+              accessibilityLabel={isQuote ? 'Kilogramos estimados' : 'Kilogramos por envase'}
+            />
+          </View>
+        )}
+
+        {/* Quantity input — sale mode only */}
+        {!isQuote && (
+          <View style={styles.inputGroup}>
+            <Text style={styles.inputLabel}>Cant.</Text>
+            <TextInput
+              style={styles.input}
+              value={qtyText}
+              onChangeText={handleQtyChange}
+              keyboardType="numeric"
+              selectTextOnFocus
+              accessibilityLabel="Cantidad"
+            />
+          </View>
+        )}
+
+        {/* Margin input — always shown */}
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Margen</Text>
           <View style={styles.marginWrapper}>
@@ -77,15 +134,13 @@ export default function QuoteItemRow({ item, onChangeQuantity, onChangeMargin, o
           </View>
         </View>
 
-        <View style={styles.totalGroup}>
-          <Text style={styles.inputLabel}>Total</Text>
-          <Text style={styles.totalValue}>
-            ${item.total_usd.toLocaleString('en-US', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })} USD
-          </Text>
-        </View>
+        {/* Total — sale mode only */}
+        {!isQuote && (
+          <View style={styles.totalGroup}>
+            <Text style={styles.inputLabel}>Total</Text>
+            <Text style={styles.totalValue}>${totalDisplay} USD</Text>
+          </View>
+        )}
       </View>
     </View>
   )
@@ -116,6 +171,10 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   presentationLabel: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+  },
+  pricePerKg: {
     fontSize: fontSize.xs,
     color: colors.textSecondary,
   },

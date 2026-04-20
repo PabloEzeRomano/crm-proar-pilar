@@ -273,34 +273,66 @@ export default function VisitDetailView() {
           <View style={styles.divider} />
           <View style={styles.section}>
             <SectionLabel title="Productos" />
-            {visit.items.map((item, index) => (
-              <View key={index} style={styles.itemRow}>
-                <View style={styles.itemLeft}>
-                  <Text style={styles.itemName}>
-                    {item.product_code ? `[${item.product_code}] ` : ''}{item.product_name}
-                  </Text>
-                  <Text style={styles.itemSub}>
-                    {item.presentation_label} · {item.quantity} {item.unit}
-                    {item.margin_pct > 0 ? ` · +${item.margin_pct}%` : ''}
+            {visit.type === 'quote' ? (
+              // Quote: price/kg per item, no total
+              visit.items.map((item, index) => (
+                <View key={index} style={styles.itemRow}>
+                  <View style={styles.itemLeft}>
+                    <Text style={styles.itemName}>
+                      {item.product_code ? `[${item.product_code}] ` : ''}{item.product_name}
+                    </Text>
+                    <Text style={styles.itemSub}>
+                      {item.presentation_label}
+                      {item.custom_quantity_kg ? ` · ~${item.custom_quantity_kg} ${item.unit}` : ''}
+                    </Text>
+                  </View>
+                  <Text style={styles.itemPricePerKg}>
+                    ${(item.unit_price_usd * (1 + item.margin_pct / 100)).toLocaleString('en-US', {
+                      minimumFractionDigits: 4,
+                      maximumFractionDigits: 4,
+                    })} USD/{item.unit}
                   </Text>
                 </View>
-                <Text style={styles.itemTotal}>
-                  ${item.total_usd.toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })} USD
-                </Text>
-              </View>
-            ))}
-            <View style={styles.itemsTotalRow}>
-              <Text style={styles.itemsTotalLabel}>Total</Text>
-              <Text style={styles.itemsTotalAmount}>
-                ${visit.amount?.toLocaleString('en-US', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })} USD
-              </Text>
-            </View>
+              ))
+            ) : (
+              // Sale: qty + price/kg + total
+              <>
+                {visit.items.map((item, index) => (
+                  <View key={index} style={styles.itemRow}>
+                    <View style={styles.itemLeft}>
+                      <Text style={styles.itemName}>
+                        {item.product_code ? `[${item.product_code}] ` : ''}{item.product_name}
+                      </Text>
+                      <Text style={styles.itemSub}>
+                        {item.presentation_label} · {item.quantity} envase{item.quantity !== 1 ? 's' : ''}
+                        {item.margin_pct > 0 ? ` · +${item.margin_pct}%` : ''}
+                      </Text>
+                      <Text style={styles.itemSub}>
+                        ${item.unit_price_usd.toLocaleString('en-US', {
+                          minimumFractionDigits: 4,
+                          maximumFractionDigits: 4,
+                        })} USD/{item.unit}
+                      </Text>
+                    </View>
+                    <Text style={styles.itemTotal}>
+                      ${(item.total_usd ?? 0).toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })} USD
+                    </Text>
+                  </View>
+                ))}
+                <View style={styles.itemsTotalRow}>
+                  <Text style={styles.itemsTotalLabel}>Total</Text>
+                  <Text style={styles.itemsTotalAmount}>
+                    ${visit.amount?.toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })} USD
+                  </Text>
+                </View>
+              </>
+            )}
           </View>
         </>
       ) : null}
@@ -642,6 +674,12 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semibold as '600',
     color: colors.textPrimary,
+  },
+  itemPricePerKg: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textPrimary,
+    textAlign: 'right',
   },
   itemsTotalRow: {
     flexDirection: 'row',

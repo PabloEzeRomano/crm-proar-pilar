@@ -53,10 +53,12 @@ interface QuoteItem {
   presentation_id: string
   presentation_label: string
   unit: string
+  presentation_quantity_kg: number | null
+  custom_quantity_kg?: number | null
   quantity: number
   unit_price_usd: number
   margin_pct: number
-  total_usd: number
+  total_usd: number | null
 }
 
 interface Visit {
@@ -128,12 +130,51 @@ function generateQuoteHtml(opts: {
   dateLabel: string
   items: QuoteItem[]
   total: number
+  visitType: string
 }): string {
-  const { clientName, recipientName, senderName, dateLabel, items, total } = opts
+  const { clientName, recipientName, senderName, dateLabel, items, total, visitType } = opts
 
   const greeting = recipientName ? `Estimado/a ${escapeHtml(recipientName)}` : 'Estimado/a cliente'
 
-  const itemRows = items.map((item) => `
+  let tableHead: string
+  let itemRows: string
+  let tableFoot: string
+
+  if (visitType === 'quote') {
+    tableHead = `
+                  <tr style="background:#F3F4F6;">
+                    <th style="padding:8px 12px;text-align:left;font-size:12px;color:#6B7280;font-weight:600;">PRODUCTO</th>
+                    <th style="padding:8px 12px;text-align:right;font-size:12px;color:#6B7280;font-weight:600;">PRECIO / KG</th>
+                  </tr>`
+
+    itemRows = items.map((item) => {
+      const code_span = item.product_code ? `<span style="color:#6B7280;font-size:12px;">[${escapeHtml(item.product_code)}]</span> ` : ''
+      const custom_qty_note = item.custom_quantity_kg ? ` · ~${item.custom_quantity_kg} ${escapeHtml(item.unit)}` : ''
+      const effectivePrice = (item.unit_price_usd * (1 + item.margin_pct / 100)).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
+      return `
+    <tr style="border-bottom:1px solid #E5E7EB;">
+      <td style="padding:10px 12px;font-size:14px;color:#111827;">
+        ${code_span}${escapeHtml(item.product_name)}
+        <div style="font-size:12px;color:#6B7280;margin-top:2px;">${escapeHtml(item.presentation_label)}${custom_qty_note}</div>
+      </td>
+      <td style="padding:10px 12px;text-align:right;font-size:14px;font-weight:600;color:#1D4ED8;">
+        $${effectivePrice} USD/${escapeHtml(item.unit)}
+      </td>
+    </tr>`
+    }).join('')
+
+    tableFoot = ''
+  } else {
+    tableHead = `
+                  <tr style="background:#F3F4F6;">
+                    <th style="padding:8px 12px;text-align:left;font-size:12px;color:#6B7280;font-weight:600;">PRODUCTO</th>
+                    <th style="padding:8px 12px;text-align:center;font-size:12px;color:#6B7280;font-weight:600;">PRESENTACIÓN</th>
+                    <th style="padding:8px 12px;text-align:center;font-size:12px;color:#6B7280;font-weight:600;">CANT.</th>
+                    <th style="padding:8px 12px;text-align:right;font-size:12px;color:#6B7280;font-weight:600;">PRECIO UNIT.</th>
+                    <th style="padding:8px 12px;text-align:right;font-size:12px;color:#6B7280;font-weight:600;">TOTAL</th>
+                  </tr>`
+
+    itemRows = items.map((item) => `
     <tr style="border-bottom:1px solid #E5E7EB;">
       <td style="padding:10px 12px;font-size:14px;color:#111827;">
         ${item.product_code ? `<span style="color:#6B7280;font-size:12px;">[${escapeHtml(item.product_code)}]</span> ` : ''}${escapeHtml(item.product_name)}
@@ -142,8 +183,17 @@ function generateQuoteHtml(opts: {
       <td style="padding:10px 12px;text-align:center;font-size:14px;color:#374151;">${escapeHtml(item.unit)}</td>
       <td style="padding:10px 12px;text-align:center;font-size:14px;color:#374151;">${item.quantity}</td>
       <td style="padding:10px 12px;text-align:right;font-size:14px;color:#374151;">$${formatAmount(item.unit_price_usd)}</td>
-      <td style="padding:10px 12px;text-align:right;font-size:14px;font-weight:600;color:#1D4ED8;">$${formatAmount(item.total_usd)}</td>
+      <td style="padding:10px 12px;text-align:right;font-size:14px;font-weight:600;color:#1D4ED8;">$${formatAmount(item.total_usd ?? 0)}</td>
     </tr>`).join('')
+
+    tableFoot = `
+                <tfoot>
+                  <tr style="border-top:2px solid #E5E7EB;">
+                    <td colspan="4" style="padding:12px;font-weight:700;text-align:right;font-size:15px;color:#111827;">TOTAL</td>
+                    <td style="padding:12px;font-weight:700;text-align:right;font-size:15px;color:#1D4ED8;">$${formatAmount(total)} USD</td>
+                  </tr>
+                </tfoot>`
+  }
 
   const footerSender = senderName ? `<p style="margin:4px 0 0;font-size:13px;color:#374151;">${escapeHtml(senderName)}</p>` : ''
 
@@ -182,23 +232,12 @@ function generateQuoteHtml(opts: {
             <td style="background:#FFFFFF;padding:8px 32px 0;">
               <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:16px;">
                 <thead>
-                  <tr style="background:#F3F4F6;">
-                    <th style="padding:8px 12px;text-align:left;font-size:12px;color:#6B7280;font-weight:600;">PRODUCTO</th>
-                    <th style="padding:8px 12px;text-align:center;font-size:12px;color:#6B7280;font-weight:600;">PRESENTACIÓN</th>
-                    <th style="padding:8px 12px;text-align:center;font-size:12px;color:#6B7280;font-weight:600;">CANT.</th>
-                    <th style="padding:8px 12px;text-align:right;font-size:12px;color:#6B7280;font-weight:600;">PRECIO UNIT.</th>
-                    <th style="padding:8px 12px;text-align:right;font-size:12px;color:#6B7280;font-weight:600;">TOTAL</th>
-                  </tr>
+                  ${tableHead}
                 </thead>
                 <tbody>
                   ${itemRows}
                 </tbody>
-                <tfoot>
-                  <tr style="border-top:2px solid #E5E7EB;">
-                    <td colspan="4" style="padding:12px;font-weight:700;text-align:right;font-size:15px;color:#111827;">TOTAL</td>
-                    <td style="padding:12px;font-weight:700;text-align:right;font-size:15px;color:#1D4ED8;">$${formatAmount(total)} USD</td>
-                  </tr>
-                </tfoot>
+                ${tableFoot}
               </table>
             </td>
           </tr>
@@ -335,8 +374,8 @@ Deno.serve(async (req) => {
 
     // ── 5. Validate: must be a quote, caller must own it or be admin/root ───
 
-    if (visit.type !== 'quote') {
-      return jsonResponse({ error: 'Visit is not a quote' }, 400)
+    if (visit.type !== 'quote' && visit.type !== 'sale') {
+      return jsonResponse({ error: 'Visit is not a quote or sale' }, 400)
     }
 
     const isOwner = visit.owner_user_id === callerUser.id
@@ -349,7 +388,7 @@ Deno.serve(async (req) => {
     // ── 6. Build and send email ─────────────────────────────────────────────
 
     const items = visit.items ?? []
-    const total = visit.amount ?? items.reduce((s, i) => s + i.total_usd, 0)
+    const total = visit.amount ?? items.reduce((s, i) => s + (i.total_usd ?? 0), 0)
 
     const clientName = visit.client.name
     const dateLabel = formatDate(visit.scheduled_at)
@@ -367,6 +406,7 @@ Deno.serve(async (req) => {
       dateLabel,
       items,
       total,
+      visitType: visit.type,
     })
 
     await sendEmail({

@@ -259,10 +259,14 @@ export default function VisitFormScreen() {
             presentation_id: presentation.id,
             presentation_label: presentation.label,
             unit: presentation.unit,
+            presentation_quantity_kg: presentation.quantity,
+            custom_quantity_kg: null,
             quantity: 1,
             unit_price_usd: presentation.price_usd,
             margin_pct: 0,
-            total_usd: presentation.price_usd,
+            total_usd: visitType === 'sale'
+              ? 1 * (presentation.quantity ?? 0) * presentation.price_usd
+              : null,
           })
         }
 
@@ -326,7 +330,7 @@ export default function VisitFormScreen() {
   // -------------------------------------------------------------------------
 
   function computeTotal(quoteItems: QuoteItem[]): number {
-    return quoteItems.reduce((sum, item) => sum + item.total_usd, 0)
+    return quoteItems.reduce((sum, item) => sum + (item.total_usd ?? 0), 0)
   }
 
   function updateItem(index: number, changes: Partial<QuoteItem>) {
@@ -334,7 +338,12 @@ export default function VisitFormScreen() {
       prev.map((item, i) => {
         if (i !== index) return item
         const updated = { ...item, ...changes }
-        updated.total_usd = updated.quantity * updated.unit_price_usd * (1 + updated.margin_pct / 100)
+        if (visitType === 'sale') {
+          const pkgKg = updated.presentation_quantity_kg ?? updated.custom_quantity_kg ?? 0
+          updated.total_usd = updated.quantity * pkgKg * updated.unit_price_usd * (1 + updated.margin_pct / 100)
+        } else {
+          updated.total_usd = null
+        }
         return updated
       }),
     )
@@ -363,10 +372,14 @@ export default function VisitFormScreen() {
         presentation_id: presentation.id,
         presentation_label: presentation.label,
         unit: presentation.unit,
+        presentation_quantity_kg: presentation.quantity,
+        custom_quantity_kg: null,
         quantity: 1,
         unit_price_usd: presentation.price_usd,
         margin_pct: 0,
-        total_usd: presentation.price_usd,
+        total_usd: visitType === 'sale'
+          ? 1 * (presentation.quantity ?? 0) * presentation.price_usd
+          : null,
       },
     ])
     setShowProductPicker(false)
@@ -380,7 +393,7 @@ export default function VisitFormScreen() {
     setSaving(true)
     const isoString = combineDateAndTime(selectedDate, selectedTime)
     const isQuoteOrSale = visitType === 'quote' || visitType === 'sale'
-    const computedAmount = isQuoteOrSale && items.length > 0 ? computeTotal(items) : null
+    const computedAmount = visitType === 'sale' && items.length > 0 ? computeTotal(items) : null
     const itemsPayload = isQuoteOrSale && items.length > 0 ? items : null
 
     if (isEditMode && visitId) {
@@ -698,8 +711,10 @@ export default function VisitFormScreen() {
             <QuoteItemRow
               key={`${item.presentation_id}-${index}`}
               item={item}
+              visitType={visitType as 'quote' | 'sale'}
               onChangeQuantity={(qty) => updateItem(index, { quantity: qty })}
               onChangeMargin={(pct) => updateItem(index, { margin_pct: pct })}
+              onChangeCustomQty={(kg) => updateItem(index, { custom_quantity_kg: kg })}
               onRemove={() => removeItem(index)}
             />
           ))}
@@ -719,7 +734,7 @@ export default function VisitFormScreen() {
             <Text style={styles.addProductButtonText}>Agregar producto</Text>
           </Pressable>
 
-          {items.length > 0 && (
+          {visitType === 'sale' && items.length > 0 && (
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Total</Text>
               <Text style={styles.totalAmount}>

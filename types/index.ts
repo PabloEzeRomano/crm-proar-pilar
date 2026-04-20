@@ -136,10 +136,17 @@ export interface QuoteItem {
   presentation_id: string
   presentation_label: string
   unit: string
+  // kg or L per package — null for IBC/Granel (variable)
+  presentation_quantity_kg: number | null
+  // manually entered kg/L when presentation_quantity_kg is null
+  custom_quantity_kg?: number | null
+  // number of packages — only used for sale type
   quantity: number
+  // price per kg or per L (from product_presentations.price_usd)
   unit_price_usd: number
   margin_pct: number
-  total_usd: number
+  // quote: null (no total shown). sale: quantity × pkg_kg × price × (1+margin/100)
+  total_usd: number | null
 }
 
 // ---------------------------------------------------------------------------
