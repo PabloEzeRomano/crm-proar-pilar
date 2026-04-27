@@ -932,6 +932,11 @@
     "@eslint/core" "^1.2.1"
     levn "^0.4.1"
 
+"@expo-google-fonts/dm-sans@^0.4.2":
+  version "0.4.2"
+  resolved "https://registry.yarnpkg.com/@expo-google-fonts/dm-sans/-/dm-sans-0.4.2.tgz#76b73ba806c24f5b4188127485162603fb67de62"
+  integrity sha512-e/fLH5aCJzkEenz7axvEn8N7IJAKhUwNjIxS75h9j+Ip1M9S7d22M19gJN3A7QW4egVkBJRyQh1hQFhngQn9yA==
+
 "@expo-google-fonts/material-symbols@^0.4.1":
   version "0.4.25"
   resolved "https://registry.yarnpkg.com/@expo-google-fonts/material-symbols/-/material-symbols-0.4.25.tgz#076149c62aeefdb10542e770d27e0e74752a835a"
@@ -3499,6 +3504,13 @@ expo-file-system@~55.0.10:
   version "55.0.10"
   resolved "https://registry.yarnpkg.com/expo-file-system/-/expo-file-system-55.0.10.tgz#fae0a424f404a456522193346cf07e9e51e2df26"
   integrity sha512-ysFdVdUgtfj2ApY0Cn+pBg+yK4xp+SNwcaH8j2B91JJQ4OXJmnyCSmrNZYz7J4mdYVuv2GzxIP+N/IGlHQG3Yw==
+
+expo-font@^55.0.6:
+  version "55.0.6"
+  resolved "https://registry.yarnpkg.com/expo-font/-/expo-font-55.0.6.tgz#f6ef6c7a9d2ff70bd7c22fc2b01f7db0bdbbeefc"
+  integrity sha512-x9czUA3UQWjIwa0ZUEs/eWJNqB4mAue/m4ltESlNPLZhHL0nWWqIfsyHmklTLFH7mVfcHSJvew6k+pR2FE1zVw==
+  dependencies:
+    fontfaceobserver "^2.1.0"
 
 expo-font@~55.0.4:
   version "55.0.4"

@@ -221,11 +221,17 @@ function ClientsScreenContent() {
 
     return (
       <Pressable
-        style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+        style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
         onPress={() => handleRowPress(item)}
         accessibilityRole="button"
         accessibilityLabel={`Ver cliente ${item.name}`}
       >
+        <View style={styles.avatar}>
+          <Text style={styles.avatarLetter}>
+            {item.name.charAt(0).toUpperCase()}
+          </Text>
+        </View>
+
         <View style={styles.rowContent}>
           <Text style={styles.rowTitle} numberOfLines={1}>
             {item.name}
@@ -237,11 +243,7 @@ function ClientsScreenContent() {
           ) : null}
 
           <View style={styles.badgeRow}>
-            <MaterialCommunityIcons
-              name="calendar-clock"
-              size={12}
-              color={badgeColor}
-            />
+            <View style={[styles.badgeDot, { backgroundColor: badgeColor }]} />
             <Text style={[styles.badgeText, { color: badgeColor }]}>
               {badgeLabel}
             </Text>
@@ -264,7 +266,7 @@ function ClientsScreenContent() {
   function renderInactiveItem({ item }: { item: Client }) {
     const subtitle = [item.industry, item.city].filter(Boolean).join(' · ');
     return (
-      <View style={styles.inactiveRow}>
+      <View style={styles.inactiveCard}>
         <View style={styles.rowContent}>
           <View style={styles.inactiveRowHeader}>
             <Text style={styles.inactiveRowTitle} numberOfLines={1}>
@@ -555,26 +557,26 @@ function ClientsScreenContent() {
           data={inactiveClients}
           keyExtractor={(item) => item.id}
           renderItem={renderInactiveItem}
-          ItemSeparatorComponent={() => <View style={styles.divider} />}
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No hay clientes inactivos</Text>
             </View>
           )}
-          contentContainerStyle={
-            inactiveClients.length === 0 ? styles.listEmptyContent : undefined
-          }
+          contentContainerStyle={[
+            styles.listContent,
+            inactiveClients.length === 0 && styles.listEmptyContent,
+          ]}
         />
       ) : (
         <FlatList
           data={clients}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          ItemSeparatorComponent={() => <View style={styles.divider} />}
           ListEmptyComponent={renderEmpty}
-          contentContainerStyle={
-            clients.length === 0 ? styles.listEmptyContent : undefined
-          }
+          contentContainerStyle={[
+            styles.listContent,
+            clients.length === 0 && styles.listEmptyContent,
+          ]}
         />
       )}
 
@@ -1017,16 +1019,43 @@ const styles = StyleSheet.create({
 
   // ── List rows ──────────────────────────────────────────────────────────────
 
-  row: {
+  listContent: {
+    paddingTop: spacing[2],
+    paddingBottom: spacing[8],
+  },
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 64,
-    paddingHorizontal: spacing[4],
+    paddingHorizontal: spacing[3],
     paddingVertical: spacing[3],
     backgroundColor: colors.background,
+    borderRadius: 18,
+    marginHorizontal: spacing[4],
+    marginBottom: spacing[2],
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.07,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  rowPressed: {
+  cardPressed: {
     backgroundColor: colors.surface,
+  },
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    marginRight: spacing[3],
+  },
+  avatarLetter: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold as '700',
+    color: colors.primary,
   },
   rowContent: {
     flex: 1,
@@ -1055,14 +1084,15 @@ const styles = StyleSheet.create({
     gap: spacing[1],
     marginTop: spacing[1],
   },
+  badgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    flexShrink: 0,
+  },
   badgeText: {
     fontSize: fontSize.xs,
     fontWeight: fontWeight.medium as '500',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginLeft: spacing[4],
   },
 
   // ── States ─────────────────────────────────────────────────────────────────
@@ -1236,13 +1266,21 @@ const styles = StyleSheet.create({
 
   // ── Inactive clients ───────────────────────────────────────────────────────
 
-  inactiveRow: {
+  inactiveCard: {
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 64,
-    paddingHorizontal: spacing[4],
+    paddingHorizontal: spacing[3],
     paddingVertical: spacing[3],
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
+    borderRadius: 18,
+    marginHorizontal: spacing[4],
+    marginBottom: spacing[2],
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
     opacity: 0.75,
   },
   inactiveRowHeader: {

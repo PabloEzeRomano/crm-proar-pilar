@@ -221,6 +221,15 @@ function TodayScreenContent() {
     return ` · ${dayjs(lastFetched).format('HH:mm')}`;
   }, [lastFetched]);
 
+  // ── Progress card ────────────────────────────────────────────────────────
+  const completedCount = useMemo(
+    () => visits.filter((v) => v.status === 'completed').length,
+    [visits]
+  );
+  const totalCount = visits.length;
+  const progressPct =
+    totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
   // ── Helpers ─────────────────────────────────────────────────────────────
 
   function handleVisitPress(visit: VisitWithClient) {
@@ -442,6 +451,28 @@ function TodayScreenContent() {
           </View>
         </TourStep>
 
+        {/* ── Daily progress card ── */}
+        {totalCount > 0 && (
+          <View style={styles.progressCardWrapper}>
+            <View style={styles.progressCard}>
+              <View style={styles.progressCardLeft}>
+                <Text style={styles.progressCardLabel}>
+                  {completedCount} de {totalCount} visitas completadas
+                </Text>
+                <View style={styles.progressTrack}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      { width: `${progressPct}%` },
+                    ]}
+                  />
+                </View>
+              </View>
+              <Text style={styles.progressPct}>{progressPct}%</Text>
+            </View>
+          </View>
+        )}
+
         {/* ── Tour step 2: Next appointment card ── */}
         <TourStep
           order={2}
@@ -652,6 +683,49 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
 
+  // ── Daily progress card ───────────────────────────────────────────────────
+  progressCardWrapper: {
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[3],
+  },
+  progressCard: {
+    backgroundColor: colors.background,
+    borderRadius: 14,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[4],
+    ...shadows.subtle,
+  },
+  progressCardLeft: {
+    flex: 1,
+    gap: spacing[2],
+  },
+  progressCardLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+    color: colors.textSecondary,
+  },
+  progressTrack: {
+    height: 6,
+    backgroundColor: colors.border,
+    borderRadius: borderRadius.full,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: 6,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.full,
+  },
+  progressPct: {
+    fontSize: fontSize['2xl'],
+    fontWeight: fontWeight.bold as '700',
+    color: colors.textPrimary,
+    minWidth: 52,
+    textAlign: 'right',
+  },
+
   // ── Next appointment card — stories 6.5 + 6.6 ────────────────────────────
   nextCard: {
     backgroundColor: colors.surface,
@@ -718,7 +792,7 @@ const styles = StyleSheet.create({
 
   // ── Visit list — story 6.4 ────────────────────────────────────────────────
   visitList: {
-    gap: spacing[2],
+    marginHorizontal: -spacing[4],
   },
 
   // ── Empty state ───────────────────────────────────────────────────────────

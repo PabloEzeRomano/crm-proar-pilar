@@ -36,7 +36,7 @@ export const colors = {
   primaryLight: brand.primaryColorLight,
 
   // Backgrounds
-  background: '#F9FAFB', // page background
+  background: '#F7F8FA', // page background
   surface: '#FFFFFF', // card / sheet surface
 
   // Borders
@@ -44,8 +44,8 @@ export const colors = {
   borderStrong: '#9CA3AF',
 
   // Text
-  textPrimary: '#111827',
-  textSecondary: '#6B7280',
+  textPrimary: '#0F172A',
+  textSecondary: '#64748B',
   textDisabled: '#D1D5DB',
   textOnPrimary: '#FFFFFF', // text placed on top of primary color
 
@@ -107,6 +107,13 @@ export const fontWeight = {
   bold: '700',
 } as const;
 
+export const fontFamily = {
+  regular: 'DMSans_400Regular',
+  medium: 'DMSans_500Medium',
+  semibold: 'DMSans_600SemiBold',
+  bold: 'DMSans_700Bold',
+} as const;
+
 export const lineHeight = {
   tight: 1.25, // headings
   normal: 1.5, // body copy
@@ -116,6 +123,7 @@ export const lineHeight = {
 export const typography = {
   fontSize,
   fontWeight,
+  fontFamily,
   lineHeight,
 } as const;
 
@@ -148,6 +156,7 @@ export const borderRadius = {
   md: 8,
   lg: 12,
   xl: 16,
+  xl2: 18,
   full: 9999,
 } as const;
 
@@ -187,6 +196,7 @@ export const theme = {
   typography,
   fontSize,
   fontWeight,
+  fontFamily,
   lineHeight,
   spacing,
   borderRadius,

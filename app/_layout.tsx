@@ -17,6 +17,13 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import { useFonts } from 'expo-font';
+import {
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_600SemiBold,
+  DMSans_700Bold,
+} from '@expo-google-fonts/dm-sans';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
@@ -340,6 +347,13 @@ function useNotificationResponseListener(): void {
 // ---------------------------------------------------------------------------
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    DMSans_400Regular,
+    DMSans_500Medium,
+    DMSans_600SemiBold,
+    DMSans_700Bold,
+  });
+
   const initialize = useAuthStore((s) => s.initialize);
   const loading = useAuthStore((s) => s.loading);
   const userId = useAuthStore((s) => s.session?.user?.id ?? null);
@@ -406,7 +420,7 @@ export default function RootLayout() {
   // Set up notification response listener (navigate on tap)
   useNotificationResponseListener();
 
-  if (loading) {
+  if (loading || !fontsLoaded) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />

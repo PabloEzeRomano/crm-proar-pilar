@@ -46,6 +46,13 @@ const VISIT_STATUS_OPTIONS: { value: VisitStatus; label: string }[] = [
   { value: 'canceled', label: 'Cancelada' },
 ];
 
+const STATUS_PILLS: { label: string; value: VisitStatus | null; bg: string }[] = [
+  { label: 'Todas',      value: null,        bg: colors.primary },
+  { label: 'Pendiente',  value: 'pending',   bg: colors.statusPending },
+  { label: 'Completada', value: 'completed', bg: colors.statusCompleted },
+  { label: 'Cancelada',  value: 'canceled',  bg: colors.statusCanceled },
+];
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -288,6 +295,40 @@ export default function VisitsIndexScreen() {
         </TourStep>
       </View>
 
+      {/* ── Status quick-filter pills ── */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.pillsScroll}
+        style={styles.pillsBar}
+      >
+        {STATUS_PILLS.map((pill) => {
+          const isActive =
+            pill.value === null
+              ? selectedStatuses.length === 0
+              : selectedStatuses.length === 1 && selectedStatuses[0] === pill.value;
+          return (
+            <Pressable
+              key={pill.label}
+              style={[styles.pill, isActive ? { backgroundColor: pill.bg, borderColor: pill.bg } : styles.pillInactive]}
+              onPress={() => {
+                if (pill.value === null) {
+                  setSelectedStatuses([]);
+                } else {
+                  setSelectedStatuses(isActive ? [] : [pill.value]);
+                }
+              }}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isActive }}
+            >
+              <Text style={[styles.pillText, isActive ? styles.pillTextActive : styles.pillTextInactive]}>
+                {pill.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
       {/* ── Active filter chips ── */}
       {activeFilterCount > 0 && (
         <View style={styles.activeFiltersBar}>
@@ -412,7 +453,6 @@ export default function VisitsIndexScreen() {
           data={visits}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          ItemSeparatorComponent={renderSeparator}
           ListEmptyComponent={renderEmpty}
           contentContainerStyle={[
             styles.listContent,
@@ -886,6 +926,42 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
 
+  // ── Status quick-filter pills ─────────────────────────────────────────────
+
+  pillsBar: {
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  pillsScroll: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    gap: spacing[2],
+    alignItems: 'center',
+  },
+  pill: {
+    height: 30,
+    borderRadius: 99,
+    borderWidth: 1.5,
+    paddingHorizontal: spacing[3],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pillInactive: {
+    borderColor: colors.border,
+    backgroundColor: 'transparent',
+  },
+  pillText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
+  },
+  pillTextActive: {
+    color: colors.textOnPrimary,
+  },
+  pillTextInactive: {
+    color: colors.textSecondary,
+  },
+
   // ── Active filter chips ────────────────────────────────────────────────────
 
   activeFiltersBar: {
@@ -931,7 +1007,6 @@ const styles = StyleSheet.create({
     height: spacing[2],
   },
   listContent: {
-    paddingHorizontal: spacing[4],
     paddingTop: spacing[3],
     paddingBottom: spacing[8],
   },

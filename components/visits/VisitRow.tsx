@@ -16,8 +16,8 @@ import {
   colors,
   fontSize,
   fontWeight,
-  shadows,
   spacing,
+  visitTypeColors,
 } from '@/constants/theme';
 import { StatusTypeBadge } from '@/components/ui/StatusTypeBadge';
 import { VisitWithClient } from '@/types';
@@ -68,7 +68,7 @@ export function VisitRow({
       style={({ pressed }) => [
         styles.card,
         pressed && styles.cardPressed,
-        { opacity: rowOpacity },
+        { opacity: rowOpacity, borderLeftColor: visitTypeColors[visit.type] },
         isWeb && (webStyle as object),
       ]}
       onPress={onPress}
@@ -138,12 +138,19 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    padding: spacing[2],
+    backgroundColor: colors.background,
+    borderRadius: 18,
+    padding: spacing[3],
     gap: spacing[3],
-    ...shadows.subtle,
+    marginHorizontal: spacing[4],
+    marginBottom: spacing[2],
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.07,
+    shadowRadius: 4,
+    elevation: 2,
     minHeight: 56,
+    borderLeftWidth: 4,
   },
   cardPressed: {
     backgroundColor: colors.background,

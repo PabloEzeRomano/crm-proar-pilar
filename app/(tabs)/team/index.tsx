@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
 
   // Visit list
   visitList: {
-    gap: spacing[2],
+    marginHorizontal: -spacing[4],
   },
   emptyVisitsContainer: {
     paddingVertical: spacing[8],

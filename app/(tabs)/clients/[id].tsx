@@ -943,7 +943,7 @@ const styles = StyleSheet.create({
 
   // Visit history
   visitList: {
-    gap: spacing[2],
+    marginHorizontal: -spacing[4],
   },
   newVisitButton: {
     height: 48,
