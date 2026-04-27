@@ -464,22 +464,25 @@ Deno.serve(async (req) => {
           }
         );
       }
-      const { data: callerProfile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', callerUser.id)
-        .single<{ role: string }>();
-      if (callerProfile?.role !== 'admin' && callerProfile?.role !== 'root') {
-        return new Response(
-          JSON.stringify({
-            ok: false,
-            error: 'admin or root role required to target a specific user',
-          }),
-          {
-            status: 403,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
+      // Same user targeting themselves — always allowed
+      if (callerUser.id !== bodyUserId) {
+        const { data: callerProfile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', callerUser.id)
+          .single<{ role: string }>();
+        if (callerProfile?.role !== 'admin' && callerProfile?.role !== 'root') {
+          return new Response(
+            JSON.stringify({
+              ok: false,
+              error: 'admin or root role required to target another user',
+            }),
+            {
+              status: 403,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
+        }
       }
     }
 
