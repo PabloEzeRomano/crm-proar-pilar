@@ -40,30 +40,30 @@ export const colors = {
   surface: '#FFFFFF', // card / sheet surface
 
   // Borders
-  border: '#E5E7EB',
+  border: '#E2E8F0',
   borderStrong: '#9CA3AF',
 
   // Text
   textPrimary: '#0F172A',
   textSecondary: '#64748B',
-  textDisabled: '#D1D5DB',
+  textDisabled: '#CBD5E1',
   textOnPrimary: '#FFFFFF', // text placed on top of primary color
 
   // Semantic
   success: '#16A34A',
   successLight: '#DCFCE7',
-  warning: '#D97706',
+  warning: '#F59E0B',
   warningLight: '#FEF3C7',
   error: '#DC2626',
   errorLight: '#FEE2E2',
 
   // Visit status
-  statusPending: '#D97706', // same hue as warning
+  statusPending: '#F59E0B', // same hue as warning
   statusPendingLight: '#FEF3C7',
   statusCompleted: '#16A34A', // same hue as success
   statusCompletedLight: '#DCFCE7',
-  statusCanceled: '#DC2626', // red — same as colors.error
-  statusCanceledLight: '#FEE2E2', // same as colors.errorLight
+  statusCanceled: '#94A3B8',
+  statusCanceledLight: '#F1F5F9',
 
   // Utility
   white: '#FFFFFF',
@@ -173,7 +173,7 @@ export const shadows = {
   subtle: {
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.06,
     shadowRadius: 3,
     elevation: 2, // Android
   },

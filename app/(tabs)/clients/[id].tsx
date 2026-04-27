@@ -418,7 +418,6 @@ export default function ClientDetailScreen() {
           ) : null}
         </View>
 
-        <View style={styles.divider} />
 
         {/* ── Sección: Contacto ────────────────────────────────────────── */}
         <View style={styles.section}>
@@ -465,7 +464,6 @@ export default function ClientDetailScreen() {
           )}
         </View>
 
-        <View style={styles.divider} />
 
         {/* ── Sección: Ubicación ───────────────────────────────────────── */}
         <View style={styles.section}>
@@ -492,7 +490,6 @@ export default function ClientDetailScreen() {
           ) : null}
         </View>
 
-        <View style={styles.divider} />
 
         {/* ── Sección: Notas ───────────────────────────────────────────── */}
         <View style={styles.section}>
@@ -504,7 +501,6 @@ export default function ClientDetailScreen() {
           )}
         </View>
 
-        <View style={styles.divider} />
 
         {/* ── Sección: Productos habituales ───────────────────────────── */}
         <View style={styles.section}>
@@ -563,7 +559,6 @@ export default function ClientDetailScreen() {
           )}
         </View>
 
-        <View style={styles.divider} />
 
         {/* ── Sección: Historial de visitas ────────────────────────────── */}
         <View style={styles.section}>
@@ -629,22 +624,19 @@ export default function ClientDetailScreen() {
 
         {/* ── Archivar cliente — owner only ────────────────────────────────── */}
         {isOwner && (
-          <>
-            <View style={styles.divider} />
-            <View style={styles.section}>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.archiveButton,
-                  pressed && styles.archiveButtonPressed,
-                ]}
-                onPress={handleArchiveClient}
-                accessibilityRole="button"
-                accessibilityLabel="Archivar cliente"
-              >
-                <Text style={styles.archiveButtonText}>Archivar cliente</Text>
-              </Pressable>
-            </View>
-          </>
+          <View style={styles.section}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.archiveButton,
+                pressed && styles.archiveButtonPressed,
+              ]}
+              onPress={handleArchiveClient}
+              accessibilityRole="button"
+              accessibilityLabel="Archivar cliente"
+            >
+              <Text style={styles.archiveButtonText}>Archivar cliente</Text>
+            </Pressable>
+          </View>
         )}
       </ScrollView>
 
@@ -865,6 +857,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   scrollContent: {
+    paddingTop: spacing[3],
     paddingBottom: spacing[8],
   },
 
@@ -898,13 +891,23 @@ const styles = StyleSheet.create({
     padding: spacing[4],
     gap: spacing[3],
     backgroundColor: colors.surface,
+    borderRadius: 14,
+    marginHorizontal: spacing[4],
+    marginBottom: spacing[3],
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   sectionHeader: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontSize: 11,
+    fontWeight: fontWeight.bold as '700',
     color: colors.textSecondary,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   divider: {
     height: 1,
@@ -1002,6 +1005,7 @@ const styles = StyleSheet.create({
   // Visit history
   visitList: {
     marginHorizontal: -spacing[4],
+    marginBottom: -spacing[4],
   },
   newVisitButton: {
     height: 48,
@@ -1255,10 +1259,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing[3],
     paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
+    paddingVertical: spacing[4],
     backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderRadius: 14,
+    marginHorizontal: spacing[4],
+    marginVertical: spacing[3],
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   quickActionBtn: {
     flex: 1,

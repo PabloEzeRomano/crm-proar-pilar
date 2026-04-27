@@ -134,6 +134,7 @@ function TodayScreenContent() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
+      title: '',
       headerRight: () => (
         <View style={styles.headerActions}>
           <Pressable
@@ -162,20 +163,8 @@ function TodayScreenContent() {
           </Pressable>
         </View>
       ),
-      headerTitle: () => (
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>
-            {span === 'today'
-              ? 'Agenda'
-              : span === 'week'
-                ? 'Esta semana'
-                : 'Este mes'}
-          </Text>
-          <Text style={styles.headerSubtitle}>{headerSubtitle}</Text>
-        </View>
-      ),
     });
-  }, [navigation, router, span, headerSubtitle]);
+  }, [navigation, router]);
 
   // ── Next visit card state ────────────────────────────────────────────────
   const cardState: 'loading' | 'done' | 'overdue' | 'upcoming' =
@@ -429,6 +418,48 @@ function TodayScreenContent() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* ── Page header: title + date + span pills ── */}
+        <View style={styles.pageHeader}>
+          {/* ── Tour step 1: Span selector pills ── */}
+          <TourStep
+            order={1}
+            text="Filtrá tu agenda por Hoy, Esta semana o Este mes. El contador de abajo se actualiza en tiempo real."
+            borderRadius={borderRadius.full}
+            routePath="/(tabs)/agenda"
+          >
+            <View style={styles.spanRow}>
+              {(['today', 'week', 'month'] as TodaySpan[]).map((s) => {
+                const label =
+                  s === 'today'
+                    ? 'Hoy'
+                    : s === 'week'
+                      ? 'Esta semana'
+                      : 'Este mes';
+                const active = span === s;
+                return (
+                  <Pressable
+                    key={s}
+                    style={[styles.spanPill, active && styles.spanPillActive]}
+                    onPress={() => fetchTodayVisits(s)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={label}
+                  >
+                    <Text
+                      style={[
+                        styles.spanPillText,
+                        active && styles.spanPillTextActive,
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </TourStep>
+        </View>
+
         {/* Offline banner — story 6.7 */}
         {isStale && (
           <View style={styles.offlineBanner}>
@@ -443,53 +474,12 @@ function TodayScreenContent() {
           </View>
         )}
 
-        {/* ── Tour step 1: Span selector pills ── */}
-        <TourStep
-          order={1}
-          text="Filtrá tu agenda por Hoy, Esta semana o Este mes. El contador de abajo se actualiza en tiempo real."
-          borderRadius={borderRadius.full}
-          routePath="/(tabs)/agenda"
-        >
-          <View style={styles.spanRow}>
-            {(['today', 'week', 'month'] as TodaySpan[]).map((s) => {
-              const label =
-                s === 'today'
-                  ? 'Hoy'
-                  : s === 'week'
-                    ? 'Esta semana'
-                    : 'Este mes';
-              const active = span === s;
-              return (
-                <Pressable
-                  key={s}
-                  style={[styles.spanPill, active && styles.spanPillActive]}
-                  onPress={() => fetchTodayVisits(s)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  accessibilityLabel={label}
-                >
-                  <Text
-                    style={[
-                      styles.spanPillText,
-                      active && styles.spanPillTextActive,
-                    ]}
-                  >
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </TourStep>
-
         {/* ── Daily progress card ── */}
         {totalCount > 0 && (
           <View style={styles.progressCardWrapper}>
             <View style={styles.progressCard}>
               <View style={styles.progressCardLeft}>
-                <Text style={styles.progressCardLabel}>
-                  {completedCount} de {totalCount} visitas completadas
-                </Text>
+                <Text style={styles.progressCardTitle}>Progreso del día</Text>
                 <View style={styles.progressTrack}>
                   <View
                     style={[
@@ -498,6 +488,9 @@ function TodayScreenContent() {
                     ]}
                   />
                 </View>
+                <Text style={styles.progressCardLabel}>
+                  {completedCount} de {totalCount} visitas completadas
+                </Text>
               </View>
               <Text style={styles.progressPct}>{progressPct}%</Text>
             </View>
@@ -602,7 +595,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing[8],
   },
 
-  // ── Header ────────────────────────────────────────────────────────────────
+  // ── Header icons (nav bar right side) ────────────────────────────────────
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -615,42 +608,45 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerTitleContainer: {
-    alignItems: 'center',
+
+  // ── Page header (inline title + date + span pills) ─────────────────────
+  pageHeader: {
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[4],
+    paddingBottom: spacing[3],
+    gap: spacing[2],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  headerTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold as '600',
+  pageTitle: {
+    fontSize: fontSize['2xl'],
+    fontWeight: fontWeight.bold as '700',
     color: colors.textPrimary,
+    letterSpacing: -0.3,
   },
-  headerSubtitle: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.regular as '400',
+  pageSubtitle: {
+    fontSize: fontSize.sm,
     color: colors.textSecondary,
     textTransform: 'capitalize',
+    marginBottom: spacing[1],
   },
 
   // ── Span selector ─────────────────────────────────────────────────────────
   spanRow: {
     flexDirection: 'row',
-    paddingHorizontal: spacing[4],
-    paddingTop: spacing[3],
-    paddingBottom: spacing[3],
     gap: spacing[2],
   },
   spanPill: {
     flex: 1,
-    height: 48,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: borderRadius.full,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderRadius: 10,
+    backgroundColor: colors.background,
   },
   spanPillActive: {
     backgroundColor: colors.primary,
-    borderColor: colors.primary,
   },
   spanPillText: {
     fontSize: fontSize.sm,
@@ -688,9 +684,11 @@ const styles = StyleSheet.create({
     gap: spacing[2],
   },
   sectionTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold as '600',
-    color: colors.textPrimary,
+    fontSize: 11,
+    fontWeight: fontWeight.bold as '700',
+    color: colors.textSecondary,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
   countBadge: {
     backgroundColor: colors.primaryLight,
@@ -720,7 +718,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing[3],
   },
   progressCard: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
     borderRadius: 14,
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[3],
@@ -733,9 +731,13 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing[2],
   },
-  progressCardLabel: {
+  progressCardTitle: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textSecondary,
+  },
+  progressCardLabel: {
+    fontSize: fontSize.xs,
     color: colors.textSecondary,
   },
   progressTrack: {

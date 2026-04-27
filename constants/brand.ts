@@ -10,6 +10,6 @@ export const brand = {
   appName: 'Proar CRM',
   primaryColor: '#1D4ED8', // strong blue, readable in bright sunlight outdoors
   primaryColorDark: '#1E40AF', // pressed / active state
-  primaryColorLight: '#DBEAFE', // backgrounds, tints
+  primaryColorLight: '#EFF4FF', // backgrounds, tints
   logoUrl: null, // local asset path or remote URL; null = show text logo
 } as const;

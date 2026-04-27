@@ -230,15 +230,11 @@ export default function VisitDetailView() {
         </Pressable>
       </View>
 
-      <View style={styles.divider} />
-
       {/* ── Sección: Fecha ─────────────────────────────────────────────── */}
       <View style={styles.section}>
         <SectionLabel title="Fecha" />
         <Text style={styles.dateText}>{formattedDate}</Text>
       </View>
-
-      <View style={styles.divider} />
 
       {/* ── Sección: Estado y Tipo ─────────────────────────────────────── */}
       <View style={styles.section}>
@@ -290,29 +286,24 @@ export default function VisitDetailView() {
       {/* ── Monto (solo cotizaciones y ventas con monto) ───────────────── */}
       {visit.amount != null &&
       (visit.type === 'quote' || visit.type === 'sale') ? (
-        <>
-          <View style={styles.divider} />
-          <View style={styles.section}>
-            <SectionLabel title="Monto" />
-            <Text style={styles.amountText}>
-              $
-              {visit.amount.toLocaleString('en-US', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}{' '}
-              USD
-            </Text>
-          </View>
-        </>
+        <View style={styles.section}>
+          <SectionLabel title="Monto" />
+          <Text style={styles.amountText}>
+            $
+            {visit.amount.toLocaleString('en-US', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}{' '}
+            USD
+          </Text>
+        </View>
       ) : null}
 
       {/* ── Productos (cotizaciones y ventas con items) ────────────────── */}
       {visit.items &&
       visit.items.length > 0 &&
       (visit.type === 'quote' || visit.type === 'sale') ? (
-        <>
-          <View style={styles.divider} />
-          <View style={styles.section}>
+        <View style={styles.section}>
             <SectionLabel title="Productos" />
             {visit.type === 'quote' ? (
               // Quote: price/kg per item, no total
@@ -390,15 +381,12 @@ export default function VisitDetailView() {
                 </View>
               </>
             )}
-          </View>
-        </>
+        </View>
       ) : null}
 
       {/* ── Cotización de origen (solo ventas con quote_id) ─────────────── */}
       {visit.quote_id ? (
-        <>
-          <View style={styles.divider} />
-          <View style={styles.section}>
+        <View style={styles.section}>
             <SectionLabel title="Cotización de origen" />
             <Pressable
               style={styles.linkedRow}
@@ -413,15 +401,12 @@ export default function VisitDetailView() {
                 color={colors.primary}
               />
             </Pressable>
-          </View>
-        </>
+        </View>
       ) : null}
 
       {/* ── Ventas generadas (solo cotizaciones con ventas vinculadas) ───── */}
       {visit.type === 'quote' && linkedSales.length > 0 ? (
-        <>
-          <View style={styles.divider} />
-          <View style={styles.section}>
+        <View style={styles.section}>
             <SectionLabel title="Ventas generadas" />
             {linkedSales.map((sale) => (
               <Pressable
@@ -454,11 +439,8 @@ export default function VisitDetailView() {
                 />
               </Pressable>
             ))}
-          </View>
-        </>
+        </View>
       ) : null}
-
-      <View style={styles.divider} />
 
       {/* ── Sección: Notas / Minuta ─────────────────────────────────────── */}
       <View style={styles.section}>
@@ -489,31 +471,28 @@ export default function VisitDetailView() {
 
       {/* ── Eliminar gestión (solo propietario) ────────────────────────── */}
       {isOwner ? (
-        <>
-          <View style={styles.divider} />
-          <View style={styles.section}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.actionButton,
-                styles.actionButtonDelete,
-                pressed && styles.actionButtonDeletePressed,
-                deleting && styles.actionButtonDisabled,
-              ]}
-              onPress={handleDelete}
-              disabled={deleting}
-              accessibilityRole="button"
-              accessibilityLabel="Eliminar gestión"
-            >
-              {deleting ? (
-                <ActivityIndicator color={colors.error} />
-              ) : (
-                <Text style={styles.actionButtonDeleteText}>
-                  Eliminar gestión
-                </Text>
-              )}
-            </Pressable>
-          </View>
-        </>
+        <View style={styles.section}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionButton,
+              styles.actionButtonDelete,
+              pressed && styles.actionButtonDeletePressed,
+              deleting && styles.actionButtonDisabled,
+            ]}
+            onPress={handleDelete}
+            disabled={deleting}
+            accessibilityRole="button"
+            accessibilityLabel="Eliminar gestión"
+          >
+            {deleting ? (
+              <ActivityIndicator color={colors.error} />
+            ) : (
+              <Text style={styles.actionButtonDeleteText}>
+                Eliminar gestión
+              </Text>
+            )}
+          </Pressable>
+        </View>
       ) : null}
     </KeyboardAwareScrollView>
   );
@@ -529,6 +508,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   scrollContent: {
+    paddingTop: spacing[3],
     paddingBottom: spacing[8],
   },
 
@@ -558,13 +538,23 @@ const styles = StyleSheet.create({
     padding: spacing[4],
     gap: spacing[3],
     backgroundColor: colors.surface,
+    borderRadius: 14,
+    marginHorizontal: spacing[4],
+    marginBottom: spacing[3],
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   sectionLabel: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontSize: 11,
+    fontWeight: fontWeight.bold as '700',
     color: colors.textSecondary,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
   divider: {
     height: 1,
@@ -749,7 +739,7 @@ const styles = StyleSheet.create({
   switcherPill: {
     flex: 1,
     height: 38,
-    borderRadius: borderRadius.full,
+    borderRadius: borderRadius.lg,
     borderWidth: 1.5,
     borderColor: colors.border,
     backgroundColor: colors.background,

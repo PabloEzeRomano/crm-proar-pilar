@@ -79,7 +79,7 @@ export function StatusTypeBadge({ status, type }: StatusTypeBadgeProps) {
     <View
       style={[
         styles.container,
-        { backgroundColor: config.bg, borderColor: config.color },
+        { backgroundColor: config.bg },
       ]}
     >
       <MaterialCommunityIcons
@@ -97,7 +97,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    borderWidth: 1,
     borderRadius: borderRadius.full,
     paddingHorizontal: spacing[2],
     paddingVertical: 2,

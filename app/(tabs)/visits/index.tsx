@@ -69,6 +69,8 @@ export default function VisitsIndexScreen() {
   const [dateFrom, setDateFrom] = useState<Date | null>(null);
   const [dateTo, setDateTo] = useState<Date | null>(null);
 
+  const [showPast, setShowPast] = useState(false);
+
   // ── Modal visibility ────────────────────────────────────────────────────
   const [filterVisible, setFilterVisible] = useState(false);
 
@@ -113,23 +115,29 @@ export default function VisitsIndexScreen() {
     navigation.setOptions({ headerRight: undefined });
   }, [navigation]);
 
-  // ── Client-side filters (search, status, date) ──────────────────────────
-  const visits = hookVisits.filter((v) => {
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      if (!v.client?.name?.toLowerCase().includes(q)) return false;
-    }
-    if (selectedStatuses.length > 0 && !selectedStatuses.includes(v.status))
-      return false;
-    if (
-      dateFrom &&
-      dayjs(v.scheduled_at).isBefore(dayjs(dateFrom).startOf('day'))
-    )
-      return false;
-    if (dateTo && dayjs(v.scheduled_at).isAfter(dayjs(dateTo).endOf('day')))
-      return false;
-    return true;
-  });
+  // ── Client-side filters (search, status, date, past) ───────────────────
+  const todayStart = dayjs().startOf('day');
+  const visits = hookVisits
+    .filter((v) => {
+      if (!showPast && dayjs(v.scheduled_at).isBefore(todayStart)) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (!v.client?.name?.toLowerCase().includes(q)) return false;
+      }
+      if (selectedStatuses.length > 0 && !selectedStatuses.includes(v.status))
+        return false;
+      if (
+        dateFrom &&
+        dayjs(v.scheduled_at).isBefore(dayjs(dateFrom).startOf('day'))
+      )
+        return false;
+      if (dateTo && dayjs(v.scheduled_at).isAfter(dayjs(dateTo).endOf('day')))
+        return false;
+      return true;
+    })
+    .sort((a, b) =>
+      dayjs(a.scheduled_at).valueOf() - dayjs(b.scheduled_at).valueOf()
+    );
 
   // ── Filter count ────────────────────────────────────────────────────────
   const activeFilterCount =
@@ -262,6 +270,19 @@ export default function VisitsIndexScreen() {
             />
           </View>
         </View>
+
+        <Pressable
+          style={[styles.filterButton, showPast && styles.filterButtonActive]}
+          onPress={() => setShowPast((v) => !v)}
+          accessibilityRole="button"
+          accessibilityLabel={showPast ? 'Ocultar visitas pasadas' : 'Mostrar visitas pasadas'}
+        >
+          <MaterialCommunityIcons
+            name="history"
+            size={20}
+            color={showPast ? colors.textOnPrimary : colors.textSecondary}
+          />
+        </Pressable>
 
         <TourStep
           order={7}
