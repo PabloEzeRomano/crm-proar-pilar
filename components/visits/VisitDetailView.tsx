@@ -14,6 +14,7 @@ import React, { useEffect, useLayoutEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -155,6 +156,13 @@ export default function VisitDetailView() {
   }
 
   function handleDelete() {
+    if (Platform.OS === 'web') {
+      if (window.confirm('¿Estás seguro que querés eliminar esta gestión?')) {
+        deleteVisit(id);
+        router.back();
+        return;
+      }
+    }
     Alert.alert(
       'Eliminar gestión',
       '¿Estás seguro? Esta acción no se puede deshacer.',

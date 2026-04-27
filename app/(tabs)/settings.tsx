@@ -150,8 +150,6 @@ function SettingsScreenContent() {
 
   // Sync from store only when not dirty (profile may load after first render)
   useEffect(() => {
-    console.log('useEffect profile');
-    console.log(profile);
     if (!isDirty && profile?.email_config) {
       setLocalConfig({
         enabled: profile.email_config.enabled,
@@ -287,9 +285,6 @@ function SettingsScreenContent() {
   }
 
   const handleSave = useCallback(async () => {
-    console.log('handleSave');
-    console.log(localConfig);
-    console.log(profile);
     setSaving(true);
 
     // Validate sender email if provided

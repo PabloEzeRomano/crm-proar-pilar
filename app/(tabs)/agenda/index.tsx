@@ -85,11 +85,6 @@ function TodayScreenContent() {
     fetchTodayVisits,
   } = useToday(isAdminOrRoot);
 
-  console.log(
-    'TodayScreenContent',
-    visits.map((v) => v.owner)
-  );
-
   const sortedByDistance = useTodayStore((s) => s.sortedByDistance);
   const sortByDistance = useTodayStore((s) => s.sortByDistance);
   const resetDistanceSort = useTodayStore((s) => s.resetDistanceSort);
@@ -367,10 +362,10 @@ function TodayScreenContent() {
               {' · '}{nextVisitTimeLabel}
             </Text>
           </View>
-          <View style={styles.nextCardNavRow}>
+          {/* <View style={styles.nextCardNavRow}>
             <MaterialCommunityIcons name="navigation" size={12} color="#fff" />
             <Text style={styles.nextCardNavText}>Navegar</Text>
-          </View>
+          </View> */}
         </LinearGradient>
       </Pressable>
     );
@@ -832,7 +827,7 @@ const styles = StyleSheet.create({
   },
   nextCardGradient: {
     padding: spacing[4],
-    minHeight: 140,
+    // minHeight: 140,
     position: 'relative',
     overflow: 'hidden',
   },

@@ -3,6 +3,7 @@ import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import React, { useEffect, useLayoutEffect, useState } from 'react';
 import {
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -220,7 +221,18 @@ export default function ProductDetailScreen() {
     setEditing(false);
   }
 
-  function handleDelete() {
+  async function handleDelete() {
+    if (Platform.OS === 'web') {
+      if (
+        window.confirm(
+          `¿Estás seguro que querés eliminar "${product!.name}"? Esto eliminará todas sus presentaciones?`
+        )
+      ) {
+        await deleteProduct(product!.id);
+        router.back();
+        return;
+      }
+    }
     Alert.alert(
       'Eliminar producto',
       `¿Eliminar "${product!.name}"? Esto eliminará todas sus presentaciones.`,
@@ -239,6 +251,13 @@ export default function ProductDetailScreen() {
   }
 
   function handleDeletePresentation(presId: string) {
+    if (Platform.OS === 'web') {
+      if (
+        window.confirm('¿Estás seguro que querés eliminar esta presentación?')
+      )
+        deletePresentation(presId);
+      return;
+    }
     Alert.alert('Eliminar presentación', '¿Eliminar esta presentación?', [
       { text: 'Cancelar', style: 'cancel' },
       {
