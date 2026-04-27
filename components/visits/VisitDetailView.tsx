@@ -154,20 +154,6 @@ export default function VisitDetailView() {
     setTimeout(() => setSaveState('idle'), 2000);
   }
 
-  async function handleMarkCompleted() {
-    if (statusLoading) return;
-    setStatusLoading(true);
-    await updateStatus(id, 'completed');
-    setStatusLoading(false);
-  }
-
-  async function handleCancelVisit() {
-    if (statusLoading) return;
-    setStatusLoading(true);
-    await updateStatus(id, 'canceled');
-    setStatusLoading(false);
-  }
-
   function handleDelete() {
     Alert.alert(
       'Eliminar gestión',
@@ -248,11 +234,44 @@ export default function VisitDetailView() {
 
       {/* ── Sección: Estado y Tipo ─────────────────────────────────────── */}
       <View style={styles.section}>
+        <SectionLabel title="Estado" />
+        <View style={styles.statusSwitcher}>
+          {(['pending', 'completed', 'canceled'] as const).map((s) => {
+            const active = visit.status === s;
+            const cfg = {
+              pending:   { label: 'Pendiente',  color: colors.statusPending,   bg: colors.statusPendingLight },
+              completed: { label: 'Completada', color: colors.statusCompleted, bg: colors.statusCompletedLight },
+              canceled:  { label: 'Cancelada',  color: colors.statusCanceled,  bg: colors.statusCanceledLight },
+            }[s];
+            return (
+              <Pressable
+                key={s}
+                style={[
+                  styles.switcherPill,
+                  active && { backgroundColor: cfg.bg, borderColor: cfg.color },
+                ]}
+                onPress={async () => {
+                  if (!isOwner || statusLoading || visit.status === s) return;
+                  setStatusLoading(true);
+                  await updateStatus(id, s);
+                  setStatusLoading(false);
+                }}
+                disabled={!isOwner || statusLoading}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: active }}
+              >
+                <Text style={[
+                  styles.switcherPillText,
+                  active && { color: cfg.color, fontWeight: fontWeight.bold as '700' },
+                ]}>
+                  {cfg.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        {/* Keep type badge below switcher */}
         <View style={styles.statusTypeRow}>
-          <View style={styles.statusTypeItem}>
-            <SectionLabel title="Estado" />
-            <StatusTypeBadge status={visit.status} type={visit.type} />
-          </View>
           <View style={styles.statusTypeItem}>
             <SectionLabel title="Tipo" />
             <StatusTypeBadge type={visit.type} />
@@ -459,60 +478,6 @@ export default function VisitDetailView() {
           accessibilityLabel="Notas de la visita"
         />
       </View>
-
-      {/* ── Sección: Acciones (solo si está pendiente y es propietario) ─── */}
-      {visit.status === 'pending' && isOwner ? (
-        <>
-          <View style={styles.divider} />
-          <View style={styles.section}>
-            <SectionLabel title="Acciones" />
-
-            {/* Marcar como completada */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.actionButton,
-                styles.actionButtonSuccess,
-                pressed && styles.actionButtonSuccessPressed,
-                statusLoading && styles.actionButtonDisabled,
-              ]}
-              onPress={handleMarkCompleted}
-              disabled={statusLoading}
-              accessibilityRole="button"
-              accessibilityLabel="Marcar visita como completada"
-            >
-              {statusLoading ? (
-                <ActivityIndicator color={colors.textOnPrimary} />
-              ) : (
-                <Text style={styles.actionButtonSuccessText}>
-                  Marcar como completada
-                </Text>
-              )}
-            </Pressable>
-
-            {/* Cancelar visita */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.actionButton,
-                styles.actionButtonDanger,
-                pressed && styles.actionButtonDangerPressed,
-                statusLoading && styles.actionButtonDisabled,
-              ]}
-              onPress={handleCancelVisit}
-              disabled={statusLoading}
-              accessibilityRole="button"
-              accessibilityLabel="Cancelar visita"
-            >
-              {statusLoading ? (
-                <ActivityIndicator color={colors.error} />
-              ) : (
-                <Text style={styles.actionButtonDangerText}>
-                  Cancelar visita
-                </Text>
-              )}
-            </Pressable>
-          </View>
-        </>
-      ) : null}
 
       {/* ── Eliminar gestión (solo propietario) ────────────────────────── */}
       {isOwner ? (
@@ -765,6 +730,27 @@ const styles = StyleSheet.create({
   },
   linkedRowAmount: {
     fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
+
+  // Status switcher
+  statusSwitcher: {
+    flexDirection: 'row',
+    gap: spacing[2],
+  },
+  switcherPill: {
+    flex: 1,
+    height: 38,
+    borderRadius: borderRadius.full,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  switcherPillText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium as '500',
     color: colors.textSecondary,
   },
 

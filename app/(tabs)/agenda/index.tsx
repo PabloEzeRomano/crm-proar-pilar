@@ -16,6 +16,7 @@
 
 import TourStep from '@/components/tour/TourStep';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation, useRouter } from 'expo-router';
 import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import {
@@ -279,31 +280,51 @@ function TodayScreenContent() {
     if (cardState === 'overdue') {
       return (
         <Pressable
-          style={({ pressed }) => [
-            styles.nextCard,
-            styles.nextCardOverdue,
-            pressed && styles.nextCardPressed,
-          ]}
+          style={({ pressed }) => [styles.nextCardHero, pressed && styles.nextCardPressed]}
           onPress={handleNextCardPress}
           accessibilityRole="button"
           accessibilityLabel={`Visita atrasada: ${nextVisit?.client.name}`}
         >
-          <View style={styles.nextCardLabelRow}>
+          <LinearGradient
+            colors={['#D97706', '#B45309']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.nextCardGradient}
+          >
+            {/* Background glyph */}
             <MaterialCommunityIcons
-              name="alert-circle"
-              size={14}
-              color={colors.warning}
+              name="map-marker"
+              size={100}
+              color="rgba(255,255,255,0.08)"
+              style={styles.nextCardBgGlyph}
             />
-            <Text style={[styles.nextCardLabel, { color: colors.warning }]}>
-              ATRASADO
+            {/* Label pill */}
+            <View style={styles.nextCardPill}>
+              <MaterialCommunityIcons name="alert-circle" size={13} color="rgba(255,220,80,0.95)" />
+              <Text style={[styles.nextCardPillText, { color: 'rgba(255,220,80,0.95)' }]}>
+                ATRASADO · {nextVisitCountdownLabel}
+              </Text>
+            </View>
+            {/* Client name */}
+            <Text style={styles.nextCardHeroName} numberOfLines={1}>
+              {nextVisit?.client.name}
             </Text>
-          </View>
-          <Text style={styles.nextCardClientName} numberOfLines={1}>
-            {nextVisit?.client.name}
-          </Text>
-          <Text style={[styles.nextCardTime, { color: colors.warning }]}>
-            {nextVisitCountdownLabel}
-          </Text>
+            {/* Address + scheduled time */}
+            <View style={styles.nextCardAddressRow}>
+              <MaterialCommunityIcons name="map-marker-outline" size={13} color="rgba(255,255,255,0.7)" />
+              <Text style={styles.nextCardAddressText} numberOfLines={1}>
+                {nextVisit?.client.address
+                  ? `${nextVisit.client.address}${nextVisit.client.city ? ', ' + nextVisit.client.city : ''}`
+                  : nextVisit?.client.city ?? ''}
+                {' · debía ser '}{nextVisitTimeLabel}
+              </Text>
+            </View>
+            {/* Navegar action */}
+            <View style={styles.nextCardNavRow}>
+              <MaterialCommunityIcons name="navigation" size={12} color="#fff" />
+              <Text style={styles.nextCardNavText}>Navegar</Text>
+            </View>
+          </LinearGradient>
         </Pressable>
       );
     }
@@ -311,31 +332,46 @@ function TodayScreenContent() {
     // cardState === 'upcoming'
     return (
       <Pressable
-        style={({ pressed }) => [
-          styles.nextCard,
-          styles.nextCardUpcoming,
-          pressed && styles.nextCardPressed,
-        ]}
+        style={({ pressed }) => [styles.nextCardHero, pressed && styles.nextCardPressed]}
         onPress={handleNextCardPress}
         accessibilityRole="button"
         accessibilityLabel={`Siguiente visita: ${nextVisit?.client.name}`}
       >
-        <View style={styles.nextCardLabelRow}>
+        <LinearGradient
+          colors={[colors.primary, colors.primaryDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.nextCardGradient}
+        >
           <MaterialCommunityIcons
-            name="clock-outline"
-            size={14}
-            color={colors.primary}
+            name="map-marker"
+            size={100}
+            color="rgba(255,255,255,0.08)"
+            style={styles.nextCardBgGlyph}
           />
-          <Text style={[styles.nextCardLabel, { color: colors.primary }]}>
-            SIGUIENTE
+          <View style={styles.nextCardPill}>
+            <MaterialCommunityIcons name="clock-outline" size={13} color="rgba(255,255,255,0.8)" />
+            <Text style={[styles.nextCardPillText, { color: 'rgba(255,255,255,0.85)' }]}>
+              SIGUIENTE · {nextVisitCountdownLabel}
+            </Text>
+          </View>
+          <Text style={styles.nextCardHeroName} numberOfLines={1}>
+            {nextVisit?.client.name}
           </Text>
-        </View>
-        <Text style={styles.nextCardClientName} numberOfLines={1}>
-          {nextVisit?.client.name}
-        </Text>
-        <Text style={[styles.nextCardTime, { color: colors.textSecondary }]}>
-          {nextVisitTimeLabel} · {nextVisitCountdownLabel}
-        </Text>
+          <View style={styles.nextCardAddressRow}>
+            <MaterialCommunityIcons name="map-marker-outline" size={13} color="rgba(255,255,255,0.7)" />
+            <Text style={styles.nextCardAddressText} numberOfLines={1}>
+              {nextVisit?.client.address
+                ? `${nextVisit.client.address}${nextVisit.client.city ? ', ' + nextVisit.client.city : ''}`
+                : nextVisit?.client.city ?? ''}
+              {' · '}{nextVisitTimeLabel}
+            </Text>
+          </View>
+          <View style={styles.nextCardNavRow}>
+            <MaterialCommunityIcons name="navigation" size={12} color="#fff" />
+            <Text style={styles.nextCardNavText}>Navegar</Text>
+          </View>
+        </LinearGradient>
       </Pressable>
     );
   }
@@ -788,6 +824,67 @@ const styles = StyleSheet.create({
   nextCardDoneSubtitle: {
     fontSize: fontSize.base,
     color: colors.textSecondary,
+  },
+  nextCardHero: {
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
+    ...shadows.subtle,
+  },
+  nextCardGradient: {
+    padding: spacing[4],
+    minHeight: 140,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  nextCardBgGlyph: {
+    position: 'absolute',
+    right: -12,
+    top: -12,
+  },
+  nextCardPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    marginBottom: spacing[2],
+  },
+  nextCardPillText: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold as '600',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  nextCardHeroName: {
+    fontSize: fontSize['2xl'],
+    fontWeight: fontWeight.bold as '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+    marginBottom: spacing[1],
+  },
+  nextCardAddressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    marginBottom: spacing[3],
+  },
+  nextCardAddressText: {
+    fontSize: fontSize.sm,
+    color: 'rgba(255,255,255,0.75)',
+    flex: 1,
+  },
+  nextCardNavRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+  },
+  nextCardNavText: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold as '600',
+    color: '#FFFFFF',
   },
 
   // ── Visit list — story 6.4 ────────────────────────────────────────────────

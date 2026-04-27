@@ -349,14 +349,72 @@ export default function ClientDetailScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* ── Sección: Información ─────────────────────────────────────── */}
-        <View style={styles.section}>
-          <SectionHeader title="Información" />
-          <Text style={styles.clientName}>{client.name}</Text>
+        {/* ── Hero: avatar + name + meta ───────────────────────────────── */}
+        <View style={styles.heroSection}>
+          <View style={styles.heroAvatar}>
+            <Text style={styles.heroAvatarText}>
+              {client.name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          <Text style={styles.heroName}>{client.name}</Text>
           {client.industry ? (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{client.industry}</Text>
             </View>
+          ) : null}
+          {(() => {
+            const lastVisitedAt = client.last_visited_at;
+            if (!lastVisitedAt) return (
+              <Text style={[styles.lastVisitText, { color: colors.textDisabled }]}>Sin visitas</Text>
+            );
+            const days = dayjs().diff(dayjs(lastVisitedAt), 'day');
+            const color = days < 30 ? colors.success : days <= 60 ? colors.warning : colors.error;
+            return (
+              <Text style={[styles.lastVisitText, { color }]}>Hace {days} días</Text>
+            );
+          })()}
+        </View>
+
+        {/* ── Quick actions ─────────────────────────────────────────────── */}
+        <View style={styles.quickActions}>
+          {client.contacts[0]?.phone ? (
+            <Pressable
+              style={styles.quickActionBtn}
+              onPress={() => handleContactPhone(client.contacts[0].phone!, client.name)}
+              accessibilityRole="button"
+              accessibilityLabel="Llamar"
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: '#CCFBF1' }]}>
+                <MaterialCommunityIcons name="phone" size={18} color="#0D9488" />
+              </View>
+              <Text style={styles.quickActionLabel}>Llamar</Text>
+            </Pressable>
+          ) : null}
+          {hasMapTarget ? (
+            <Pressable
+              style={styles.quickActionBtn}
+              onPress={handleMaps}
+              accessibilityRole="button"
+              accessibilityLabel="Navegar"
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: colors.primaryLight }]}>
+                <MaterialCommunityIcons name="navigation" size={18} color={colors.primary} />
+              </View>
+              <Text style={styles.quickActionLabel}>Navegar</Text>
+            </Pressable>
+          ) : null}
+          {isOwner ? (
+            <Pressable
+              style={styles.quickActionBtn}
+              onPress={() => router.push(`/visits/form?clientId=${id}`)}
+              accessibilityRole="button"
+              accessibilityLabel="Agendar visita"
+            >
+              <View style={[styles.quickActionIcon, { backgroundColor: '#EDE9FE' }]}>
+                <MaterialCommunityIcons name="calendar-plus" size={18} color="#7C3AED" />
+              </View>
+              <Text style={styles.quickActionLabel}>Agendar</Text>
+            </Pressable>
           ) : null}
         </View>
 
@@ -1154,5 +1212,71 @@ const styles = StyleSheet.create({
   pickerDivider: {
     height: 1,
     backgroundColor: colors.border,
+  },
+
+  // Hero section
+  heroSection: {
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    paddingTop: spacing[6],
+    paddingBottom: spacing[4],
+    paddingHorizontal: spacing[4],
+    gap: spacing[2],
+  },
+  heroAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing[1],
+  },
+  heroAvatarText: {
+    fontSize: fontSize['2xl'],
+    fontWeight: fontWeight.bold as '700',
+    color: colors.primary,
+  },
+  heroName: {
+    fontSize: fontSize['2xl'],
+    fontWeight: fontWeight.bold as '700',
+    color: colors.textPrimary,
+    letterSpacing: -0.3,
+    textAlign: 'center',
+  },
+  lastVisitText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold as '600',
+  },
+
+  // Quick actions row
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing[3],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  quickActionBtn: {
+    flex: 1,
+    alignItems: 'center',
+    gap: spacing[1],
+    paddingVertical: spacing[2],
+    maxWidth: 90,
+  },
+  quickActionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickActionLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textPrimary,
   },
 });

@@ -823,50 +823,6 @@ function SettingsScreenContent() {
             </Text>
           </View>
 
-          {/* Gestión de usuarios — admin / root only */}
-          {(profile?.role === 'admin' || profile?.role === 'root') && (
-            <View style={[styles.row, styles.rowBorderTop]}>
-              <Pressable
-                style={styles.rowContent}
-                onPress={() => router.push('/(tabs)/users')}
-                accessibilityRole="button"
-                accessibilityLabel="Gestión de usuarios"
-              >
-                <Text style={styles.rowLabel}>Gestión de usuarios</Text>
-                <Text style={styles.rowSubtitle}>
-                  Invitá y administrá el equipo
-                </Text>
-              </Pressable>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={20}
-                color={colors.textDisabled}
-              />
-            </View>
-          )}
-
-          {/* Gestión de productos — admin / root only */}
-          {(profile?.role === 'admin' || profile?.role === 'root') && (
-            <View style={[styles.row, styles.rowBorderTop]}>
-              <Pressable
-                style={styles.rowContent}
-                onPress={() => router.push('/(tabs)/products')}
-                accessibilityRole="button"
-                accessibilityLabel="Gestión de productos"
-              >
-                <Text style={styles.rowLabel}>Gestión de productos</Text>
-                <Text style={styles.rowSubtitle}>
-                  Catálogo, presentaciones y precios
-                </Text>
-              </Pressable>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={20}
-                color={colors.textDisabled}
-              />
-            </View>
-          )}
-
           {/* Ver tour de nuevo */}
           <View style={[styles.row, styles.rowBorderTop]}>
             <Pressable

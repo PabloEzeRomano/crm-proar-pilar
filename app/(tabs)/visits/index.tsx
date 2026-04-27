@@ -46,12 +46,12 @@ const VISIT_STATUS_OPTIONS: { value: VisitStatus; label: string }[] = [
   { value: 'canceled', label: 'Cancelada' },
 ];
 
-const STATUS_PILLS: { label: string; value: VisitStatus | null; bg: string }[] = [
-  { label: 'Todas',      value: null,        bg: colors.primary },
-  { label: 'Pendiente',  value: 'pending',   bg: colors.statusPending },
-  { label: 'Completada', value: 'completed', bg: colors.statusCompleted },
-  { label: 'Cancelada',  value: 'canceled',  bg: colors.statusCanceled },
-];
+// const STATUS_PILLS: { label: string; value: VisitStatus | null; bg: string }[] = [
+//   { label: 'Todas',      value: null,        bg: colors.primary },
+//   { label: 'Pendiente',  value: 'pending',   bg: colors.statusPending },
+//   { label: 'Completada', value: 'completed', bg: colors.statusCompleted },
+//   { label: 'Cancelada',  value: 'canceled',  bg: colors.statusCanceled },
+// ];
 
 // ---------------------------------------------------------------------------
 // Component
@@ -296,7 +296,7 @@ export default function VisitsIndexScreen() {
       </View>
 
       {/* ── Status quick-filter pills ── */}
-      <ScrollView
+      {/* <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.pillsScroll}
@@ -327,7 +327,7 @@ export default function VisitsIndexScreen() {
             </Pressable>
           );
         })}
-      </ScrollView>
+      </ScrollView> */}
 
       {/* ── Active filter chips ── */}
       {activeFilterCount > 0 && (

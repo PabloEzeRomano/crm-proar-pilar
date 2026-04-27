@@ -248,6 +248,51 @@ export default function TeamIndexScreen() {
               ))}
             </View>
           )}
+
+          {/* ── Admin links ─────────────────────────────────────────────── */}
+          {isAdminOrRoot && (
+            <>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>ADMINISTRACIÓN</Text>
+              </View>
+
+              <View style={styles.adminLinksCard}>
+                <Pressable
+                  style={styles.adminLinkRow}
+                  onPress={() => router.push('/(tabs)/users')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Gestión de usuarios"
+                >
+                  <View style={[styles.adminLinkIcon, { backgroundColor: colors.primaryLight }]}>
+                    <MaterialCommunityIcons name="account-multiple-outline" size={20} color={colors.primary} />
+                  </View>
+                  <View style={styles.adminLinkContent}>
+                    <Text style={styles.adminLinkLabel}>Gestión de usuarios</Text>
+                    <Text style={styles.adminLinkSub}>Invitá y administrá el equipo</Text>
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textDisabled} />
+                </Pressable>
+
+                <View style={styles.adminLinkDivider} />
+
+                <Pressable
+                  style={styles.adminLinkRow}
+                  onPress={() => router.push('/(tabs)/products')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Gestión de productos"
+                >
+                  <View style={[styles.adminLinkIcon, { backgroundColor: colors.successLight }]}>
+                    <MaterialCommunityIcons name="package-variant-closed" size={20} color={colors.success} />
+                  </View>
+                  <View style={styles.adminLinkContent}>
+                    <Text style={styles.adminLinkLabel}>Gestión de productos</Text>
+                    <Text style={styles.adminLinkSub}>Catálogo, presentaciones y precios</Text>
+                  </View>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textDisabled} />
+                </Pressable>
+              </View>
+            </>
+          )}
         </>
       )}
 
@@ -456,5 +501,48 @@ const styles = StyleSheet.create({
   emptyVisitsContainer: {
     paddingVertical: spacing[8],
     alignItems: 'center',
+  },
+
+  // Admin links
+  adminLinksCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    ...shadows.subtle,
+    marginBottom: spacing[4],
+  },
+  adminLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    gap: spacing[3],
+    minHeight: 64,
+  },
+  adminLinkIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  adminLinkContent: {
+    flex: 1,
+    gap: spacing[1],
+  },
+  adminLinkLabel: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textPrimary,
+  },
+  adminLinkSub: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
+  adminLinkDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginLeft: spacing[4] + 40 + spacing[3],
   },
 });
