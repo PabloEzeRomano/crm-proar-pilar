@@ -52,6 +52,7 @@ import {
   fontSize,
   fontWeight,
   spacing,
+  visitTypeColors,
 } from '@/constants/theme';
 import {
   Client,
@@ -263,7 +264,11 @@ export default function VisitFormScreen() {
 
   // Pre-populate items from client habitual products (quote, create mode only)
   useEffect(() => {
-    if (visitType === 'quote' && selectedClient && !isEditMode) {
+    if (
+      (visitType === 'quote' || visitType === 'sale') &&
+      selectedClient &&
+      !isEditMode
+    ) {
       fetchClientProducts(selectedClient.id).then(() => {
         const clientProds = useProductsStore.getState().clientProducts;
         const allProducts = useProductsStore.getState().products;
@@ -446,7 +451,10 @@ export default function VisitFormScreen() {
     const isQuoteOrSale = visitType === 'quote' || visitType === 'sale';
     const computedAmount =
       visitType === 'sale' && items.length > 0 ? computeTotal(items) : null;
-    const itemsPayload = isQuoteOrSale && items.length > 0 ? items : null;
+    const itemsPayload =
+      isQuoteOrSale && items.length > 0
+        ? items.map((i) => ({ ...i, total_usd: i.total_usd ?? 0 }))
+        : [];
 
     if (isEditMode && visitId) {
       await updateVisit(visitId, {
@@ -608,6 +616,47 @@ export default function VisitFormScreen() {
         enableOnAndroid
         extraScrollHeight={200}
       >
+        {/* ── Tipo de gestión ─────────────────────────────────────────────── */}
+        <View style={styles.fieldGroup}>
+          <FieldLabel label="Tipo de gestión" />
+          <View style={styles.typeRow}>
+            {VISIT_TYPE_OPTIONS.map(({ value, label, icon }) => {
+              const active = visitType === value;
+              const typeColor = visitTypeColors[value];
+              return (
+                <Pressable
+                  key={value}
+                  style={[
+                    styles.typeOption,
+                    active && {
+                      borderColor: typeColor,
+                      backgroundColor: typeColor + '18',
+                    },
+                  ]}
+                  onPress={() => setVisitType(value)}
+                  accessibilityRole="radio"
+                  accessibilityLabel={label}
+                  accessibilityState={{ checked: active }}
+                >
+                  <MaterialCommunityIcons
+                    name={icon as 'briefcase-outline'}
+                    size={18}
+                    color={active ? typeColor : colors.textSecondary}
+                  />
+                  <Text
+                    style={[
+                      styles.typeOptionLabel,
+                      active && { color: typeColor },
+                    ]}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
         {/* ── Cliente ─────────────────────────────────────────────────────── */}
         <View style={styles.fieldGroup}>
           <FieldLabel label="Cliente" required={!isEditMode} />
@@ -741,40 +790,6 @@ export default function VisitFormScreen() {
               </Pressable>
             </View>
           ) : null}
-        </View>
-
-        {/* ── Tipo de gestión ─────────────────────────────────────────────── */}
-        <View style={styles.fieldGroup}>
-          <FieldLabel label="Tipo de gestión" />
-          <View style={styles.typeRow}>
-            {VISIT_TYPE_OPTIONS.map(({ value, label, icon }) => {
-              const active = visitType === value;
-              return (
-                <Pressable
-                  key={value}
-                  style={[styles.typeOption, active && styles.typeOptionActive]}
-                  onPress={() => setVisitType(value)}
-                  accessibilityRole="radio"
-                  accessibilityLabel={label}
-                  accessibilityState={{ checked: active }}
-                >
-                  <MaterialCommunityIcons
-                    name={icon as 'briefcase-outline'}
-                    size={18}
-                    color={active ? colors.primary : colors.textSecondary}
-                  />
-                  <Text
-                    style={[
-                      styles.typeOptionLabel,
-                      active && styles.typeOptionLabelActive,
-                    ]}
-                  >
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
         </View>
 
         {/* ── Productos ───────────────────────────────────────────────────── */}
@@ -933,110 +948,107 @@ export default function VisitFormScreen() {
           </View>
         )}
 
-        {/* ── Fecha ────────────────────────────────────────────────────────── */}
+        {/* ── Fecha + Hora ─────────────────────────────────────────────────── */}
         <View style={styles.fieldGroup}>
-          <FieldLabel label="Fecha" />
+          <View style={styles.dateTimeRow}>
+            {/* FECHA column */}
+            <View style={styles.dateTimeCol}>
+              <FieldLabel label="Fecha" />
+              {Platform.OS === 'android' && !showDatePicker ? (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.fieldDisplay,
+                    pressed && styles.fieldDisplayPressed,
+                  ]}
+                  onPress={() => setShowDatePicker(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Seleccionar fecha"
+                >
+                  <Text style={styles.fieldDisplayText}>
+                    {dayjs(selectedDate).format('DD/MM/YY')}
+                  </Text>
+                  <MaterialCommunityIcons
+                    name="calendar"
+                    size={20}
+                    color={colors.primary}
+                  />
+                </Pressable>
+              ) : (
+                <AppDatePicker
+                  value={selectedDate}
+                  mode="date"
+                  display={Platform.OS === 'android' ? 'calendar' : 'inline'}
+                  onChange={handleDateChange}
+                  accentColor={colors.primary}
+                  locale="es"
+                  isAndroidModal={Platform.OS === 'android' && showDatePicker}
+                  onDismiss={handleDatePickerDismissAndroid}
+                  containerStyle={
+                    Platform.OS === 'ios' ? styles.iosDatePicker : undefined
+                  }
+                />
+              )}
+              {Platform.OS === 'android' && showDatePicker ? (
+                <AppDatePicker
+                  value={selectedDate}
+                  mode="date"
+                  display="calendar"
+                  onChange={handleDateChange}
+                  isAndroidModal={true}
+                  onDismiss={handleDatePickerDismissAndroid}
+                />
+              ) : null}
+            </View>
 
-          {Platform.OS === 'android' && !showDatePicker ? (
-            <Pressable
-              style={({ pressed }) => [
-                styles.fieldDisplay,
-                pressed && styles.fieldDisplayPressed,
-              ]}
-              onPress={() => setShowDatePicker(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Seleccionar fecha"
-            >
-              <Text style={styles.fieldDisplayText}>
-                {dayjs(selectedDate).format('DD/MM/YYYY')}
-              </Text>
-              <MaterialCommunityIcons
-                name="calendar"
-                size={20}
-                color={colors.primary}
-              />
-            </Pressable>
-          ) : (
-            /* iOS and Web: inline date picker */
-            <AppDatePicker
-              value={selectedDate}
-              mode="date"
-              display={Platform.OS === 'android' ? 'calendar' : 'inline'}
-              onChange={handleDateChange}
-              accentColor={colors.primary}
-              locale="es"
-              isAndroidModal={Platform.OS === 'android' && showDatePicker}
-              onDismiss={handleDatePickerDismissAndroid}
-              containerStyle={
-                Platform.OS === 'ios' ? styles.iosDatePicker : undefined
-              }
-            />
-          )}
-
-          {/* Android date picker modal */}
-          {Platform.OS === 'android' && showDatePicker ? (
-            <AppDatePicker
-              value={selectedDate}
-              mode="date"
-              display="calendar"
-              onChange={handleDateChange}
-              isAndroidModal={true}
-              onDismiss={handleDatePickerDismissAndroid}
-            />
-          ) : null}
-        </View>
-
-        {/* ── Hora ─────────────────────────────────────────────────────────── */}
-        <View style={styles.fieldGroup}>
-          <FieldLabel label="Hora" />
-
-          {Platform.OS === 'android' && !showTimePicker ? (
-            <Pressable
-              style={({ pressed }) => [
-                styles.fieldDisplay,
-                pressed && styles.fieldDisplayPressed,
-              ]}
-              onPress={() => setShowTimePicker(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Seleccionar hora"
-            >
-              <Text style={styles.fieldDisplayText}>
-                {dayjs(selectedTime).format('HH:mm')}
-              </Text>
-              <MaterialCommunityIcons
-                name="clock-outline"
-                size={20}
-                color={colors.primary}
-              />
-            </Pressable>
-          ) : (
-            /* iOS and Web: inline time picker */
-            <AppDatePicker
-              value={selectedTime}
-              mode="time"
-              display={Platform.OS === 'android' ? 'clock' : 'spinner'}
-              onChange={handleTimeChange}
-              accentColor={colors.primary}
-              locale="es"
-              isAndroidModal={Platform.OS === 'android' && showTimePicker}
-              onDismiss={handleTimePickerDismissAndroid}
-              containerStyle={
-                Platform.OS === 'ios' ? styles.iosTimePicker : undefined
-              }
-            />
-          )}
-
-          {/* Android time picker modal */}
-          {Platform.OS === 'android' && showTimePicker ? (
-            <AppDatePicker
-              value={selectedTime}
-              mode="time"
-              display="clock"
-              onChange={handleTimeChange}
-              isAndroidModal={true}
-              onDismiss={handleTimePickerDismissAndroid}
-            />
-          ) : null}
+            {/* HORA column */}
+            <View style={styles.dateTimeCol}>
+              <FieldLabel label="Hora" />
+              {Platform.OS === 'android' && !showTimePicker ? (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.fieldDisplay,
+                    pressed && styles.fieldDisplayPressed,
+                  ]}
+                  onPress={() => setShowTimePicker(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Seleccionar hora"
+                >
+                  <Text style={styles.fieldDisplayText}>
+                    {dayjs(selectedTime).format('HH:mm')}
+                  </Text>
+                  <MaterialCommunityIcons
+                    name="clock-outline"
+                    size={20}
+                    color={colors.primary}
+                  />
+                </Pressable>
+              ) : (
+                <AppDatePicker
+                  value={selectedTime}
+                  mode="time"
+                  display={Platform.OS === 'android' ? 'clock' : 'spinner'}
+                  onChange={handleTimeChange}
+                  accentColor={colors.primary}
+                  locale="es"
+                  isAndroidModal={Platform.OS === 'android' && showTimePicker}
+                  onDismiss={handleTimePickerDismissAndroid}
+                  containerStyle={
+                    Platform.OS === 'ios' ? styles.iosTimePicker : undefined
+                  }
+                />
+              )}
+              {Platform.OS === 'android' && showTimePicker ? (
+                <AppDatePicker
+                  value={selectedTime}
+                  mode="time"
+                  display="clock"
+                  onChange={handleTimeChange}
+                  isAndroidModal={true}
+                  onDismiss={handleTimePickerDismissAndroid}
+                />
+              ) : null}
+            </View>
+          </View>
         </View>
 
         {/* ── Intervalo (create mode only) ─────────────────────────────────── */}
@@ -1144,6 +1156,30 @@ export default function VisitFormScreen() {
             accessibilityLabel="Notas de la visita"
           />
         </View>
+
+        {/* ── Guardar gestión button (create mode) ─────────────────────────── */}
+        {!isEditMode && (
+          <View style={styles.fieldGroup}>
+            <Pressable
+              style={[
+                styles.saveGestionButton,
+                !isValid && styles.saveGestionButtonDisabled,
+              ]}
+              onPress={handleSave}
+              disabled={!isValid || saving}
+              accessibilityRole="button"
+              accessibilityLabel="Guardar gestión"
+            >
+              {saving ? (
+                <ActivityIndicator size="small" color={colors.textOnPrimary} />
+              ) : (
+                <Text style={styles.saveGestionButtonText}>
+                  Guardar gestión
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        )}
       </KeyboardAwareScrollView>
 
       {/* ── Product picker modal ─────────────────────────────────────────── */}
@@ -1511,6 +1547,33 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: fontWeight.medium as '500',
     color: colors.textSecondary,
+  },
+
+  // Date + Time side-by-side row
+  dateTimeRow: {
+    flexDirection: 'row',
+    gap: spacing[3],
+  },
+  dateTimeCol: {
+    flex: 1,
+    gap: spacing[2],
+  },
+
+  // Save gestión button (create mode bottom button)
+  saveGestionButton: {
+    height: 50,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveGestionButtonDisabled: {
+    opacity: 0.5,
+  },
+  saveGestionButtonText: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textOnPrimary,
   },
 
   // Date/time pickers (iOS inline)

@@ -586,6 +586,16 @@ function TodayScreenContent() {
           )}
         </View>
       </ScrollView>
+
+      {/* ── Nueva gestión FAB ── */}
+      <Pressable
+        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+        onPress={handleNewVisitPress}
+        accessibilityRole="button"
+        accessibilityLabel="Nueva gestión"
+      >
+        <MaterialCommunityIcons name="plus" size={28} color="#FFFFFF" />
+      </Pressable>
     </>
   );
 }
@@ -912,6 +922,24 @@ const styles = StyleSheet.create({
   // ── Visit list — story 6.4 ────────────────────────────────────────────────
   visitList: {
     marginHorizontal: -spacing[4],
+  },
+
+  // ── Nueva gestión FAB ────────────────────────────────────────────────────
+  fab: {
+    position: 'absolute',
+    bottom: spacing[6],
+    right: spacing[4],
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shadows.subtle,
+    shadowColor: colors.primary,
+  },
+  fabPressed: {
+    opacity: 0.85,
   },
 
   // ── Empty state ───────────────────────────────────────────────────────────

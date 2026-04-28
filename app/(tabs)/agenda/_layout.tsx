@@ -29,10 +29,10 @@ export default function AgendaLayout() {
   return (
     <Stack screenOptions={headerOptions}>
       <Stack.Screen name="index" options={{ title: 'Agenda' }} />
-      <Stack.Screen name="visits/[id]" options={{ title: 'Visita' }} />
+      <Stack.Screen name="visits/[id]" options={{ title: 'Gestión' }} />
       <Stack.Screen
         name="visits/form"
-        options={{ presentation: 'modal', title: 'Editar visita' }}
+        options={{ presentation: 'modal', title: 'Nueva gestión' }}
       />
     </Stack>
   );

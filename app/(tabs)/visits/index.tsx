@@ -1059,23 +1059,19 @@ const styles = StyleSheet.create({
   fabContainer: {
     position: 'absolute',
     bottom: spacing[6],
-    right: spacing[6],
+    right: spacing[4],
   },
   fab: {
-    width: 56,
-    height: 56,
-    borderRadius: borderRadius.full,
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowColor: colors.primary,
   },
   fabPressed: {
-    backgroundColor: colors.primaryDark,
+    opacity: 0.85,
   },
 
   // ── Filter modal ───────────────────────────────────────────────────────────

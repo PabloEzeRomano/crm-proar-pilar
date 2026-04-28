@@ -4,7 +4,7 @@
  * EP-019: Added rn-tourguide chapter "clients" (3 steps)
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -17,7 +17,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import TourStep from '@/components/tour/TourStep';
@@ -79,6 +79,7 @@ const VISIT_TYPE_OPTIONS: { value: VisitType; label: string }[] = [
 
 function ClientsScreenContent() {
   const router = useRouter();
+  const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRubros, setSelectedRubros] = useState<string[]>([]);
   const [selectedLocalidades, setSelectedLocalidades] = useState<string[]>([]);
@@ -140,6 +141,22 @@ function ClientsScreenContent() {
       fetchInactiveClients();
     }
   }, [showInactive]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <Pressable
+          onPress={() => router.push('/clients/form')}
+          style={styles.headerButton}
+          accessibilityRole="button"
+          accessibilityLabel="Nuevo cliente"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MaterialCommunityIcons name="plus" size={24} color={colors.primary} />
+        </Pressable>
+      ),
+    });
+  }, [navigation, router]);
 
   // ── Filter modal handlers ────────────────────────────────────────────────
 
@@ -1122,24 +1139,34 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  // ── Header right button ────────────────────────────────────────────────────
+
+  headerButton: {
+    minWidth: 48,
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[2],
+  },
+
   // ── FAB ────────────────────────────────────────────────────────────────────
 
   fabContainer: {
     position: 'absolute',
     bottom: spacing[6],
-    right: spacing[6],
+    right: spacing[4],
   },
   fab: {
-    width: 56,
-    height: 56,
-    borderRadius: borderRadius.full,
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
-    shadowColor: colors.black,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.3,
     shadowRadius: 4,
   },
   fabPressed: {
