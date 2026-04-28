@@ -134,7 +134,6 @@ function TodayScreenContent() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: '',
       headerRight: () => (
         <View style={styles.headerActions}>
           <Pressable
@@ -161,6 +160,18 @@ function TodayScreenContent() {
               color={colors.primary}
             />
           </Pressable>
+        </View>
+      ),
+      headerTitle: () => (
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>
+            {span === 'today'
+              ? 'Agenda'
+              : span === 'week'
+                ? 'Esta semana'
+                : 'Este mes'}
+          </Text>
+          <Text style={styles.headerSubtitle}>{headerSubtitle}</Text>
         </View>
       ),
     });
@@ -607,6 +618,20 @@ const styles = StyleSheet.create({
     minHeight: 48,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  headerTitleContainer: {
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold as '600',
+    color: colors.textPrimary,
+  },
+  headerSubtitle: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.regular as '400',
+    color: colors.textSecondary,
+    textTransform: 'capitalize',
   },
 
   // ── Page header (inline title + date + span pills) ─────────────────────
