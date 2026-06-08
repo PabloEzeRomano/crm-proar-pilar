@@ -13,9 +13,7 @@
       "backgroundColor": "#ffffff"
     },
     "updates": {
-      "updates": {
-        "enabled": false
-      }
+      "enabled": false
     },
     "plugins": [
       [

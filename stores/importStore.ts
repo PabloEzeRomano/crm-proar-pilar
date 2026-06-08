@@ -481,7 +481,7 @@ export const useImportStore = create<ImportState>()((set) => ({
         industry: string | null;
         address: string | null;
         city: string | null;
-        contacts: any;
+        contacts: ContactInfo[];
         notes: null;
       }> = [];
       const visitsToInsert: Array<{

@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textSecondary,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
   },
   infoValue: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textPrimary,
     flexShrink: 1,
     textAlign: 'right',
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
   saveBtnText: {
     color: colors.textOnPrimary,
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
   },
   deleteBtn: {
     borderWidth: 1,
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
   deleteBtnText: {
     color: colors.error,
     fontSize: fontSize.base,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
   },
   presList: {
     gap: spacing[2],
@@ -492,7 +492,7 @@ const styles = StyleSheet.create({
   },
   presLabel: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textPrimary,
   },
   presSub: {
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
   },
   presPrice: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.primary,
   },
   presDelete: {
@@ -518,7 +518,7 @@ const styles = StyleSheet.create({
   },
   addPresTitle: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textSecondary,
   },
   row2: {
@@ -536,7 +536,7 @@ const styles = StyleSheet.create({
   addPresBtnText: {
     color: colors.textOnPrimary,
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
   },
   emptyText: {
     fontSize: fontSize.base,

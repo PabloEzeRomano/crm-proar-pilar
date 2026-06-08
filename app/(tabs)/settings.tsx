@@ -1241,7 +1241,7 @@ const styles = StyleSheet.create({
 
   sectionHeader: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -1305,17 +1305,17 @@ const styles = StyleSheet.create({
   rowLabel: {
     marginRight: spacing[1],
     fontSize: fontSize.base,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
     color: colors.textPrimary,
   },
   rowSubtitle: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
     color: colors.textSecondary,
   },
   rowValue: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
     color: colors.textSecondary,
     flexShrink: 1,
     textAlign: 'right',
@@ -1325,7 +1325,7 @@ const styles = StyleSheet.create({
 
   label: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
   input: {
@@ -1336,7 +1336,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing[3],
     fontSize: fontSize.base,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
     color: colors.textPrimary,
   },
   inputReadOnly: {
@@ -1345,7 +1345,7 @@ const styles = StyleSheet.create({
   },
   inputReadOnlyText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
     color: colors.textSecondary,
   },
 
@@ -1369,7 +1369,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
     color: colors.textPrimary,
     flexShrink: 1,
     maxWidth: 200,
@@ -1395,12 +1395,12 @@ const styles = StyleSheet.create({
   },
   addButtonLabel: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textOnPrimary,
   },
   fieldError: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
     color: colors.error,
     marginBottom: spacing[1],
   },
@@ -1433,7 +1433,7 @@ const styles = StyleSheet.create({
   },
   importButtonLabel: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textOnPrimary,
   },
   importResult: {
@@ -1451,7 +1451,7 @@ const styles = StyleSheet.create({
   importResultText: {
     flex: 1,
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
     color: colors.success,
   },
   importResultErrorText: {
@@ -1470,7 +1470,7 @@ const styles = StyleSheet.create({
   },
   signOutButtonLabel: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.white,
   },
 
@@ -1483,7 +1483,7 @@ const styles = StyleSheet.create({
   },
   appInfoText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
     color: colors.textDisabled,
   },
 
@@ -1497,7 +1497,7 @@ const styles = StyleSheet.create({
   },
   devResetButtonText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.error,
   },
 
@@ -1534,7 +1534,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     flex: 1,
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   modalScroll: {
@@ -1549,7 +1549,7 @@ const styles = StyleSheet.create({
   },
   modalSectionLabel: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
   modalActions: {
@@ -1572,7 +1572,7 @@ const styles = StyleSheet.create({
   },
   modalCancelLabel: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
   modalSendButton: {
@@ -1592,7 +1592,7 @@ const styles = StyleSheet.create({
   dateRangeFieldLabel: {
     fontSize: fontSize.xs,
     color: colors.textSecondary,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
   },
   dateRangeSeparator: {
     width: 1,
@@ -1626,11 +1626,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: fontSize.sm,
     color: colors.textSecondary,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
   },
   userPickerRowTextActive: {
     color: colors.primary,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
   },
 
   // ── Floating save bar ─────────────────────────────────────────────────────
@@ -1658,7 +1658,7 @@ const styles = StyleSheet.create({
   },
   saveButtonLabel: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textOnPrimary,
   },
 });

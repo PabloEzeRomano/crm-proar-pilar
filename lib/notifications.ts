@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import dayjs from './dayjs';
 import type { Visit } from '../types';
-import type { DateTriggerInput } from 'expo-notifications';
+import type { DateTriggerInput, NotificationContentInput } from 'expo-notifications';
 
 /**
  * Schedule a reminder notification for a visit.
@@ -58,14 +58,16 @@ export async function scheduleVisitReminder(
       date: fireTime.toDate(),
     };
 
+    const content: NotificationContentInput = {
+      title: `Visita con ${clientName}`,
+      body: 'Quedan ~10 min. ¿Agendás la próxima visita?',
+      data: { visitId: visit.id },
+    };
+
     const notificationId = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: `Visita con ${clientName}`,
-        body: 'Quedan ~10 min. ¿Agendás la próxima visita?',
-        data: { visitId: visit.id },
-      } as any,
+      content,
       trigger,
-    } as any);
+    });
 
     return notificationId;
   } catch (error) {

@@ -103,6 +103,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
   },
 });

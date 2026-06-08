@@ -634,12 +634,12 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   headerSubtitle: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
     color: colors.textSecondary,
     textTransform: 'capitalize',
   },
@@ -656,7 +656,7 @@ const styles = StyleSheet.create({
   },
   pageTitle: {
     fontSize: fontSize['2xl'],
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.textPrimary,
     letterSpacing: -0.3,
   },
@@ -685,7 +685,7 @@ const styles = StyleSheet.create({
   },
   spanPillText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
   spanPillTextActive: {
@@ -720,7 +720,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 11,
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.textSecondary,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
@@ -733,7 +733,7 @@ const styles = StyleSheet.create({
   },
   countBadgeText: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.primary,
   },
   sortButton: {
@@ -768,7 +768,7 @@ const styles = StyleSheet.create({
   },
   progressCardTitle: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textSecondary,
   },
   progressCardLabel: {
@@ -788,7 +788,7 @@ const styles = StyleSheet.create({
   },
   progressPct: {
     fontSize: fontSize['2xl'],
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.textPrimary,
     minWidth: 52,
     textAlign: 'right',
@@ -832,13 +832,13 @@ const styles = StyleSheet.create({
   },
   nextCardLabel: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   nextCardClientName: {
     fontSize: fontSize['2xl'],
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.textPrimary,
     marginBottom: spacing[1],
   },
@@ -850,7 +850,7 @@ const styles = StyleSheet.create({
   },
   nextCardDoneTitle: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     marginBottom: spacing[1],
   },
   nextCardDoneSubtitle: {
@@ -881,13 +881,13 @@ const styles = StyleSheet.create({
   },
   nextCardPillText: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   nextCardHeroName: {
     fontSize: fontSize['2xl'],
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: '#FFFFFF',
     letterSpacing: -0.3,
     marginBottom: spacing[1],
@@ -915,7 +915,7 @@ const styles = StyleSheet.create({
   },
   nextCardNavText: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: '#FFFFFF',
   },
 
@@ -967,7 +967,7 @@ const styles = StyleSheet.create({
   },
   emptyButtonText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textOnPrimary,
   },
 });

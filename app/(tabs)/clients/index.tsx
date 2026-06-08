@@ -991,7 +991,7 @@ const styles = StyleSheet.create({
   },
   filterBadgeText: {
     fontSize: 10,
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.primary,
   },
 
@@ -1021,13 +1021,13 @@ const styles = StyleSheet.create({
   },
   activeChipText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.primary,
     maxWidth: 120,
   },
   clearAllText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
     paddingHorizontal: spacing[2],
     lineHeight: 30,
@@ -1073,7 +1073,7 @@ const styles = StyleSheet.create({
   },
   avatarLetter: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.primary,
   },
   rowContent: {
@@ -1082,18 +1082,18 @@ const styles = StyleSheet.create({
   },
   rowTitle: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   rowSubtitle: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
     color: colors.textSecondary,
     marginTop: spacing[1],
   },
   ownerLabel: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
     color: colors.textDisabled,
     marginLeft: spacing[1],
   },
@@ -1111,7 +1111,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
   },
 
   // ── States ─────────────────────────────────────────────────────────────────
@@ -1197,7 +1197,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   modalScroll: {
@@ -1215,7 +1215,7 @@ const styles = StyleSheet.create({
   },
   filterSectionTitle: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textSecondary,
     letterSpacing: 0.8,
     paddingHorizontal: spacing[4],
@@ -1253,7 +1253,7 @@ const styles = StyleSheet.create({
   },
   checkLabelSelected: {
     color: colors.primary,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
   },
 
   // ── Modal footer ───────────────────────────────────────────────────────────
@@ -1276,7 +1276,7 @@ const styles = StyleSheet.create({
   },
   clearButtonText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
   applyButton: {
@@ -1289,7 +1289,7 @@ const styles = StyleSheet.create({
   },
   applyButtonText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textOnPrimary,
   },
 
@@ -1320,7 +1320,7 @@ const styles = StyleSheet.create({
   },
   inactiveRowTitle: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textSecondary,
   },
   inactiveBadge: {
@@ -1331,7 +1331,7 @@ const styles = StyleSheet.create({
   },
   inactiveBadgeText: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.statusCanceled,
   },
   restoreButton: {
@@ -1350,7 +1350,7 @@ const styles = StyleSheet.create({
   },
   restoreButtonText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.primary,
   },
 });

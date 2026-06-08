@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
   },
   counterNumber: {
     fontSize: fontSize['2xl'],
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.textPrimary,
   },
   counterLabel: {
@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
   },
   inviteButtonLabel: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textOnPrimary,
   },
   inviteButtonLabelDisabled: {
@@ -623,7 +623,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.primary,
   },
   rowContent: {
@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
   },
   rowName: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   rowSub: {
@@ -657,7 +657,7 @@ const styles = StyleSheet.create({
   },
   roleBadgeText: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
   },
 
   // ── Loading / error / empty ───────────────────────────────────────────────
@@ -723,7 +723,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: fontSize.xl,
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.textPrimary,
   },
   modalClose: {
@@ -757,7 +757,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
   input: {
@@ -793,12 +793,12 @@ const styles = StyleSheet.create({
   },
   roleOptionText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
   roleOptionTextActive: {
     color: colors.primary,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
   },
   submitButton: {
     height: 52,
@@ -813,7 +813,7 @@ const styles = StyleSheet.create({
   },
   submitButtonLabel: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textOnPrimary,
   },
 });

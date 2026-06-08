@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.primary,
   },
   rowContent: {
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   },
   rowName: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   rowSub: {
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
   },
   roleBadgeText: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
   },
   loadingContainer: {
     paddingVertical: spacing[6],
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textSecondary,
     letterSpacing: 0.5,
   },
@@ -439,14 +439,14 @@ const styles = StyleSheet.create({
   },
   statCardLabel: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   statCardCount: {
     fontSize: fontSize['3xl'],
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
   },
   statCardCountQuote: {
     color: colors.primary,
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
   },
   statCardAmount: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
   },
   statCardAmountQuote: {
     color: colors.primary,
@@ -486,12 +486,12 @@ const styles = StyleSheet.create({
   },
   segmentButtonText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
   segmentButtonTextActive: {
     color: colors.textPrimary,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
   },
 
   // Visit list
@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
   },
   adminLinkLabel: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   adminLinkSub: {

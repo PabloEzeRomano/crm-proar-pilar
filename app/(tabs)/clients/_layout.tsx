@@ -20,7 +20,7 @@ const headerOptions = {
   headerTintColor: colors.primary,
   headerTitleStyle: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   headerBackButtonDisplayMode: 'minimal' as const,

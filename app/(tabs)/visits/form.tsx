@@ -1413,12 +1413,12 @@ const styles = StyleSheet.create({
   },
   headerButtonCancel: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.primary,
   },
   headerButtonSave: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.primary,
   },
   headerButtonSaveDisabled: {
@@ -1436,7 +1436,7 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
   fieldRequired: {
@@ -1513,7 +1513,7 @@ const styles = StyleSheet.create({
   },
   clientPickerRowName: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textPrimary,
   },
   clientPickerRowSub: {
@@ -1545,7 +1545,7 @@ const styles = StyleSheet.create({
   },
   clientPickerCancelText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
 
@@ -1572,7 +1572,7 @@ const styles = StyleSheet.create({
   },
   saveGestionButtonText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textOnPrimary,
   },
 
@@ -1609,7 +1609,7 @@ const styles = StyleSheet.create({
   },
   typeOptionLabel: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
   typeOptionLabelActive: {
@@ -1637,7 +1637,7 @@ const styles = StyleSheet.create({
   },
   gapOptionLabel: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
   gapOptionLabelActive: {
@@ -1663,7 +1663,7 @@ const styles = StyleSheet.create({
   },
   statusOptionLabel: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
 
@@ -1696,7 +1696,7 @@ const styles = StyleSheet.create({
   },
   addProductButtonText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.primary,
   },
   totalRow: {
@@ -1709,12 +1709,12 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textSecondary,
   },
   totalAmount: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.textPrimary,
   },
 
@@ -1735,7 +1735,7 @@ const styles = StyleSheet.create({
   },
   pickerTitle: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   pickerSearch: {
@@ -1778,7 +1778,7 @@ const styles = StyleSheet.create({
   },
   pickerFilterPillText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
   pickerFilterPillTextActive: {
@@ -1812,7 +1812,7 @@ const styles = StyleSheet.create({
   },
   pickerProductName: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textPrimary,
   },
   pickerProductType: {
@@ -1837,7 +1837,7 @@ const styles = StyleSheet.create({
   },
   pickerPresLabel: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textPrimary,
   },
   pickerPresLabelDimmed: {
@@ -1854,7 +1854,7 @@ const styles = StyleSheet.create({
   },
   pickerPresPrice: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   pickerDivider: {
@@ -1879,7 +1879,7 @@ const styles = StyleSheet.create({
   },
   resendButtonText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.primary,
   },
 
@@ -1910,7 +1910,7 @@ const styles = StyleSheet.create({
   },
   quoteOptionAmount: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
 });

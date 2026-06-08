@@ -165,12 +165,12 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
   timeText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
   },
 
   clientColumn: {
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   },
   clientName: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   ownerText: {
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   },
   amountText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
 });

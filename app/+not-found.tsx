@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
     textAlign: 'center',
   },
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: '#FFFFFF',
   },
 });

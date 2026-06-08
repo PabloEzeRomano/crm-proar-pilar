@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   },
   popoverTitle: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   closeIcon: {

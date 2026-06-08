@@ -10,7 +10,7 @@
  * Back button behavior is naturally correct in each stack.
  */
 
-import React, { useEffect, useLayoutEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -78,7 +78,10 @@ export default function VisitDetailView() {
   // Selector returns the stable array reference; filter runs outside
   // the subscription to avoid a new array on every render (infinite loop).
   const allVisits = useVisitsStore((s) => s.visits);
-  const linkedSales = allVisits.filter((v) => v.quote_id === id);
+  const linkedSales = useMemo(
+    () => allVisits.filter((v) => v.quote_id === id),
+    [allVisits, id]
+  );
 
   // If the visit isn't in the store yet (e.g. navigating from Today tab
   // before visitsStore has been populated), fetch it on demand.
@@ -95,7 +98,7 @@ export default function VisitDetailView() {
     if (visit) {
       setNotesText(visit.notes ?? '');
     }
-  }, [visit?.id]);
+  }, [visit]);
 
   const isOwner = visit ? visit.owner_user_id === currentUser?.id : false;
 
@@ -266,7 +269,7 @@ export default function VisitDetailView() {
               >
                 <Text style={[
                   styles.switcherPillText,
-                  active && { color: cfg.color, fontWeight: fontWeight.bold as '700' },
+                  active && { color: cfg.color, fontWeight: fontWeight.bold },
                 ]}>
                   {cfg.label}
                 </Text>
@@ -521,7 +524,7 @@ const styles = StyleSheet.create({
   },
   headerButtonText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.primary,
   },
 
@@ -551,7 +554,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontSize: 11,
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -564,7 +567,7 @@ const styles = StyleSheet.create({
   // Client section
   clientName: {
     fontSize: fontSize['2xl'],
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.textPrimary,
     lineHeight: fontSize['2xl'] * 1.25,
   },
@@ -577,12 +580,12 @@ const styles = StyleSheet.create({
   },
   industryBadgeText: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.primary,
   },
   clientLink: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.primary,
   },
 
@@ -605,14 +608,14 @@ const styles = StyleSheet.create({
   },
   typeBadgeText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textPrimary,
   },
 
   // Date
   dateText: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textPrimary,
   },
 
@@ -646,7 +649,7 @@ const styles = StyleSheet.create({
   // Amount
   amountText: {
     fontSize: fontSize.xl,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
 
@@ -666,7 +669,7 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textPrimary,
   },
   itemSub: {
@@ -675,12 +678,12 @@ const styles = StyleSheet.create({
   },
   itemTotal: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   itemPricePerKg: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
     textAlign: 'right',
   },
@@ -692,12 +695,12 @@ const styles = StyleSheet.create({
   },
   itemsTotalLabel: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textSecondary,
   },
   itemsTotalAmount: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.textPrimary,
   },
 
@@ -711,7 +714,7 @@ const styles = StyleSheet.create({
   },
   linkedRowText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.primary,
   },
   linkedRowContent: {
@@ -723,7 +726,7 @@ const styles = StyleSheet.create({
   },
   linkedRowDate: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textPrimary,
   },
   linkedRowAmount: {
@@ -748,7 +751,7 @@ const styles = StyleSheet.create({
   },
   switcherPillText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
 
@@ -768,7 +771,7 @@ const styles = StyleSheet.create({
   },
   actionButtonSuccessText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textOnPrimary,
   },
   actionButtonDanger: {
@@ -781,7 +784,7 @@ const styles = StyleSheet.create({
   },
   actionButtonDangerText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.error,
   },
   actionButtonDisabled: {
@@ -797,7 +800,7 @@ const styles = StyleSheet.create({
   },
   actionButtonDeleteText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.error,
   },
 });

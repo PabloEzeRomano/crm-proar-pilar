@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textSecondary,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -245,11 +245,11 @@ const styles = StyleSheet.create({
   typeBtnText: {
     fontSize: fontSize.sm,
     color: colors.textSecondary,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
   },
   typeBtnTextActive: {
     color: colors.primary,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
   },
   row2: {
     flexDirection: 'row',
@@ -270,6 +270,6 @@ const styles = StyleSheet.create({
   saveBtnText: {
     color: colors.textOnPrimary,
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
   },
 });

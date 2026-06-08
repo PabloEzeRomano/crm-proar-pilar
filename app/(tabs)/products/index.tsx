@@ -242,12 +242,12 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
   tabTextActive: {
     color: colors.textOnPrimary,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
   },
   listContent: {
     paddingHorizontal: spacing[4],
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
   },
   rowName: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   rowSub: {

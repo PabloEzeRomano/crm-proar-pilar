@@ -159,7 +159,7 @@ const pcStyles = StyleSheet.create({
   },
   label: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -167,13 +167,13 @@ const pcStyles = StyleSheet.create({
   },
   total: {
     fontSize: fontSize['2xl'],
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.textPrimary,
     marginBottom: spacing[1],
   },
   unit: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
     color: colors.textSecondary,
   },
   row: {
@@ -193,7 +193,7 @@ const pcStyles = StyleSheet.create({
   },
   rateText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     minWidth: 32,
     textAlign: 'right',
   },
@@ -626,7 +626,7 @@ const styles = StyleSheet.create({
   sheetTitle: {
     flex: 1,
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   closeBtn: {
@@ -663,7 +663,7 @@ const styles = StyleSheet.create({
   },
   toggleLabel: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textPrimary,
   },
   dateRangeHeader: {
@@ -681,7 +681,7 @@ const styles = StyleSheet.create({
   },
   datePickerLabel: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
@@ -704,7 +704,7 @@ const styles = StyleSheet.create({
   dateDisplayText: {
     fontSize: fontSize.base,
     color: colors.textPrimary,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
   },
 
   // Period cards
@@ -719,7 +719,7 @@ const styles = StyleSheet.create({
   },
   topSectionTitle: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -736,14 +736,14 @@ const styles = StyleSheet.create({
   topRank: {
     width: 20,
     fontSize: fontSize.base,
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.textDisabled,
     textAlign: 'center',
   },
   topName: {
     flex: 1,
     fontSize: fontSize.base,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textPrimary,
   },
   topBadge: {
@@ -756,7 +756,7 @@ const styles = StyleSheet.create({
   },
   topBadgeText: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.primary,
   },
 
@@ -782,7 +782,7 @@ const styles = StyleSheet.create({
   },
   userSelectorLabel: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
@@ -808,7 +808,7 @@ const styles = StyleSheet.create({
   },
   userPillText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
     maxWidth: 120,
   },

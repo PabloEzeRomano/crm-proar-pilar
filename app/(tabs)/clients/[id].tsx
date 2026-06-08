@@ -870,7 +870,7 @@ const styles = StyleSheet.create({
   },
   headerButtonText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.primary,
   },
 
@@ -904,7 +904,7 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     fontSize: 11,
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -917,7 +917,7 @@ const styles = StyleSheet.create({
   // Client name + badge
   clientName: {
     fontSize: fontSize['2xl'],
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.textPrimary,
     lineHeight: fontSize['2xl'] * 1.25,
   },
@@ -930,7 +930,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.primary,
   },
 
@@ -940,12 +940,12 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
   infoValue: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
     color: colors.textPrimary,
   },
   contactCard: {
@@ -960,13 +960,13 @@ const styles = StyleSheet.create({
   },
   contactName: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   contactLink: {
     fontSize: fontSize.base,
     color: colors.primary,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
   },
 
   // Maps button — secondary appearance per ui-specs
@@ -983,14 +983,14 @@ const styles = StyleSheet.create({
   },
   mapsButtonText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.primary,
   },
 
   // Notes
   notesText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
     color: colors.textPrimary,
     lineHeight: fontSize.base * 1.5,
   },
@@ -1019,7 +1019,7 @@ const styles = StyleSheet.create({
   },
   newVisitButtonText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.primary,
   },
   archiveButton: {
@@ -1036,7 +1036,7 @@ const styles = StyleSheet.create({
   },
   archiveButtonText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textSecondary,
   },
 
@@ -1054,11 +1054,11 @@ const styles = StyleSheet.create({
   productCode: {
     fontSize: fontSize.xs,
     color: colors.textSecondary,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
   },
   productName: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   productPresentation: {
@@ -1075,7 +1075,7 @@ const styles = StyleSheet.create({
   },
   addProductButtonText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.primary,
   },
 
@@ -1096,7 +1096,7 @@ const styles = StyleSheet.create({
   },
   pickerModalTitle: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   pickerSearch: {
@@ -1139,7 +1139,7 @@ const styles = StyleSheet.create({
   },
   pickerFilterPillText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
   pickerFilterPillTextActive: {
@@ -1173,7 +1173,7 @@ const styles = StyleSheet.create({
   },
   pickerProductName: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textPrimary,
   },
   pickerProductType: {
@@ -1198,7 +1198,7 @@ const styles = StyleSheet.create({
   },
   pickerPresLabel: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textPrimary,
   },
   pickerPresLabelDimmed: {
@@ -1238,19 +1238,19 @@ const styles = StyleSheet.create({
   },
   heroAvatarText: {
     fontSize: fontSize['2xl'],
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.primary,
   },
   heroName: {
     fontSize: fontSize['2xl'],
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.textPrimary,
     letterSpacing: -0.3,
     textAlign: 'center',
   },
   lastVisitText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
   },
 
   // Quick actions row
@@ -1288,7 +1288,7 @@ const styles = StyleSheet.create({
   },
   quickActionLabel: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
 });

@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   },
   stepText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
     color: colors.textPrimary,
     lineHeight: 22,
     marginBottom: spacing[3],
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   },
   skipText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
     color: colors.textSecondary,
     textDecorationLine: 'underline',
   },
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   },
   prevText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
   nextBtn: {
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   },
   nextText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textOnPrimary,
   },
 });

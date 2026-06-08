@@ -943,7 +943,7 @@ const styles = StyleSheet.create({
   },
   filterBadgeText: {
     fontSize: 10,
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.primary,
   },
 
@@ -974,7 +974,7 @@ const styles = StyleSheet.create({
   },
   pillText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
   },
   pillTextActive: {
     color: colors.textOnPrimary,
@@ -1009,13 +1009,13 @@ const styles = StyleSheet.create({
   },
   activeChipText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.primary,
     maxWidth: 120,
   },
   clearAllText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
     paddingHorizontal: spacing[2],
     lineHeight: 30,
@@ -1098,7 +1098,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   modalScroll: {
@@ -1113,7 +1113,7 @@ const styles = StyleSheet.create({
   },
   filterSectionTitle: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textSecondary,
     letterSpacing: 0.8,
     paddingHorizontal: spacing[4],
@@ -1151,7 +1151,7 @@ const styles = StyleSheet.create({
   },
   checkLabelSelected: {
     color: colors.primary,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
   },
 
   // ── Date fields (inside filter modal) ─────────────────────────────────────
@@ -1166,7 +1166,7 @@ const styles = StyleSheet.create({
   },
   dateFieldLabel: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
   dateDisplayButton: {
@@ -1208,7 +1208,7 @@ const styles = StyleSheet.create({
   },
   clearButtonText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
   applyButton: {
@@ -1221,7 +1221,7 @@ const styles = StyleSheet.create({
   },
   applyButtonText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textOnPrimary,
   },
 });

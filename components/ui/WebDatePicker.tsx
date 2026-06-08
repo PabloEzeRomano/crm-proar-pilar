@@ -236,13 +236,13 @@ const styles = StyleSheet.create({
   },
   navArrow: {
     fontSize: 24,
-    fontWeight: fontWeight.bold as '700',
+    fontWeight: fontWeight.bold,
     color: colors.primary,
     lineHeight: 28,
   },
   monthLabel: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
     flex: 1,
     textAlign: 'center',
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
   },
   dayNameText: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textSecondary,
   },
 
@@ -297,16 +297,16 @@ const styles = StyleSheet.create({
   // Day text
   dayText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
     color: colors.textPrimary,
   },
   dayTextToday: {
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.primary,
   },
   dayTextSelected: {
     color: colors.textOnPrimary,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
   },
   dayTextDisabled: {
     color: colors.textDisabled,

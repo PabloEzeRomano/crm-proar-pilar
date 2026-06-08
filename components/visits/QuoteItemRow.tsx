@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   presentationLabel: {
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   },
   totalValue: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
 });

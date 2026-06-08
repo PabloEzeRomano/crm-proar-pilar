@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
   },
   triggerLabelActive: {
     color: colors.primary,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
   },
 
   // Modal overlay
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
 
@@ -415,13 +415,13 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textSecondary,
     letterSpacing: 0.8,
   },
   clearText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.primary,
   },
   chipsRow: {
@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.primary,
     maxWidth: 120,
   },
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: fontSize.base,
     color: colors.primary,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
   },
 
   // Empty state

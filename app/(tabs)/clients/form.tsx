@@ -927,12 +927,12 @@ const styles = StyleSheet.create({
   },
   headerCancelText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
     color: colors.textSecondary,
   },
   headerSaveText: {
     fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.primary,
   },
 
@@ -945,7 +945,7 @@ const styles = StyleSheet.create({
   errorBannerText: {
     fontSize: fontSize.sm,
     color: colors.error,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
   },
 
   // Field wrapper
@@ -956,7 +956,7 @@ const styles = StyleSheet.create({
   // Label — above the field
   label: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
 
@@ -969,7 +969,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing[3],
     fontSize: fontSize.base,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
     color: colors.textPrimary,
   },
 
@@ -1038,7 +1038,7 @@ const styles = StyleSheet.create({
   },
   pickerRowActive: {
     color: colors.primary,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
   },
   pickerRowClear: {
     fontSize: fontSize.sm,
@@ -1055,7 +1055,7 @@ const styles = StyleSheet.create({
   fieldError: {
     fontSize: fontSize.sm,
     color: colors.error,
-    fontWeight: fontWeight.regular as '400',
+    fontWeight: fontWeight.regular,
   },
 
   // Contact form cards
@@ -1075,7 +1075,7 @@ const styles = StyleSheet.create({
   },
   contactFormCardTitle: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textSecondary,
   },
   contactFormInput: {
@@ -1099,7 +1099,7 @@ const styles = StyleSheet.create({
   },
   addContactButtonText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.primary,
   },
 
@@ -1143,7 +1143,7 @@ const styles = StyleSheet.create({
   },
   searchModalTitle: {
     fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold as '600',
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   searchInputRow: {
@@ -1204,7 +1204,7 @@ const styles = StyleSheet.create({
   // Inline "Agregar nuevo…" picker row
   pickerAddText: {
     fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium as '500',
+    fontWeight: fontWeight.medium,
     color: colors.primary,
     flex: 1,
   },
