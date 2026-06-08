@@ -3,5 +3,17 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "scripts": {
+    "proar": "yarn workspace @crm/proar start",
+    "proar:web": "yarn workspace @crm/proar web",
+    "proar:android": "yarn workspace @crm/proar android",
+    "proar:ios": "yarn workspace @crm/proar ios",
+    "proar:build:web": "yarn workspace @crm/proar build:web",
+    "proar:lint": "yarn workspace @crm/proar lint",
+    "sensei": "yarn workspace @crm/sensei start",
+    "sensei:web": "yarn workspace @crm/sensei web",
+    "sensei:build:web": "yarn workspace @crm/sensei build:web",
+    "sensei:lint": "yarn workspace @crm/sensei lint"
+  }
 }
