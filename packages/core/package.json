@@ -1,0 +1,17 @@
+{
+  "name": "@crm/core",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "private": true,
+  "dependencies": {
+    "@supabase/supabase-js": "^2.98.0",
+    "dayjs": "^1.11.19",
+    "zod": "^4.3.6",
+    "zustand": "^5.0.11"
+  },
+  "peerDependencies": {
+    "expo-secure-store": "*",
+    "react-native": "*",
+    "@react-native-async-storage/async-storage": "*"
+  }
+}
