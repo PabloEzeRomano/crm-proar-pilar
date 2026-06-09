@@ -136,11 +136,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Admin can only deactivate users in their own company
-    if (
-      callerProfile.role === 'admin' &&
-      targetProfile.company_id !== callerProfile.company_id
-    ) {
+    // Can only deactivate users in caller's own company
+    if (targetProfile.company_id !== callerProfile.company_id) {
       return jsonResponse(
         { error: 'Cannot deactivate users from a different company' },
         403

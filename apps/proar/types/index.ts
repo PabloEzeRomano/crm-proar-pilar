@@ -21,6 +21,7 @@ export type VisitType = 'sale' | 'visit' | 'call' | 'quote';
 export interface Visit {
   id: string;
   owner_user_id: string;
+  company_id: string;
   client_id: string;
   scheduled_at: string;
   status: VisitStatus;
@@ -53,6 +54,7 @@ export interface ProductPresentation {
 
 export interface Product {
   id: string;
+  company_id: string;
   name: string;
   code: string | null;
   type: ProductType;
@@ -64,6 +66,7 @@ export interface Product {
 
 export interface ClientProduct {
   id: string;
+  company_id: string;
   client_id: string;
   product_id: string;
   product_presentation_id: string;

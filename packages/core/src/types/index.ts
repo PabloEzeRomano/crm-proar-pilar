@@ -24,7 +24,7 @@ export interface Profile {
   full_name: string | null;
   email_config: EmailConfig;
   role: UserRole;
-  company_id: string | null;
+  company_id: string;
   show_tour: boolean;
   created_at: string;
   updated_at: string;
@@ -53,6 +53,7 @@ export interface ContactInfo {
 export interface Client {
   id: string;
   owner_user_id: string;
+  company_id: string;
   name: string;
   industry: string | null;
   address: string | null;

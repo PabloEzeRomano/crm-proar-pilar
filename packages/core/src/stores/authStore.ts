@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 
 const APP_SCHEME = process.env.EXPO_PUBLIC_APP_SCHEME ?? 'crm-proar';
+const CRM_TYPE = process.env.EXPO_PUBLIC_CRM_TYPE; // 'field-sales' | 'campaign-management'
 
 export interface AuthState {
   session: Session | null;
@@ -79,6 +80,33 @@ async function fetchProfile(
   // sign-up because the DB trigger that creates it runs asynchronously.
 }
 
+/**
+ * Validates that the user's company crm_type matches EXPO_PUBLIC_CRM_TYPE.
+ * Returns null if OK, or an error message if mismatched.
+ * Skips validation if EXPO_PUBLIC_CRM_TYPE is not set (backwards compat).
+ */
+async function validateCrmType(companyId: string | null, role?: string): Promise<string | null> {
+  if (!CRM_TYPE) return null; // env var not set — skip validation
+  if (role === 'root') return null; // root can access any app
+  if (!companyId) return 'Tu cuenta no tiene una empresa asignada. Contactá al administrador.';
+
+  const { data, error } = await supabase
+    .from('company_config')
+    .select('crm_type')
+    .eq('company_id', companyId)
+    .single<{ crm_type: string }>();
+
+  if (error || !data) {
+    return 'No se encontró la configuración de la empresa.';
+  }
+
+  if (data.crm_type !== CRM_TYPE) {
+    return 'Tu empresa no tiene acceso a esta aplicación.';
+  }
+
+  return null;
+}
+
 export const useAuthStore = create<AuthState>()((set) => ({
   session: null,
   user: null,
@@ -101,6 +129,12 @@ export const useAuthStore = create<AuthState>()((set) => ({
       const profile = await fetchProfile(existingSession.user.id);
 
       if (profile) {
+        const crmError = await validateCrmType(profile.company_id, profile.role);
+        if (crmError) {
+          await supabase.auth.signOut();
+          set({ session: null, user: null, profile: null, loading: false, error: crmError });
+          return;
+        }
         set({ profile });
       }
     }
@@ -115,10 +149,18 @@ export const useAuthStore = create<AuthState>()((set) => ({
         // Set session and user immediately, unblock the UI
         set({ session, user: session.user, loading: false });
 
-        // Fetch profile in the background without blocking
+        // Fetch profile and validate CRM type
         fetchProfile(session.user.id)
-          .then((profile) => {
-            if (profile) set({ profile });
+          .then(async (profile) => {
+            if (profile) {
+              const crmError = await validateCrmType(profile.company_id, profile.role);
+              if (crmError) {
+                await supabase.auth.signOut();
+                set({ session: null, user: null, profile: null, loading: false, error: crmError });
+                return;
+              }
+              set({ profile });
+            }
           })
           .catch(() => {
             // Profile may not exist yet on first sign-up (DB trigger is async)

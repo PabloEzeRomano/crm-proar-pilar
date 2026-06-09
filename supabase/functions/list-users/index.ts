@@ -131,15 +131,15 @@ Deno.serve(async (req) => {
 
     // ── 4. Load all profiles in the same company ────────────────────────────
 
-    let profileQuery = adminClient
-      .from('profiles')
-      .select('id, full_name, role, company_id');
-
-    if (callerProfile.role !== 'root' && callerProfile.company_id) {
-      profileQuery = profileQuery.eq('company_id', callerProfile.company_id);
+    if (!callerProfile.company_id) {
+      return jsonResponse({ error: 'Caller has no company assigned' }, 403);
     }
 
-    const { data: profiles } = await profileQuery;
+    // Always filter by caller's company — even root only sees own company
+    const { data: profiles } = await adminClient
+      .from('profiles')
+      .select('id, full_name, role, company_id')
+      .eq('company_id', callerProfile.company_id);
     const profileMap = new Map<string, Profile>();
     for (const p of profiles ?? []) {
       profileMap.set(p.id, p);
@@ -152,19 +152,16 @@ Deno.serve(async (req) => {
     for (const authUser of authUsers) {
       const profile = profileMap.get(authUser.id);
 
-      // Filter by company: if caller is admin (not root), only include users
-      // whose profile is in the same company OR who have no profile yet but
-      // were invited by someone in this company (check raw_user_meta_data).
-      if (callerProfile.role !== 'root') {
-        const companyId = callerProfile.company_id;
-        const profileCompanyId = profile?.company_id;
-        const metaCompanyId = (
-          authUser.raw_user_meta_data as Record<string, unknown> | null
-        )?.company_id as string | undefined;
+      // Filter by company — all roles only see their own company's users.
+      // Check both profile.company_id and metadata (for pending invites).
+      const companyId = callerProfile.company_id;
+      const profileCompanyId = profile?.company_id;
+      const metaCompanyId = (
+        authUser.raw_user_meta_data as Record<string, unknown> | null
+      )?.company_id as string | undefined;
 
-        if (profileCompanyId !== companyId && metaCompanyId !== companyId) {
-          continue;
-        }
+      if (profileCompanyId !== companyId && metaCompanyId !== companyId) {
+        continue;
       }
 
       // Exclude root users from the list — covers confirmed root, pending root,

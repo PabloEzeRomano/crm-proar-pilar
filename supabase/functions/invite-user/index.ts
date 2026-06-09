@@ -127,6 +127,12 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ── 3b. Guard: caller must belong to a company ────────────────────────
+
+    if (!callerProfile.company_id) {
+      return jsonResponse({ error: 'Caller has no company assigned' }, 403);
+    }
+
     // ── 4. Parse and validate request body ─────────────────────────────────
 
     let body: InviteBody;
@@ -152,10 +158,6 @@ Deno.serve(async (req) => {
     // ── 5. Seat limit check (skip for root) ────────────────────────────────
 
     if (callerProfile.role !== 'root') {
-      if (!callerProfile.company_id) {
-        return jsonResponse({ error: 'Caller has no company assigned' }, 403);
-      }
-
       // Read max_users from company_config
       const { data: config, error: configErr } = await adminClient
         .from('company_config')
