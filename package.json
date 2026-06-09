@@ -14,6 +14,7 @@
     "sensei": "yarn workspace @crm/sensei start",
     "sensei:web": "yarn workspace @crm/sensei web",
     "sensei:build:web": "yarn workspace @crm/sensei build:web",
-    "sensei:lint": "yarn workspace @crm/sensei lint"
+    "sensei:lint": "yarn workspace @crm/sensei lint",
+    "lint": "yarn workspace @crm/proar lint && yarn workspace @crm/sensei lint"
   }
 }

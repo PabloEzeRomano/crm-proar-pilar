@@ -104,7 +104,7 @@ export default function TabsLayout() {
       />
 
       <Tabs.Screen
-        name="gestiones"
+        name="interactions"
         options={{
           title: 'Gestiones',
           headerShown: false,

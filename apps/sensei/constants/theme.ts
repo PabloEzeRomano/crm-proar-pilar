@@ -40,7 +40,7 @@ export const colors = {
   transparent: 'transparent',
 } as const;
 
-export const gestionResultColors = {
+export const interactionResultColors = {
   contacted: '#0F766E',
   contactedLight: '#F0FDFA',
   not_contacted: '#94A3B8',

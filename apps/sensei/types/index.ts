@@ -29,7 +29,7 @@ export type InterestResult =
   | 'follow_up'
   | 'sale';
 
-export type GestionChannel = 'phone' | 'whatsapp' | 'in_person' | 'email';
+export type InteractionChannel = 'phone' | 'whatsapp' | 'in_person' | 'email';
 
 export type AssignmentStatus = 'pending' | 'in_progress' | 'completed';
 
@@ -87,7 +87,7 @@ export interface RejectionReason {
   created_at: string;
 }
 
-export interface Gestion {
+export interface Interaction {
   id: string;
   assignment_id: string | null;
   user_id: string;
@@ -101,7 +101,7 @@ export interface Gestion {
   financing: string | null;
   invoice_number: string | null;
   amount: number | null;
-  channel: GestionChannel;
+  channel: InteractionChannel;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -112,7 +112,7 @@ export interface ClientAssignmentWithClient extends ClientAssignment {
   client: import('@crm/core').Client;
 }
 
-export interface GestionWithClient extends Gestion {
+export interface InteractionWithClient extends Interaction {
   client: import('@crm/core').Client;
   campaign?: Campaign;
 }

@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { colors, fontSize, fontWeight } from '@/constants/theme';
 
-export default function TabLayout() {
+export default function GestionesLayout() {
   return (
     <Stack
       screenOptions={{
@@ -14,6 +14,9 @@ export default function TabLayout() {
         headerShadowVisible: false,
         headerTintColor: colors.primary,
       }}
-    />
+    >
+      <Stack.Screen name="index" options={{ title: 'Gestiones' }} />
+      <Stack.Screen name="new" options={{ title: 'Nueva gestión' }} />
+    </Stack>
   );
 }
