@@ -15,7 +15,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import Constants from 'expo-constants';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -133,6 +133,34 @@ function SettingsScreenContent() {
     message: string;
   } | null>(null);
 
+  // Progress bar visibility
+  const PROGRESS_KEY = 'agenda-progress-visible';
+  const [progressVisible, setProgressVisible] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      AsyncStorage.getItem(PROGRESS_KEY).then((val) => {
+        setProgressVisible(val !== 'false');
+      });
+    }, [])
+  );
+
+  function handleProgressToggle(val: boolean) {
+    setProgressVisible(val);
+    AsyncStorage.setItem(PROGRESS_KEY, val ? 'true' : 'false');
+  }
+
+  // Gap between visits (used by visit form to auto-calculate next time)
+  const GAP_KEY = 'visit-gap-minutes';
+  const DEFAULT_GAP = 60;
+  const GAP_OPTIONS = [
+    { label: '30 min', value: 30 },
+    { label: '1 hora', value: 60 },
+    { label: '1 h 30', value: 90 },
+    { label: '2 horas', value: 120 },
+  ];
+  const [gapMinutes, setGapMinutes] = useState<number>(DEFAULT_GAP);
+
   // Restart tour: persist DB flag, navigate to agenda
   function handleRestartTour() {
     resetTour(); // persist show_tour=true to DB
@@ -197,6 +225,13 @@ function SettingsScreenContent() {
     loadNotificationsEnabled();
   }, []);
 
+  // Load gap minutes from AsyncStorage on mount
+  useEffect(() => {
+    AsyncStorage.getItem(GAP_KEY).then((val) => {
+      if (val) setGapMinutes(Number(val));
+    });
+  }, []);
+
   // -------------------------------------------------------------------------
   // Handlers
   // -------------------------------------------------------------------------
@@ -252,6 +287,11 @@ function SettingsScreenContent() {
     } finally {
       setTestingNotification(false);
     }
+  }
+
+  function handleGapChange(value: number) {
+    setGapMinutes(value);
+    AsyncStorage.setItem(GAP_KEY, String(value));
   }
 
   function handleSenderChange(text: string) {
@@ -380,12 +420,12 @@ function SettingsScreenContent() {
     const confirmed =
       Platform.OS === 'web'
         ? window.confirm(
-            'Esto eliminará TODOS los clientes y visitas del usuario. ¿Continuar?'
+            'Esto eliminará TODOS los clientes y gestiones del usuario. ¿Continuar?'
           )
         : await new Promise<boolean>((resolve) =>
             Alert.alert(
               'Borrar todos los datos',
-              'Esto eliminará TODOS los clientes y visitas del usuario. ¿Continuar?',
+              'Esto eliminará TODOS los clientes y gestiones del usuario. ¿Continuar?',
               [
                 {
                   text: 'Cancelar',
@@ -442,7 +482,65 @@ function SettingsScreenContent() {
         extraScrollHeight={100}
       >
         {/* ================================================================
-            Section 1 — Resumen semanal
+            Section — Gestiones
+        ================================================================ */}
+        <Text style={styles.sectionHeader}>GESTIONES</Text>
+
+        <View style={styles.section}>
+          <View style={[styles.row, styles.rowColumn, styles.rowNoBorder]}>
+            <View style={styles.rowContent}>
+              <Text style={styles.rowLabel}>Intervalo entre gestiones</Text>
+              <Text style={styles.rowSubtitle}>
+                Al agendar, la hora se calcula automáticamente sumando este
+                intervalo a la última gestión del día
+              </Text>
+            </View>
+            <View style={styles.gapRow}>
+              {GAP_OPTIONS.map(({ label, value }) => {
+                const active = gapMinutes === value;
+                return (
+                  <Pressable
+                    key={value}
+                    style={[styles.gapOption, active && styles.gapOptionActive]}
+                    onPress={() => handleGapChange(value)}
+                    accessibilityRole="radio"
+                    accessibilityLabel={label}
+                    accessibilityState={{ checked: active }}
+                  >
+                    <Text
+                      style={[
+                        styles.gapOptionLabel,
+                        active && styles.gapOptionLabelActive,
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          <View style={[styles.row, styles.rowBorderTop]}>
+            <View style={styles.rowContent}>
+              <Text style={styles.rowLabel}>Barra de progreso</Text>
+              <Text style={styles.rowSubtitle}>
+                Mostrar el progreso del día en la agenda
+              </Text>
+            </View>
+            <Switch
+              value={progressVisible}
+              onValueChange={handleProgressToggle}
+              trackColor={{ false: colors.border, true: colors.primaryLight }}
+              thumbColor={
+                progressVisible ? colors.primary : colors.textDisabled
+              }
+            />
+          </View>
+        </View>
+
+        {/* ================================================================
+            Section — Resumen semanal
         ================================================================ */}
         <Text style={styles.sectionHeader}>RESUMEN SEMANAL</Text>
 
@@ -450,7 +548,7 @@ function SettingsScreenContent() {
           {/* ── Tour step 9: Email toggle row ── */}
           <TourStep
             order={9}
-            text="Activá el resumen semanal para recibir un email cada lunes con tus visitas de la semana. Configurá el destinatario y el email de respuesta."
+            text="Activá el resumen semanal para recibir un email cada lunes con tus gestiones de la semana. Configurá el destinatario y el email de respuesta."
             borderRadius={borderRadius.md}
             routePath="/(tabs)/settings"
           >
@@ -618,9 +716,9 @@ function SettingsScreenContent() {
         <View style={styles.section}>
           <View style={[styles.row, styles.rowNoBorder]}>
             <View style={styles.rowContent}>
-              <Text style={styles.rowLabel}>Recordatorios de visitas</Text>
+              <Text style={styles.rowLabel}>Recordatorios de gestiones</Text>
               <Text style={styles.rowSubtitle}>
-                Recibir notificaciones antes de las visitas
+                Recibir notificaciones antes de las gestiones
               </Text>
             </View>
             <Switch
@@ -715,7 +813,7 @@ function SettingsScreenContent() {
           {/* ── Tour step 10: Import button ── */}
           <TourStep
             order={10}
-            text="Importá todos tus clientes y visitas desde un archivo Excel (.xlsx). El sistema elimina clientes duplicados y crea las visitas automáticamente."
+            text="Importá todos tus clientes y gestiones desde un archivo Excel (.xlsx). El sistema elimina clientes duplicados y crea las gestiones automáticamente."
             borderRadius={borderRadius.md}
             routePath="/(tabs)/settings"
           >
@@ -723,7 +821,7 @@ function SettingsScreenContent() {
               <View style={styles.rowContent}>
                 <Text style={styles.rowLabel}>Importar desde Excel</Text>
                 <Text style={styles.rowSubtitle}>
-                  Seleccioná el archivo .xlsx para importar clientes y visitas
+                  Seleccioná el archivo .xlsx para importar clientes y gestiones
                 </Text>
               </View>
 
@@ -770,7 +868,7 @@ function SettingsScreenContent() {
                   />
                   <Text style={styles.importResultText}>
                     {importResult.clientsCreated} clientes nuevos ·{' '}
-                    {importResult.visitsCreated} visitas nuevas
+                    {importResult.visitsCreated} gestiones nuevas
                     {importResult.clientsSkipped + importResult.visitsSkipped >
                     0
                       ? ` · ${importResult.clientsSkipped + importResult.visitsSkipped} ya existían`
@@ -863,7 +961,7 @@ function SettingsScreenContent() {
                   style={styles.devResetButton}
                   onPress={handleDevReset}
                   accessibilityRole="button"
-                  accessibilityLabel="Borrar todos los clientes y visitas"
+                  accessibilityLabel="Borrar todos los clientes y gestiones"
                 >
                   <MaterialCommunityIcons
                     name="trash-can-outline"
@@ -871,7 +969,7 @@ function SettingsScreenContent() {
                     color={colors.error}
                   />
                   <Text style={styles.devResetButtonText}>
-                    Borrar clientes y visitas
+                    Borrar clientes y gestiones
                   </Text>
                 </Pressable>
               </View>
@@ -920,7 +1018,7 @@ function SettingsScreenContent() {
               size={20}
               color={colors.primary}
             />
-            <Text style={styles.modalTitle}>Enviar reporte de visitas</Text>
+            <Text style={styles.modalTitle}>Enviar reporte de gestiones</Text>
             <Pressable
               onPress={() => setShowSendModal(false)}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -1319,6 +1417,35 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     flexShrink: 1,
     textAlign: 'right',
+  },
+
+  // ── Gap picker ────────────────────────────────────────────────────────────
+
+  gapRow: {
+    flexDirection: 'row' as const,
+    gap: spacing[2],
+  },
+  gapOption: {
+    flex: 1,
+    height: 44,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.background,
+  },
+  gapOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  gapOptionLabel: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
+  },
+  gapOptionLabelActive: {
+    color: colors.primary,
   },
 
   // ── Input ─────────────────────────────────────────────────────────────────
