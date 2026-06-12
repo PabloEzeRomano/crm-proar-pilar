@@ -8,9 +8,13 @@ const contactInfoSchema = z.object({
 
 export const createClientSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
+  cuit: z.string().optional(),
   industry: z.string().optional(),
   address: z.string().optional(),
   city: z.string().optional(),
+  site: z.string().optional(),
+  zone: z.string().optional(),
+  commercial_classification: z.string().optional(),
   contacts: z.array(contactInfoSchema).optional(),
   notes: z.string().optional(),
   latitude: z.number().nullable().optional(),

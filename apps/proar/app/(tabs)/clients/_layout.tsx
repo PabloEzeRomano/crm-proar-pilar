@@ -35,6 +35,11 @@ export default function ClientsLayout() {
         name="form"
         options={{ presentation: 'modal', title: 'Nuevo cliente' }}
       />
+      <Stack.Screen name="visits/[id]" options={{ title: 'Gestión' }} />
+      <Stack.Screen
+        name="visits/form"
+        options={{ presentation: 'modal', title: 'Nueva gestión' }}
+      />
     </Stack>
   );
 }

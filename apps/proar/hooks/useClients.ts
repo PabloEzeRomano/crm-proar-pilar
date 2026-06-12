@@ -88,7 +88,7 @@ export function useClients(
     if (visitTypeFilter) {
       const clientIdsWithType = new Set(
         allVisits
-          .filter((v) => (v.type ?? 'visit') === visitTypeFilter)
+          .filter((v) => (v.type ?? 'customer_service') === visitTypeFilter)
           .map((v) => v.client_id)
       );
       result = result.filter((c) => clientIdsWithType.has(c.id));

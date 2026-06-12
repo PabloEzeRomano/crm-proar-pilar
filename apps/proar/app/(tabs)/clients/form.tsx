@@ -58,9 +58,13 @@ import type { ClientProduct, ContactInfo, Product } from '@/types';
 
 type FormFields = {
   name: string;
+  cuit: string;
   industry: string;
   address: string;
   city: string;
+  site: string;
+  zone: string;
+  commercial_classification: string;
   notes: string;
 };
 
@@ -68,9 +72,13 @@ type FieldErrors = Partial<Record<keyof FormFields, string>>;
 
 const EMPTY_FORM: FormFields = {
   name: '',
+  cuit: '',
   industry: '',
   address: '',
   city: '',
+  site: '',
+  zone: '',
+  commercial_classification: '',
   notes: '',
 };
 
@@ -104,9 +112,13 @@ function formToInput(
 ): CreateClientInput {
   return {
     name: form.name,
+    cuit: form.cuit || undefined,
     industry: form.industry || undefined,
     address: form.address || undefined,
     city: form.city || undefined,
+    site: form.site || undefined,
+    zone: form.zone || undefined,
+    commercial_classification: form.commercial_classification || undefined,
     notes: form.notes || undefined,
     contacts: contactList
       .map((c) => ({
@@ -151,9 +163,13 @@ export default function ClientFormScreen() {
     if (isEditMode && existingClient) {
       return {
         name: existingClient.name ?? '',
+        cuit: existingClient.cuit ?? '',
         industry: existingClient.industry ?? '',
         address: existingClient.address ?? '',
         city: existingClient.city ?? '',
+        site: existingClient.site ?? '',
+        zone: existingClient.zone ?? '',
+        commercial_classification: existingClient.commercial_classification ?? '',
         notes: existingClient.notes ?? '',
       };
     }
@@ -233,9 +249,13 @@ export default function ClientFormScreen() {
     if (!isEditMode || !existingClient) return;
     setForm({
       name: existingClient.name ?? '',
+      cuit: existingClient.cuit ?? '',
       industry: existingClient.industry ?? '',
       address: existingClient.address ?? '',
       city: existingClient.city ?? '',
+      site: existingClient.site ?? '',
+      zone: existingClient.zone ?? '',
+      commercial_classification: existingClient.commercial_classification ?? '',
       notes: existingClient.notes ?? '',
     });
     setContacts(
@@ -486,9 +506,9 @@ export default function ClientFormScreen() {
           </View>
         ) : null}
 
-        {/* ── Nombre ────────────────────────────────────────────────── */}
+        {/* ── Razón Social ────────────────────────────────────────── */}
         <View style={styles.fieldWrapper}>
-          <Text style={styles.label}>Nombre *</Text>
+          <Text style={styles.label}>Razón Social *</Text>
           <TextInput
             style={getInputStyle('name')}
             value={form.name}
@@ -498,7 +518,7 @@ export default function ClientFormScreen() {
               setFocusedField(null);
               validate();
             }}
-            placeholder="Nombre de la empresa"
+            placeholder="Razón social del cliente"
             placeholderTextColor={colors.textDisabled}
             autoCapitalize="words"
             returnKeyType="next"
@@ -506,6 +526,22 @@ export default function ClientFormScreen() {
           {errors.name ? (
             <Text style={styles.fieldError}>{errors.name}</Text>
           ) : null}
+        </View>
+
+        {/* ── CUIT ──────────────────────────────────────────────────── */}
+        <View style={styles.fieldWrapper}>
+          <Text style={styles.label}>CUIT</Text>
+          <TextInput
+            style={getInputStyle('cuit')}
+            value={form.cuit}
+            onChangeText={(text) => setField('cuit', text)}
+            onFocus={() => setFocusedField('cuit')}
+            onBlur={() => setFocusedField(null)}
+            placeholder="XX-XXXXXXXX-X"
+            placeholderTextColor={colors.textDisabled}
+            keyboardType="default"
+            returnKeyType="next"
+          />
         </View>
 
         {/* ── Rubro ─────────────────────────────────────────────────── */}
@@ -784,6 +820,54 @@ export default function ClientFormScreen() {
           {errors.city ? (
             <Text style={styles.fieldError}>{errors.city}</Text>
           ) : null}
+        </View>
+
+        {/* ── Planta / Sitio ─────────────────────────────────────────── */}
+        <View style={styles.fieldWrapper}>
+          <Text style={styles.label}>Planta / Sitio</Text>
+          <TextInput
+            style={getInputStyle('site')}
+            value={form.site}
+            onChangeText={(text) => setField('site', text)}
+            onFocus={() => setFocusedField('site')}
+            onBlur={() => setFocusedField(null)}
+            placeholder="Planta o sitio del cliente"
+            placeholderTextColor={colors.textDisabled}
+            autoCapitalize="words"
+            returnKeyType="next"
+          />
+        </View>
+
+        {/* ── Ronda / Zona ─────────────────────────────────────────── */}
+        <View style={styles.fieldWrapper}>
+          <Text style={styles.label}>Ronda / Zona</Text>
+          <TextInput
+            style={getInputStyle('zone')}
+            value={form.zone}
+            onChangeText={(text) => setField('zone', text)}
+            onFocus={() => setFocusedField('zone')}
+            onBlur={() => setFocusedField(null)}
+            placeholder="Zona o ronda de visita"
+            placeholderTextColor={colors.textDisabled}
+            autoCapitalize="words"
+            returnKeyType="next"
+          />
+        </View>
+
+        {/* ── Clasificación Comercial ──────────────────────────────── */}
+        <View style={styles.fieldWrapper}>
+          <Text style={styles.label}>Clasificación Comercial</Text>
+          <TextInput
+            style={getInputStyle('commercial_classification')}
+            value={form.commercial_classification}
+            onChangeText={(text) => setField('commercial_classification', text)}
+            onFocus={() => setFocusedField('commercial_classification')}
+            onBlur={() => setFocusedField(null)}
+            placeholder="Ej: A, B, C o Premium, Estándar"
+            placeholderTextColor={colors.textDisabled}
+            autoCapitalize="words"
+            returnKeyType="next"
+          />
         </View>
 
         {/* ── Contactos ─────────────────────────────────────────────── */}

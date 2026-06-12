@@ -6,7 +6,7 @@
  *
  * Features:
  *   - Reads client from store by id (no extra network call)
- *   - Sections: Información, Contacto, Ubicación, Notas, Historial de visitas
+ *   - Sections: Información, Contacto, Ubicación, Notas, Historial de gestiones
  *   - Phone / email open native links
  *   - "Abrir en Maps" opens Google Maps
  *   - Header right: "Editar" navigates to form modal
@@ -249,12 +249,12 @@ export default function ClientDetailScreen() {
       if (newVisit) {
         // Refresh today's visits and navigate
         await fetchTodayVisits();
-        router.push(`/visits/${newVisit.id}`);
+        router.push(`/clients/visits/${newVisit.id}`);
       } else {
-        Alert.alert('Error', 'No se pudo crear la visita');
+        Alert.alert('Error', 'No se pudo crear la gestión');
       }
     } catch (error) {
-      Alert.alert('Error', 'Ocurrió un error al crear la visita');
+      Alert.alert('Error', 'Ocurrió un error al crear la gestión');
     } finally {
       setVisitarHoyLoading(false);
     }
@@ -357,6 +357,9 @@ export default function ClientDetailScreen() {
             </Text>
           </View>
           <Text style={styles.heroName}>{client.name}</Text>
+          {client.cuit ? (
+            <Text style={styles.heroCuit}>CUIT: {client.cuit}</Text>
+          ) : null}
           {client.industry ? (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{client.industry}</Text>
@@ -365,7 +368,7 @@ export default function ClientDetailScreen() {
           {(() => {
             const lastVisitedAt = client.last_visited_at;
             if (!lastVisitedAt) return (
-              <Text style={[styles.lastVisitText, { color: colors.textDisabled }]}>Sin visitas</Text>
+              <Text style={[styles.lastVisitText, { color: colors.textDisabled }]}>Sin gestiones</Text>
             );
             const days = dayjs().diff(dayjs(lastVisitedAt), 'day');
             const color = days < 30 ? colors.success : days <= 60 ? colors.warning : colors.error;
@@ -406,9 +409,9 @@ export default function ClientDetailScreen() {
           {isOwner ? (
             <Pressable
               style={styles.quickActionBtn}
-              onPress={() => router.push(`/visits/form?clientId=${id}`)}
+              onPress={() => router.push(`/clients/visits/form?clientId=${id}`)}
               accessibilityRole="button"
-              accessibilityLabel="Agendar visita"
+              accessibilityLabel="Agendar gestión"
             >
               <View style={[styles.quickActionIcon, { backgroundColor: '#EDE9FE' }]}>
                 <MaterialCommunityIcons name="calendar-plus" size={18} color="#7C3AED" />
@@ -470,6 +473,9 @@ export default function ClientDetailScreen() {
           <SectionHeader title="Ubicación" />
           <InfoRow label="Domicilio" value={client.address} />
           <InfoRow label="Localidad" value={client.city} />
+          <InfoRow label="Planta / Sitio" value={client.site} />
+          <InfoRow label="Ronda / Zona" value={client.zone} />
+          <InfoRow label="Clasificación Comercial" value={client.commercial_classification} />
 
           {hasMapTarget ? (
             <Pressable
@@ -560,11 +566,11 @@ export default function ClientDetailScreen() {
         </View>
 
 
-        {/* ── Sección: Historial de visitas ────────────────────────────── */}
+        {/* ── Sección: Historial de gestiones ────────────────────────────── */}
         <View style={styles.section}>
-          <SectionHeader title="Historial de visitas" />
+          <SectionHeader title="Historial de gestiones" />
 
-          {/* Visitar hoy / Ver visita de hoy + Nueva visita — owner only */}
+          {/* Visitar hoy / Ver gestión de hoy + Nueva gestión — owner only */}
           {isOwner && (
             <>
               <Pressable
@@ -574,20 +580,20 @@ export default function ClientDetailScreen() {
                 ]}
                 onPress={
                   todayVisit
-                    ? () => router.push(`/visits/${todayVisit.id}`)
+                    ? () => router.push(`/clients/visits/${todayVisit.id}`)
                     : handleVisitarHoy
                 }
                 disabled={visitarHoyLoading}
                 accessibilityRole="button"
                 accessibilityLabel={
-                  todayVisit ? 'Ver visita de hoy' : 'Visitar hoy'
+                  todayVisit ? 'Ver gestión de hoy' : 'Visitar hoy'
                 }
               >
                 {visitarHoyLoading ? (
                   <ActivityIndicator size="small" color={colors.primary} />
                 ) : (
                   <Text style={styles.newVisitButtonText}>
-                    {todayVisit ? 'Ver visita de hoy' : 'Visitar hoy'}
+                    {todayVisit ? 'Ver gestión de hoy' : 'Visitar hoy'}
                   </Text>
                 )}
               </Pressable>
@@ -597,25 +603,25 @@ export default function ClientDetailScreen() {
                   styles.newVisitButton,
                   pressed && styles.newVisitButtonPressed,
                 ]}
-                onPress={() => router.push(`/visits/form?clientId=${id}`)}
+                onPress={() => router.push(`/clients/visits/form?clientId=${id}`)}
                 accessibilityRole="button"
-                accessibilityLabel="Agregar nueva visita"
+                accessibilityLabel="Agregar nueva gestión"
               >
-                <Text style={styles.newVisitButtonText}>Nueva visita</Text>
+                <Text style={styles.newVisitButtonText}>Nueva gestión</Text>
               </Pressable>
             </>
           )}
 
           {/* Visit list — up to 10 most recent (already sorted DESC by store) */}
           {visits.length === 0 ? (
-            <Text style={styles.emptyField}>No hay visitas registradas</Text>
+            <Text style={styles.emptyField}>No hay gestiones registradas</Text>
           ) : (
             <View style={styles.visitList}>
               {visits.slice(0, 10).map((visit: VisitWithClient) => (
                 <VisitRow
                   key={visit.id}
                   visit={visit}
-                  onPress={() => router.push(`/visits/${visit.id}`)}
+                  onPress={() => router.push(`/clients/visits/${visit.id}`)}
                 />
               ))}
             </View>
@@ -1246,6 +1252,11 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     color: colors.textPrimary,
     letterSpacing: -0.3,
+    textAlign: 'center',
+  },
+  heroCuit: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   lastVisitText: {
