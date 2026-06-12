@@ -1,13 +1,13 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import dayjs from '../lib/dayjs';
-import { supabase } from '../lib/supabase';
 import {
-  scheduleVisitReminder,
   cancelVisitReminder,
+  scheduleVisitReminder,
 } from '../lib/notifications';
-import { Visit, VisitWithClient, VisitStatus, VisitType } from '../types';
+import { supabase } from '../lib/supabase';
+import { Visit, VisitStatus, VisitWithClient } from '../types';
 import {
   CreateVisitInput,
   UpdateVisitInput,
@@ -323,7 +323,7 @@ export const useVisitsStore = create<VisitsState>()(
         set((state) => ({ visits: [newVisit, ...state.visits] }));
 
         // Refresh client so last_visited_at updates (DB trigger fired)
-        useClientsStore.getState().fetchClient(data.client_id);
+        useClientsStore.getState().fetchClient((data.client_id as string) ?? '');
 
         return newVisit;
       },
