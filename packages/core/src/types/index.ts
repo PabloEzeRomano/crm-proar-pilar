@@ -1,4 +1,4 @@
-export type UserRole = 'user' | 'admin' | 'root';
+export type UserRole = 'user' | 'product_manager' | 'admin' | 'root';
 
 export interface EmailConfig {
   sender: string;
@@ -55,9 +55,13 @@ export interface Client {
   owner_user_id: string;
   company_id: string;
   name: string;
+  cuit: string | null;
   industry: string | null;
   address: string | null;
   city: string | null;
+  site: string | null;
+  zone: string | null;
+  commercial_classification: string | null;
   contacts: ContactInfo[];
   notes: string | null;
   last_visited_at?: string | null;

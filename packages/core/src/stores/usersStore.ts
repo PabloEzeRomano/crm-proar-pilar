@@ -8,7 +8,7 @@ import type { CompanyConfig, UserListItem } from '../types';
 
 export interface InviteUserInput {
   email: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'product_manager' | 'admin';
 }
 
 export interface UsersState {
@@ -25,6 +25,10 @@ export interface UsersState {
   fetchCompanyConfig: () => Promise<void>;
   inviteUser: (input: InviteUserInput) => Promise<{ error: string | null }>;
   deactivateUser: (userId: string) => Promise<{ error: string | null }>;
+  updateUserRole: (
+    userId: string,
+    role: 'user' | 'product_manager' | 'admin'
+  ) => Promise<{ error: string | null }>;
   clearInviteError: () => void;
 }
 
@@ -103,6 +107,18 @@ export const useUsersStore = create<UsersState>()((set) => ({
     }
 
     set({ deactivateLoading: false });
+    return { error: null };
+  },
+
+  updateUserRole: async (userId, role) => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ role })
+      .eq('id', userId);
+
+    if (error) {
+      return { error: error.message };
+    }
     return { error: null };
   },
 

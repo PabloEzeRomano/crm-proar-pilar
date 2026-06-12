@@ -69,21 +69,41 @@ type InviteErrors = { email?: string };
 
 const ROLE_LABEL: Record<UserRole, string> = {
   user: 'Usuario',
+  product_manager: 'Productos',
   admin: 'Admin',
   root: 'Root',
 };
 
 const ROLE_COLOR: Record<UserRole, string> = {
   user: colors.textSecondary,
+  product_manager: '#EA580C',
   admin: colors.primary,
   root: colors.error,
 };
 
 const ROLE_BG: Record<UserRole, string> = {
   user: colors.surface,
+  product_manager: '#FFEDD5',
   admin: colors.primaryLight ?? '#EFF6FF',
   root: '#FEE2E2',
 };
+
+// Role hierarchy level for determining what the current user can manage
+const ROLE_LEVEL: Record<UserRole, number> = {
+  user: 1,
+  product_manager: 1,
+  admin: 2,
+  root: 3,
+};
+
+// Roles that can be assigned (root excluded — only via SQL Editor)
+type AssignableRole = 'user' | 'product_manager' | 'admin';
+
+const ASSIGNABLE_ROLES: { value: AssignableRole; label: string }[] = [
+  { value: 'user', label: 'Usuario' },
+  { value: 'product_manager', label: 'Productos' },
+  { value: 'admin', label: 'Admin' },
+];
 
 function RoleBadge({ role }: { role: UserRole }) {
   return (
@@ -111,16 +131,26 @@ function PendingBadge() {
 
 interface UserRowProps {
   user: UserListItem;
+  callerRole: UserRole;
   onDeactivate: (user: UserListItem) => void;
+  onChangeRole: (user: UserListItem) => void;
 }
 
-function UserRow({ user, onDeactivate }: UserRowProps) {
+function UserRow({ user, callerRole, onDeactivate, onChangeRole }: UserRowProps) {
   const isPending = user.status === 'pending';
   const displayName = isPending ? user.email : (user.full_name ?? '—');
   const initial = displayName.charAt(0).toUpperCase();
 
+  const callerLevel = ROLE_LEVEL[callerRole];
+  const targetLevel = user.role ? ROLE_LEVEL[user.role] : 0;
+
+  // Can deactivate: active users below caller's level
   const canDeactivate =
-    user.status === 'active' && user.role !== 'admin' && user.role !== 'root';
+    user.status === 'active' && targetLevel < callerLevel;
+
+  // Can change role: active users below caller's level (not self, not pending)
+  const canChangeRole =
+    !isPending && user.status === 'active' && targetLevel < callerLevel;
 
   return (
     <View style={styles.row}>
@@ -141,7 +171,27 @@ function UserRow({ user, onDeactivate }: UserRowProps) {
       {isPending ? (
         <PendingBadge />
       ) : user.role ? (
-        <RoleBadge role={user.role} />
+        canChangeRole ? (
+          <Pressable
+            onPress={() => onChangeRole(user)}
+            accessibilityRole="button"
+            accessibilityLabel={`Cambiar rol de ${user.full_name ?? user.email}`}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <View style={[styles.roleBadge, { backgroundColor: ROLE_BG[user.role] }, styles.roleBadgeTappable]}>
+              <Text style={[styles.roleBadgeText, { color: ROLE_COLOR[user.role] }]}>
+                {ROLE_LABEL[user.role]}
+              </Text>
+              <MaterialCommunityIcons
+                name="chevron-down"
+                size={14}
+                color={ROLE_COLOR[user.role]}
+              />
+            </View>
+          </Pressable>
+        ) : (
+          <RoleBadge role={user.role} />
+        )
       ) : null}
 
       {canDeactivate && (
@@ -184,12 +234,19 @@ export default function UsersScreen() {
   const deactivateUser = useUsersStore((s) => s.deactivateUser);
   const clearInviteError = useUsersStore((s) => s.clearInviteError);
 
+  const updateUserRole = useUsersStore((s) => s.updateUserRole);
+
   const [modalVisible, setModalVisible] = useState(false);
   const [email, setEmail] = useState('');
-  const [selectedRole, setSelectedRole] = useState<'user' | 'admin'>('user');
+  const [selectedRole, setSelectedRole] = useState<AssignableRole>('user');
   const [fieldErrors, setFieldErrors] = useState<InviteErrors>({});
   const [emailFocused, setEmailFocused] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Role change modal
+  const [roleModalUser, setRoleModalUser] = useState<UserListItem | null>(null);
+  const [roleModalRole, setRoleModalRole] = useState<AssignableRole>('user');
+  const [roleChanging, setRoleChanging] = useState(false);
 
   const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root';
   const isRoot = profile?.role === 'root';
@@ -250,6 +307,30 @@ export default function UsersScreen() {
     },
     [deactivateUser, fetchUsers]
   );
+
+  // ── Role change handlers ──────────────────────────────────────────────────
+
+  function openRoleModal(user: UserListItem) {
+    setRoleModalUser(user);
+    setRoleModalRole((user.role ?? 'user') as AssignableRole);
+  }
+
+  const handleRoleChange = useCallback(async () => {
+    if (!roleModalUser || roleChanging) return;
+    if (roleModalRole === roleModalUser.role) {
+      setRoleModalUser(null);
+      return;
+    }
+    setRoleChanging(true);
+    const { error: err } = await updateUserRole(roleModalUser.id, roleModalRole);
+    setRoleChanging(false);
+    if (err) {
+      Alert.alert('Error', `No se pudo cambiar el rol: ${err}`);
+    } else {
+      fetchUsers();
+      setRoleModalUser(null);
+    }
+  }, [roleModalUser, roleModalRole, roleChanging, updateUserRole, fetchUsers]);
 
   // ── Invite handlers ───────────────────────────────────────────────────────
 
@@ -380,7 +461,12 @@ export default function UsersScreen() {
           data={users}
           keyExtractor={(u) => u.id}
           renderItem={({ item }) => (
-            <UserRow user={item} onDeactivate={handleDeactivate} />
+            <UserRow
+              user={item}
+              callerRole={profile?.role ?? 'user'}
+              onDeactivate={handleDeactivate}
+              onChangeRole={openRoleModal}
+            />
           )}
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -472,7 +558,14 @@ export default function UsersScreen() {
             <View style={styles.fieldWrapper}>
               <Text style={styles.label}>Rol</Text>
               <View style={styles.rolePicker}>
-                {(['user', 'admin'] as const).map((r) => (
+                {ASSIGNABLE_ROLES
+                  .filter((r) => {
+                    // Admin can only assign level-1 roles; root can assign all
+                    const callerLevel = ROLE_LEVEL[profile?.role ?? 'user'];
+                    return ROLE_LEVEL[r.value] < callerLevel || callerLevel >= 3;
+                  })
+                  .map((r) => r.value)
+                  .map((r) => (
                   <Pressable
                     key={r}
                     style={[
@@ -515,6 +608,90 @@ export default function UsersScreen() {
                 <ActivityIndicator color={colors.textOnPrimary} />
               ) : (
                 <Text style={styles.submitButtonLabel}>Enviar invitación</Text>
+              )}
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+      {/* ── Role change modal ────────────────────────────────────────────── */}
+      <Modal
+        visible={roleModalUser !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setRoleModalUser(null)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => setRoleModalUser(null)}
+          />
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Cambiar rol</Text>
+              <Pressable
+                onPress={() => setRoleModalUser(null)}
+                style={styles.modalClose}
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar"
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  size={22}
+                  color={colors.textSecondary}
+                />
+              </Pressable>
+            </View>
+
+            <Text style={styles.roleModalSub}>
+              {roleModalUser?.full_name ?? roleModalUser?.email}
+            </Text>
+
+            <View style={styles.rolePicker}>
+              {ASSIGNABLE_ROLES
+                .filter((r) => {
+                  const callerLevel = ROLE_LEVEL[profile?.role ?? 'user'];
+                  return ROLE_LEVEL[r.value] < callerLevel || callerLevel >= 3;
+                })
+                .map((r) => (
+                  <Pressable
+                    key={r.value}
+                    style={[
+                      styles.roleOption,
+                      roleModalRole === r.value && styles.roleOptionActive,
+                    ]}
+                    onPress={() => setRoleModalRole(r.value)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: roleModalRole === r.value }}
+                  >
+                    <Text
+                      style={[
+                        styles.roleOptionText,
+                        roleModalRole === r.value && styles.roleOptionTextActive,
+                      ]}
+                    >
+                      {r.label}
+                    </Text>
+                  </Pressable>
+                ))}
+            </View>
+
+            <Pressable
+              style={[
+                styles.submitButton,
+                roleChanging && styles.submitButtonDisabled,
+              ]}
+              onPress={handleRoleChange}
+              disabled={roleChanging}
+              accessibilityRole="button"
+              accessibilityLabel="Confirmar cambio de rol"
+            >
+              {roleChanging ? (
+                <ActivityIndicator color={colors.textOnPrimary} />
+              ) : (
+                <Text style={styles.submitButtonLabel}>Confirmar</Text>
               )}
             </Pressable>
           </View>
@@ -658,6 +835,11 @@ const styles = StyleSheet.create({
   roleBadgeText: {
     fontSize: fontSize.xs,
     fontWeight: fontWeight.semibold,
+  },
+  roleBadgeTappable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
   },
 
   // ── Loading / error / empty ───────────────────────────────────────────────
@@ -815,5 +997,11 @@ const styles = StyleSheet.create({
     fontSize: fontSize.lg,
     fontWeight: fontWeight.semibold,
     color: colors.textOnPrimary,
+  },
+
+  // ── Role change modal ────────────────────────────────────────────────────
+  roleModalSub: {
+    fontSize: fontSize.base,
+    color: colors.textSecondary,
   },
 });
