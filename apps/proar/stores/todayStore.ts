@@ -128,6 +128,14 @@ export const useTodayStore = create<TodayState>()(
           }
         }
 
+        // Sort: non-completed first (by scheduled_at asc), completed last
+        visits.sort((a, b) => {
+          const aCompleted = a.status === 'completed' || a.status === 'canceled';
+          const bCompleted = b.status === 'completed' || b.status === 'canceled';
+          if (aCompleted !== bCompleted) return aCompleted ? 1 : -1;
+          return dayjs(a.scheduled_at).diff(dayjs(b.scheduled_at));
+        });
+
         set({
           visits,
           loading: false,

@@ -18,6 +18,7 @@ import TourStep from '@/components/tour/TourStep';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation, useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -31,6 +32,7 @@ import {
 } from 'react-native';
 
 import { StatsModal } from '@/components/today/StatsCard';
+import { StatusTypeBadge } from '@/components/ui/StatusTypeBadge';
 import { VisitRow } from '@/components/visits/VisitRow';
 import {
   borderRadius,
@@ -39,6 +41,7 @@ import {
   fontWeight,
   shadows,
   spacing,
+  visitTypeColors,
 } from '@/constants/theme';
 import { useToday } from '@/hooks/useToday';
 import dayjs from '@/lib/dayjs';
@@ -63,6 +66,256 @@ function formatMinutes(mins: number): string {
 }
 
 // ---------------------------------------------------------------------------
+// Client group card — multiple visits for same client
+// ---------------------------------------------------------------------------
+
+function GroupVisitRow({
+  visit,
+  clientName,
+  onPress,
+  showOwner,
+}: {
+  visit: VisitWithClient;
+  clientName: string;
+  onPress: () => void;
+  showOwner: boolean;
+}) {
+  const scheduledDayjs = dayjs(visit.scheduled_at);
+  const isCompleted = visit.status === 'completed';
+  const isCanceled = visit.status === 'canceled';
+  const isPendingOverdue =
+    visit.status === 'pending' && scheduledDayjs.isBefore(dayjs());
+  const rowOpacity = isCompleted ? 0.5 : isCanceled ? 0.4 : 1;
+  const timeColor = isPendingOverdue ? colors.warning : colors.textPrimary;
+
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        groupStyles.row,
+        pressed && groupStyles.rowPressed,
+        { opacity: rowOpacity, borderLeftColor: visitTypeColors[visit.type] },
+      ]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Ver gestión de ${clientName}`}
+    >
+      <View style={groupStyles.timeCol}>
+        <Text style={groupStyles.dateText}>
+          {scheduledDayjs.format('DD/MM')}
+        </Text>
+        <Text style={[groupStyles.timeText, { color: timeColor }]}>
+          {scheduledDayjs.format('HH:mm')}
+        </Text>
+      </View>
+      <View style={groupStyles.infoCol}>
+        {visit.title ? (
+          <Text style={groupStyles.titleText} numberOfLines={1}>
+            {visit.title}
+          </Text>
+        ) : null}
+        {visit.contact_snapshot?.name ? (
+          <Text style={groupStyles.contactText} numberOfLines={1}>
+            👤 {visit.contact_snapshot.name}
+          </Text>
+        ) : null}
+        {showOwner && visit.owner?.full_name ? (
+          <Text style={groupStyles.ownerText} numberOfLines={1}>
+            {visit.owner.full_name}
+          </Text>
+        ) : null}
+      </View>
+      <View style={groupStyles.badgeCol}>
+        <StatusTypeBadge type={visit.type} />
+        <StatusTypeBadge status={visit.status} type={visit.type} />
+      </View>
+    </Pressable>
+  );
+}
+
+function ClientGroupCard({
+  visits,
+  onVisitPress,
+  showOwner,
+}: {
+  visits: VisitWithClient[];
+  onVisitPress: (v: VisitWithClient) => void;
+  showOwner: boolean;
+}) {
+  const client = visits[0].client;
+  const pending = visits.filter((v) => v.status === 'pending');
+  const completed = visits.filter((v) => v.status !== 'pending');
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <View style={groupStyles.card}>
+      <View style={groupStyles.header}>
+        <MaterialCommunityIcons
+          name="domain"
+          size={16}
+          color={colors.textSecondary}
+        />
+        <Text style={groupStyles.clientName} numberOfLines={1}>
+          {client.name}
+        </Text>
+        <View style={groupStyles.countPill}>
+          <Text style={groupStyles.countPillText}>
+            {visits.length} gest.
+            {pending.length > 0 && ` · ${pending.length} pend.`}
+          </Text>
+        </View>
+      </View>
+
+      {pending.map((visit) => (
+        <GroupVisitRow
+          key={visit.id}
+          visit={visit}
+          clientName={client.name}
+          onPress={() => onVisitPress(visit)}
+          showOwner={showOwner}
+        />
+      ))}
+
+      {completed.length > 0 && (
+        <>
+          <Pressable
+            style={groupStyles.accordion}
+            onPress={() => setExpanded((prev) => !prev)}
+            accessibilityRole="button"
+            accessibilityLabel={
+              expanded ? 'Ocultar completadas' : 'Ver completadas'
+            }
+          >
+            <MaterialCommunityIcons
+              name={expanded ? 'chevron-up' : 'chevron-down'}
+              size={18}
+              color={colors.textSecondary}
+            />
+            <Text style={groupStyles.accordionText}>
+              {completed.length} completada{completed.length !== 1 ? 's' : ''}
+            </Text>
+          </Pressable>
+
+          {expanded &&
+            completed.map((visit) => (
+              <GroupVisitRow
+                key={visit.id}
+                visit={visit}
+                clientName={client.name}
+                onPress={() => onVisitPress(visit)}
+                showOwner={showOwner}
+              />
+            ))}
+        </>
+      )}
+    </View>
+  );
+}
+
+const groupStyles = StyleSheet.create({
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    marginHorizontal: spacing[4],
+    marginBottom: spacing[2],
+    overflow: 'hidden',
+    ...shadows.subtle,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    backgroundColor: colors.primaryLight,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  clientName: {
+    flex: 1,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+  },
+  countPill: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing[2],
+    paddingVertical: 2,
+    borderRadius: borderRadius.full,
+  },
+  countPillText: {
+    fontSize: 11,
+    fontWeight: fontWeight.semibold,
+    color: colors.textOnPrimary,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    gap: spacing[2],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    borderLeftWidth: 3,
+  },
+  rowPressed: {
+    backgroundColor: colors.border,
+  },
+  timeCol: {
+    width: 44,
+    flexShrink: 0,
+    gap: 2,
+  },
+  dateText: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
+  },
+  timeText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.bold,
+  },
+  infoCol: {
+    flex: 1,
+    gap: 2,
+  },
+  titleText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.textPrimary,
+  },
+  contactText: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+  },
+  ownerText: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+  },
+  badgeCol: {
+    flexShrink: 0,
+    alignItems: 'flex-end',
+    gap: spacing[1],
+  },
+  accordion: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.background,
+  },
+  accordionText: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
+  },
+});
+
+// ---------------------------------------------------------------------------
 // Inner screen component (needs to be inside TourGuideProvider)
 // ---------------------------------------------------------------------------
 
@@ -84,6 +337,22 @@ function TodayScreenContent() {
     lastFetched,
     fetchTodayVisits,
   } = useToday(isAdminOrRoot);
+
+  const PROGRESS_KEY = 'agenda-progress-visible';
+  const [progressVisible, setProgressVisible] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      AsyncStorage.getItem(PROGRESS_KEY).then((val) => {
+        setProgressVisible(val !== 'false');
+      });
+    }, [])
+  );
+
+  function handleDismissProgress() {
+    setProgressVisible(false);
+    AsyncStorage.setItem(PROGRESS_KEY, 'false');
+  }
 
   const sortedByDistance = useTodayStore((s) => s.sortedByDistance);
   const sortByDistance = useTodayStore((s) => s.sortByDistance);
@@ -226,6 +495,24 @@ function TodayScreenContent() {
   const progressPct =
     totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
+  // ── Group visits by client ────────────────────────────────────────────
+  const groupedVisits = useMemo(() => {
+    const groups = new Map<string, VisitWithClient[]>();
+    for (const visit of visits) {
+      const key = visit.client_id;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(visit);
+    }
+    return Array.from(groups.values()).sort((a, b) => {
+      const aFirst = a[0];
+      const bFirst = b[0];
+      const aCompleted = aFirst.status === 'completed' || aFirst.status === 'canceled';
+      const bCompleted = bFirst.status === 'completed' || bFirst.status === 'canceled';
+      if (aCompleted !== bCompleted) return aCompleted ? 1 : -1;
+      return dayjs(aFirst.scheduled_at).diff(dayjs(bFirst.scheduled_at));
+    });
+  }, [visits]);
+
   // ── Helpers ─────────────────────────────────────────────────────────────
 
   function handleVisitPress(visit: VisitWithClient) {
@@ -239,7 +526,7 @@ function TodayScreenContent() {
   }
 
   function handleNewVisitPress() {
-    router.push('/visits/form');
+    router.push('/(tabs)/agenda/visits/form');
   }
 
   // ── Render: Next visit card ──────────────────────────────────────────────
@@ -266,7 +553,7 @@ function TodayScreenContent() {
             Todo listo por hoy
           </Text>
           <Text style={styles.nextCardDoneSubtitle}>
-            No quedan visitas pendientes
+            No quedan gestiones pendientes
           </Text>
         </View>
       );
@@ -278,7 +565,7 @@ function TodayScreenContent() {
           style={({ pressed }) => [styles.nextCardHero, pressed && styles.nextCardPressed]}
           onPress={handleNextCardPress}
           accessibilityRole="button"
-          accessibilityLabel={`Visita atrasada: ${nextVisit?.client.name}`}
+          accessibilityLabel={`Gestión atrasada: ${nextVisit?.client.name}`}
         >
           <LinearGradient
             colors={['#D97706', '#B45309']}
@@ -330,7 +617,7 @@ function TodayScreenContent() {
         style={({ pressed }) => [styles.nextCardHero, pressed && styles.nextCardPressed]}
         onPress={handleNextCardPress}
         accessibilityRole="button"
-        accessibilityLabel={`Siguiente visita: ${nextVisit?.client.name}`}
+        accessibilityLabel={`Siguiente gestión: ${nextVisit?.client.name}`}
       >
         <LinearGradient
           colors={[colors.primary, colors.primaryDark]}
@@ -396,10 +683,10 @@ function TodayScreenContent() {
         />
         <Text style={styles.emptyText}>
           {span === 'today'
-            ? 'No hay visitas programadas para hoy'
+            ? 'No hay gestiones programadas para hoy'
             : span === 'week'
-              ? 'No hay visitas esta semana'
-              : 'No hay visitas este mes'}
+              ? 'No hay gestiones esta semana'
+              : 'No hay gestiones este mes'}
         </Text>
         <Pressable
           style={({ pressed }) => [
@@ -408,9 +695,9 @@ function TodayScreenContent() {
           ]}
           onPress={handleNewVisitPress}
           accessibilityRole="button"
-          accessibilityLabel="Nueva visita"
+          accessibilityLabel="Nueva gestión"
         >
-          <Text style={styles.emptyButtonText}>Nueva visita</Text>
+          <Text style={styles.emptyButtonText}>Nueva gestión</Text>
         </Pressable>
       </View>
     );
@@ -486,7 +773,7 @@ function TodayScreenContent() {
         )}
 
         {/* ── Daily progress card ── */}
-        {totalCount > 0 && (
+        {totalCount > 0 && progressVisible && (
           <View style={styles.progressCardWrapper}>
             <View style={styles.progressCard}>
               <View style={styles.progressCardLeft}>
@@ -500,10 +787,23 @@ function TodayScreenContent() {
                   />
                 </View>
                 <Text style={styles.progressCardLabel}>
-                  {completedCount} de {totalCount} visitas completadas
+                  {completedCount} de {totalCount} gestiones completadas
                 </Text>
               </View>
               <Text style={styles.progressPct}>{progressPct}%</Text>
+              <Pressable
+                onPress={handleDismissProgress}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={styles.progressDismiss}
+                accessibilityRole="button"
+                accessibilityLabel="Ocultar progreso"
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  size={16}
+                  color={colors.textSecondary}
+                />
+              </Pressable>
             </View>
           </View>
         )}
@@ -511,7 +811,7 @@ function TodayScreenContent() {
         {/* ── Tour step 2: Next appointment card ── */}
         <TourStep
           order={2}
-          text="Tu próxima visita pendiente aparece acá. Muestra el cliente, la hora y el tiempo restante. Tocá para ver los detalles y agregar notas."
+          text="Tu próxima gestión pendiente aparece acá. Muestra el cliente, la hora y el tiempo restante. Tocá para ver los detalles y agregar notas."
           borderRadius={borderRadius.lg}
           routePath="/(tabs)/agenda"
         >
@@ -523,7 +823,7 @@ function TodayScreenContent() {
           {/* ── Tour step 3: Visit list section header ── */}
           <TourStep
             order={3}
-            text="Acá está tu agenda completa. Tocá cualquier visita para ver los detalles, cambiar el estado o escribir la minuta de la reunión."
+            text="Acá está tu agenda completa. Tocá cualquier gestión para ver los detalles, cambiar el estado o escribir la minuta."
             borderRadius={borderRadius.md}
             routePath="/(tabs)/agenda"
           >
@@ -534,7 +834,7 @@ function TodayScreenContent() {
                   <View style={styles.countBadge}>
                     <Text style={styles.countBadgeText}>
                       {visits.length}{' '}
-                      {visits.length === 1 ? 'visita' : 'visitas'}
+                      {visits.length === 1 ? 'gestión' : 'gestiones'}
                     </Text>
                   </View>
                   {/* Sort toggle button — only on native platforms (expo-location not available on web) */}
@@ -581,7 +881,18 @@ function TodayScreenContent() {
             renderEmptyState()
           ) : (
             <View style={styles.visitList}>
-              {visits.map((visit) => renderVisitRow(visit))}
+              {groupedVisits.map((group) =>
+                group.length === 1 ? (
+                  renderVisitRow(group[0])
+                ) : (
+                  <ClientGroupCard
+                    key={group[0].client_id}
+                    visits={group}
+                    onVisitPress={handleVisitPress}
+                    showOwner={isAdminOrRoot}
+                  />
+                )
+              )}
             </View>
           )}
         </View>
@@ -792,6 +1103,15 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     minWidth: 52,
     textAlign: 'right',
+  },
+  progressDismiss: {
+    position: 'absolute',
+    top: spacing[2],
+    right: spacing[2],
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // ── Next appointment card — stories 6.5 + 6.6 ────────────────────────────
