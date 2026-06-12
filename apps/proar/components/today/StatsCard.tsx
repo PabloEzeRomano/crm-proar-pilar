@@ -118,7 +118,7 @@ function PeriodCard({
         {showAsFraction ? `${total} de ${totalAll}` : total}
         <Text style={pcStyles.unit}>
           {' '}
-          {totalAll === 1 ? 'visita' : 'visitas'}
+          {totalAll === 1 ? 'gestión' : 'gestiones'}
         </Text>
       </Text>
 

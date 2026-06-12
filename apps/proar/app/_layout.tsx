@@ -45,7 +45,7 @@ import TourOverlay from '@/components/tour/TourOverlay';
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationChannelAsync('visits', {
-    name: 'Visitas',
+    name: 'Gestiones',
     importance: Notifications.AndroidImportance.HIGH,
     bypassDnd: true, // Show heads-up notification even if DND is on
     vibrationPattern: [0, 250, 250, 250],

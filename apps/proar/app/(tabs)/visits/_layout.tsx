@@ -28,8 +28,8 @@ const headerOptions = {
 export default function VisitsLayout() {
   return (
     <Stack screenOptions={headerOptions}>
-      <Stack.Screen name="index" options={{ title: 'Visitas' }} />
-      <Stack.Screen name="[id]" options={{ title: 'Visita' }} />
+      <Stack.Screen name="index" options={{ title: 'Gestiones' }} />
+      <Stack.Screen name="[id]" options={{ title: 'Gestión' }} />
       <Stack.Screen
         name="form"
         options={{ presentation: 'modal', title: 'Nueva visita' }}

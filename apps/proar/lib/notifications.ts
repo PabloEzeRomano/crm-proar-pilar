@@ -59,8 +59,8 @@ export async function scheduleVisitReminder(
     };
 
     const content: NotificationContentInput = {
-      title: `Visita con ${clientName}`,
-      body: 'Quedan ~10 min. ¿Agendás la próxima visita?',
+      title: `Gestión con ${clientName}`,
+      body: 'Quedan ~10 min. ¿Agendás la próxima gestión?',
       data: { visitId: visit.id },
     };
 

@@ -1,7 +1,7 @@
 /**
  * app/(tabs)/_layout.tsx — Bottom tab bar layout
  *
- * Tabs: Hoy (Today), Clientes (Clients), Visitas (Visits), Equipo (Team - admin + web only).
+ * Tabs: Hoy (Today), Clientes (Clients), Gestiones (Visits), Equipo (Team - admin + web only).
  * Visual values come exclusively from constants/theme.ts and constants/brand.ts.
  * Icons: MaterialCommunityIcons from @expo/vector-icons (bundled with Expo).
  */
@@ -135,11 +135,11 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* ── Visitas (Visits) ─────────────────────────────────────────── */}
+      {/* ── Gestiones (Visits) ────────────────────────────────────────── */}
       <Tabs.Screen
         name="visits"
         options={{
-          title: 'Visitas',
+          title: 'Gestiones',
           headerShown: false, // nested Stack in visits/_layout.tsx owns the header
           tabBarIcon: ({ focused, color }) => (
             <TabIcon
