@@ -44,26 +44,27 @@ import TourOverlay from '@/components/tour/TourOverlay';
 // ---------------------------------------------------------------------------
 
 if (Platform.OS !== 'web') {
-  Notifications.setNotificationChannelAsync('visits', {
-    name: 'Gestiones',
-    importance: Notifications.AndroidImportance.HIGH,
-    bypassDnd: true, // Show heads-up notification even if DND is on
-    vibrationPattern: [0, 250, 250, 250],
-    lightColor: colors.primary,
-  }).catch(() => {
-    // Channel may already exist, ignore error
-  });
+  try {
+    Notifications.setNotificationChannelAsync('visits', {
+      name: 'Gestiones',
+      importance: Notifications.AndroidImportance.HIGH,
+      bypassDnd: true,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: colors.primary,
+    }).catch(() => {});
 
-  // Set default notification handler for foreground notifications
-  const notificationBehavior: Notifications.NotificationBehavior = {
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  };
-  Notifications.setNotificationHandler({
-    handleNotification: async () => notificationBehavior,
-  });
+    const notificationBehavior: Notifications.NotificationBehavior = {
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    };
+    Notifications.setNotificationHandler({
+      handleNotification: async () => notificationBehavior,
+    });
+  } catch {
+    // Native notification module unavailable (Expo Go or stale dev client)
+  }
 }
 
 // ---------------------------------------------------------------------------
