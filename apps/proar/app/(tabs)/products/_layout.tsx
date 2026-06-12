@@ -29,7 +29,7 @@ export default function ProductsStackLayout() {
             <Pressable
               onPress={() => router.push('/(tabs)/team')}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={{ minWidth: 48, minHeight: 48, justifyContent: 'center', paddingRight: spacing[2] }}
+              style={{ paddingHorizontal: spacing[3], minHeight: 48, justifyContent: 'center' }}
               accessibilityRole="button"
               accessibilityLabel="Volver"
             >

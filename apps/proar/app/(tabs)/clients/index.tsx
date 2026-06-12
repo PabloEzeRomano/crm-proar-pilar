@@ -145,20 +145,8 @@ function ClientsScreenContent() {
   }, [showInactive]);
 
   useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <Pressable
-          onPress={() => router.push('/clients/form')}
-          style={styles.headerButton}
-          accessibilityRole="button"
-          accessibilityLabel="Nuevo cliente"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <MaterialCommunityIcons name="plus" size={24} color={colors.primary} />
-        </Pressable>
-      ),
-    });
-  }, [navigation, router]);
+    navigation.setOptions({ headerRight: () => null });
+  }, [navigation]);
 
   // ── Filter modal handlers ────────────────────────────────────────────────
 
