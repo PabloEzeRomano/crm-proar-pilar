@@ -31,6 +31,12 @@
     },
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "fbae259f-bf79-4d60-8594-e3faf8189bc0"
+      }
+    },
+    "owner": "barbusclo"
   }
 }
