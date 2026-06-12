@@ -1,8 +1,12 @@
-import { Stack } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Stack, useRouter } from 'expo-router';
+import { Pressable } from 'react-native';
 
-import { colors, fontSize } from '@/constants/theme';
+import { colors, fontSize, spacing } from '@/constants/theme';
 
 export default function ProductsStackLayout() {
+  const router = useRouter();
+
   return (
     <Stack
       screenOptions={{
@@ -17,7 +21,23 @@ export default function ProductsStackLayout() {
         },
       }}
     >
-      <Stack.Screen name="index" options={{ title: 'Productos' }} />
+      <Stack.Screen
+        name="index"
+        options={{
+          title: 'Productos',
+          headerLeft: () => (
+            <Pressable
+              onPress={() => router.push('/(tabs)/team')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={{ minWidth: 48, minHeight: 48, justifyContent: 'center', paddingRight: spacing[2] }}
+              accessibilityRole="button"
+              accessibilityLabel="Volver"
+            >
+              <MaterialCommunityIcons name="arrow-left" size={24} color={colors.primary} />
+            </Pressable>
+          ),
+        }}
+      />
       <Stack.Screen name="new" options={{ title: 'Nuevo producto' }} />
       <Stack.Screen name="[id]" options={{ title: 'Detalle de producto' }} />
     </Stack>

@@ -261,7 +261,7 @@ export default function UsersScreen() {
     navigation.setOptions({
       headerLeft: () => (
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => router.push('/(tabs)/team')}
           style={styles.headerButton}
           accessibilityRole="button"
           accessibilityLabel="Volver"
