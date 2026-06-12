@@ -9,6 +9,7 @@
     "proar:web": "yarn workspace @crm/proar web",
     "proar:android": "yarn workspace @crm/proar android",
     "proar:ios": "yarn workspace @crm/proar ios",
+    "proar:APK": "yarn workspace @crm/proar APK",
     "proar:build:web": "yarn workspace @crm/proar build:web",
     "proar:lint": "yarn workspace @crm/proar lint",
     "sensei": "yarn workspace @crm/sensei start",
