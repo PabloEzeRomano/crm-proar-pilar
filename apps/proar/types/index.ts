@@ -10,13 +10,22 @@ export type {
 } from '@crm/core';
 export { isValidEmailConfig } from '@crm/core';
 
+// Import for local use in Visit interface
+import type { ContactInfo } from '@crm/core';
+
 // ---------------------------------------------------------------------------
 // Proar-specific types
 // ---------------------------------------------------------------------------
 
 export type VisitStatus = 'pending' | 'completed' | 'canceled';
 
-export type VisitType = 'sale' | 'visit' | 'call' | 'quote';
+export type VisitType =
+  | 'customer_service'
+  | 'sales_orders'
+  | 'new_projects'
+  | 'payments'
+  | 'technical_service'
+  | 'other';
 
 export interface Visit {
   id: string;
@@ -26,6 +35,8 @@ export interface Visit {
   scheduled_at: string;
   status: VisitStatus;
   type: VisitType;
+  title: string | null;
+  contact_snapshot: ContactInfo | null;
   notes: string | null;
   notification_id?: string | null;
   amount?: number | null;

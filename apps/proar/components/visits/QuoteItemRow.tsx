@@ -13,7 +13,7 @@ import { QuoteItem } from '@/types';
 
 interface Props {
   item: QuoteItem;
-  visitType: 'quote' | 'sale';
+  visitType: string;
   onChangeQuantity: (qty: number) => void;
   onChangeMargin: (pct: number) => void;
   onChangeCustomQty?: (kg: number) => void;
@@ -39,7 +39,7 @@ export default function QuoteItemRow({
   );
 
   const isIBC = item.presentation_quantity_kg === null;
-  const isQuote = visitType === 'quote';
+  void visitType;
 
   function handleQtyChange(text: string) {
     setQtyText(text);
@@ -104,36 +104,30 @@ export default function QuoteItemRow({
         {/* IBC/Granel custom kg input */}
         {isIBC && (
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>
-              {isQuote ? 'kg est.' : 'kg/env.'}
-            </Text>
+            <Text style={styles.inputLabel}>kg/env.</Text>
             <TextInput
               style={styles.input}
               value={customQtyText}
               onChangeText={handleCustomQtyChange}
               keyboardType="numeric"
               selectTextOnFocus
-              accessibilityLabel={
-                isQuote ? 'Kilogramos estimados' : 'Kilogramos por envase'
-              }
+              accessibilityLabel="Kilogramos por envase"
             />
           </View>
         )}
 
-        {/* Quantity input — sale mode only */}
-        {!isQuote && (
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Cant.</Text>
-            <TextInput
-              style={styles.input}
-              value={qtyText}
-              onChangeText={handleQtyChange}
-              keyboardType="numeric"
-              selectTextOnFocus
-              accessibilityLabel="Cantidad"
-            />
-          </View>
-        )}
+        {/* Quantity input */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Cant.</Text>
+          <TextInput
+            style={styles.input}
+            value={qtyText}
+            onChangeText={handleQtyChange}
+            keyboardType="numeric"
+            selectTextOnFocus
+            accessibilityLabel="Cantidad"
+          />
+        </View>
 
         {/* Margin input — always shown */}
         <View style={styles.inputGroup}>
@@ -151,13 +145,11 @@ export default function QuoteItemRow({
           </View>
         </View>
 
-        {/* Total — sale mode only */}
-        {!isQuote && (
-          <View style={styles.totalGroup}>
-            <Text style={styles.inputLabel}>Total</Text>
-            <Text style={styles.totalValue}>${totalDisplay} USD</Text>
-          </View>
-        )}
+        {/* Total */}
+        <View style={styles.totalGroup}>
+          <Text style={styles.inputLabel}>Total</Text>
+          <Text style={styles.totalValue}>${totalDisplay} USD</Text>
+        </View>
       </View>
     </View>
   );

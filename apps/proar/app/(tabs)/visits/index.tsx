@@ -34,10 +34,12 @@ import AppDatePicker from '@/components/ui/AppDatePicker';
 // ---------------------------------------------------------------------------
 
 const VISIT_TYPE_OPTIONS: { value: VisitType; label: string }[] = [
-  { value: 'visit', label: 'Visita' },
-  { value: 'call', label: 'Llamada' },
-  { value: 'quote', label: 'Cotización' },
-  { value: 'sale', label: 'Venta' },
+  { value: 'customer_service', label: 'Atención al cliente' },
+  { value: 'sales_orders', label: 'Ventas y pedidos' },
+  { value: 'new_projects', label: 'Nuevos proyectos' },
+  { value: 'payments', label: 'Pagos y cobranzas' },
+  { value: 'technical_service', label: 'Servicio técnico' },
+  { value: 'other', label: 'Otros' },
 ];
 
 const VISIT_STATUS_OPTIONS: { value: VisitStatus; label: string }[] = [
@@ -275,7 +277,7 @@ export default function VisitsIndexScreen() {
           style={[styles.filterButton, showPast && styles.filterButtonActive]}
           onPress={() => setShowPast((v) => !v)}
           accessibilityRole="button"
-          accessibilityLabel={showPast ? 'Ocultar visitas pasadas' : 'Mostrar visitas pasadas'}
+          accessibilityLabel={showPast ? 'Ocultar gestiones pasadas' : 'Mostrar gestiones pasadas'}
         >
           <MaterialCommunityIcons
             name="history"
@@ -499,7 +501,7 @@ export default function VisitsIndexScreen() {
       <View style={styles.fabContainer}>
         <TourStep
           order={8}
-          text="Tocá + para agendar una nueva visita. Elegí el cliente, la fecha y hora."
+          text="Tocá + para agendar una nueva gestión. Elegí el cliente, la fecha y hora."
           borderRadius={borderRadius.full}
           routePath="/(tabs)/visits"
         >
@@ -507,7 +509,7 @@ export default function VisitsIndexScreen() {
             style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
             onPress={handleFabPress}
             accessibilityRole="button"
-            accessibilityLabel="Agregar visita"
+            accessibilityLabel="Agregar gestión"
           >
             <MaterialCommunityIcons
               name="plus"
@@ -533,7 +535,7 @@ export default function VisitsIndexScreen() {
         <View style={styles.modalSheet}>
           {/* Header */}
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Filtrar visitas</Text>
+            <Text style={styles.modalTitle}>Filtrar gestiones</Text>
             <Pressable
               onPress={() => setFilterVisible(false)}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

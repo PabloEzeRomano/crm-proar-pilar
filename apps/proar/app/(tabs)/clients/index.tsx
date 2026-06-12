@@ -43,34 +43,36 @@ import { Client, VisitType } from '@/types';
 const SORT_KEY = 'clients-sort-order';
 
 const SORT_OPTIONS: { key: ClientSortOrder; label: string; icon: string }[] = [
-  { key: 'name-asc', label: 'Nombre A–Z', icon: 'sort-alphabetical-ascending' },
+  { key: 'name-asc', label: 'Razón Social A–Z', icon: 'sort-alphabetical-ascending' },
   {
     key: 'name-desc',
-    label: 'Nombre Z–A',
+    label: 'Razón Social Z–A',
     icon: 'sort-alphabetical-descending',
   },
   {
     key: 'last-visited-recent',
-    label: 'Última visita (reciente)',
+    label: 'Última gestión (reciente)',
     icon: 'clock-outline',
   },
   {
     key: 'last-visited-oldest',
-    label: 'Última visita (antiguo)',
+    label: 'Última gestión (antiguo)',
     icon: 'clock-fast',
   },
   {
     key: 'stale-first',
-    label: 'Sin visita (primero)',
+    label: 'Sin gestión (primero)',
     icon: 'alert-circle-outline',
   },
 ];
 
 const VISIT_TYPE_OPTIONS: { value: VisitType; label: string }[] = [
-  { value: 'visit', label: 'Visita' },
-  { value: 'call', label: 'Llamada' },
-  { value: 'sale', label: 'Venta' },
-  { value: 'quote', label: 'Cotización' },
+  { value: 'customer_service', label: 'Atención al cliente' },
+  { value: 'sales_orders', label: 'Ventas y pedidos' },
+  { value: 'new_projects', label: 'Nuevos proyectos' },
+  { value: 'payments', label: 'Pagos y cobranzas' },
+  { value: 'technical_service', label: 'Servicio técnico' },
+  { value: 'other', label: 'Otros' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -217,7 +219,7 @@ function ClientsScreenContent() {
   }
 
   function getLastVisitedLabel(days: number | null): string {
-    if (days === null) return 'Sin visitas';
+    if (days === null) return 'Sin gestiones';
     return `Hace ${days}d`;
   }
 
@@ -389,7 +391,7 @@ function ClientsScreenContent() {
 
         <TourStep
           order={5}
-          text="Filtrá tu cartera por rubro, localidad o clientes sin visita reciente (30, 60 o 90 días). Podés combinar varios filtros."
+          text="Filtrá tu cartera por rubro, localidad o clientes sin gestión reciente (30, 60 o 90 días). Podés combinar varios filtros."
           routePath="/(tabs)/clients"
         >
           <Pressable
@@ -491,11 +493,11 @@ function ClientsScreenContent() {
               <Pressable
                 style={styles.activeChip}
                 onPress={() => setSelectedStaleDays(null)}
-                accessibilityLabel={`Quitar filtro sin visita ${selectedStaleDays} días`}
+                accessibilityLabel={`Quitar filtro sin gestión ${selectedStaleDays} días`}
                 hitSlop={{ top: 10, bottom: 10, left: 0, right: 0 }}
               >
                 <Text style={styles.activeChipText} numberOfLines={1}>
-                  Sin visita {selectedStaleDays}d
+                  Sin gestión {selectedStaleDays}d
                 </Text>
                 <MaterialCommunityIcons
                   name="close"
@@ -753,9 +755,9 @@ function ClientsScreenContent() {
               </View>
             )}
 
-            {/* Sin visita section — radio-style selection */}
+            {/* Sin gestión section — radio-style selection */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>SIN VISITA</Text>
+              <Text style={styles.filterSectionTitle}>SIN GESTIÓN</Text>
               {[
                 { label: '30 días', value: 30 },
                 { label: '60 días', value: 60 },

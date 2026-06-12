@@ -62,7 +62,9 @@ export default function VisitDetailView() {
   const currentUser = useAuthStore((s) => s.profile);
   const editFormPath = pathname.startsWith('/agenda')
     ? `/agenda/visits/form?visitId=${id}`
-    : `/visits/form?visitId=${id}`;
+    : pathname.startsWith('/clients')
+      ? `/clients/visits/form?visitId=${id}`
+      : `/visits/form?visitId=${id}`;
 
   const visit = useVisitsStore((state) =>
     state.visits.find((v) => v.id === id)
@@ -113,7 +115,7 @@ export default function VisitDetailView() {
               onPress={() => router.push(editFormPath as any)}
               style={styles.headerButton}
               accessibilityRole="button"
-              accessibilityLabel="Editar visita"
+              accessibilityLabel="Editar gestión"
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Text style={styles.headerButtonText}>Editar</Text>
@@ -212,6 +214,14 @@ export default function VisitDetailView() {
       enableOnAndroid
       extraScrollHeight={80}
     >
+      {/* ── Sección: Título ───────────────────────────────────────────── */}
+      {visit.title ? (
+        <View style={styles.section}>
+          <SectionLabel title="Título" />
+          <Text style={styles.visitTitle}>{visit.title}</Text>
+        </View>
+      ) : null}
+
       {/* ── Sección: Cliente ───────────────────────────────────────────── */}
       <View style={styles.section}>
         <SectionLabel title="Cliente" />
@@ -232,6 +242,28 @@ export default function VisitDetailView() {
           <Text style={styles.clientLink}>Ver cliente</Text>
         </Pressable>
       </View>
+
+      {/* ── Sección: Contacto involucrado ────────────────────────────── */}
+      {visit.contact_snapshot && (
+        <View style={styles.section}>
+          <SectionLabel title="Contacto involucrado" />
+          {visit.contact_snapshot.name ? (
+            <Text style={styles.contactSnapshotName}>
+              {visit.contact_snapshot.name}
+            </Text>
+          ) : null}
+          {visit.contact_snapshot.phone ? (
+            <Text style={styles.contactSnapshotDetail}>
+              📞 {visit.contact_snapshot.phone}
+            </Text>
+          ) : null}
+          {visit.contact_snapshot.email ? (
+            <Text style={styles.contactSnapshotDetail}>
+              ✉️ {visit.contact_snapshot.email}
+            </Text>
+          ) : null}
+        </View>
+      )}
 
       {/* ── Sección: Fecha ─────────────────────────────────────────────── */}
       <View style={styles.section}>
@@ -287,8 +319,7 @@ export default function VisitDetailView() {
       </View>
 
       {/* ── Monto (solo cotizaciones y ventas con monto) ───────────────── */}
-      {visit.amount != null &&
-      (visit.type === 'quote' || visit.type === 'sale') ? (
+      {visit.amount != null && visit.type === 'sales_orders' ? (
         <View style={styles.section}>
           <SectionLabel title="Monto" />
           <Text style={styles.amountText}>
@@ -305,85 +336,51 @@ export default function VisitDetailView() {
       {/* ── Productos (cotizaciones y ventas con items) ────────────────── */}
       {visit.items &&
       visit.items.length > 0 &&
-      (visit.type === 'quote' || visit.type === 'sale') ? (
+      visit.type === 'sales_orders' ? (
         <View style={styles.section}>
             <SectionLabel title="Productos" />
-            {visit.type === 'quote' ? (
-              // Quote: price/kg per item, no total
-              visit.items.map((item, index) => (
-                <View key={index} style={styles.itemRow}>
-                  <View style={styles.itemLeft}>
-                    <Text style={styles.itemName}>
-                      {item.product_code ? `[${item.product_code}] ` : ''}
-                      {item.product_name}
-                    </Text>
-                    <Text style={styles.itemSub}>
-                      {item.presentation_label}
-                      {item.custom_quantity_kg
-                        ? ` · ~${item.custom_quantity_kg} ${item.unit}`
-                        : ''}
-                    </Text>
-                  </View>
-                  <Text style={styles.itemPricePerKg}>
+            {visit.items.map((item, index) => (
+              <View key={index} style={styles.itemRow}>
+                <View style={styles.itemLeft}>
+                  <Text style={styles.itemName}>
+                    {item.product_code ? `[${item.product_code}] ` : ''}
+                    {item.product_name}
+                  </Text>
+                  <Text style={styles.itemSub}>
+                    {item.presentation_label} · {item.quantity} envase
+                    {item.quantity !== 1 ? 's' : ''}
+                    {item.margin_pct > 0 ? ` · +${item.margin_pct}%` : ''}
+                  </Text>
+                  <Text style={styles.itemSub}>
                     $
-                    {(
-                      item.unit_price_usd *
-                      (1 + item.margin_pct / 100)
-                    ).toLocaleString('en-US', {
+                    {item.unit_price_usd.toLocaleString('en-US', {
                       minimumFractionDigits: 4,
                       maximumFractionDigits: 4,
                     })}{' '}
                     USD/{item.unit}
                   </Text>
                 </View>
-              ))
-            ) : (
-              // Sale: qty + price/kg + total
-              <>
-                {visit.items.map((item, index) => (
-                  <View key={index} style={styles.itemRow}>
-                    <View style={styles.itemLeft}>
-                      <Text style={styles.itemName}>
-                        {item.product_code ? `[${item.product_code}] ` : ''}
-                        {item.product_name}
-                      </Text>
-                      <Text style={styles.itemSub}>
-                        {item.presentation_label} · {item.quantity} envase
-                        {item.quantity !== 1 ? 's' : ''}
-                        {item.margin_pct > 0 ? ` · +${item.margin_pct}%` : ''}
-                      </Text>
-                      <Text style={styles.itemSub}>
-                        $
-                        {item.unit_price_usd.toLocaleString('en-US', {
-                          minimumFractionDigits: 4,
-                          maximumFractionDigits: 4,
-                        })}{' '}
-                        USD/{item.unit}
-                      </Text>
-                    </View>
-                    <Text style={styles.itemTotal}>
-                      $
-                      {(item.total_usd ?? 0).toLocaleString('en-US', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}{' '}
-                      USD
-                    </Text>
-                  </View>
-                ))}
-                <View style={styles.itemsTotalRow}>
-                  <Text style={styles.itemsTotalLabel}>Total</Text>
-                  <Text style={styles.itemsTotalAmount}>
-                    $
-                    {visit.amount?.toLocaleString('en-US', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}{' '}
-                    USD
-                  </Text>
-                </View>
-              </>
-            )}
+                <Text style={styles.itemTotal}>
+                  $
+                  {(item.total_usd ?? 0).toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{' '}
+                  USD
+                </Text>
+              </View>
+            ))}
+            <View style={styles.itemsTotalRow}>
+              <Text style={styles.itemsTotalLabel}>Total</Text>
+              <Text style={styles.itemsTotalAmount}>
+                $
+                {visit.amount?.toLocaleString('en-US', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{' '}
+                USD
+              </Text>
+            </View>
         </View>
       ) : null}
 
@@ -408,7 +405,7 @@ export default function VisitDetailView() {
       ) : null}
 
       {/* ── Ventas generadas (solo cotizaciones con ventas vinculadas) ───── */}
-      {visit.type === 'quote' && linkedSales.length > 0 ? (
+      {visit.type === 'sales_orders' && linkedSales.length > 0 ? (
         <View style={styles.section}>
             <SectionLabel title="Ventas generadas" />
             {linkedSales.map((sale) => (
@@ -433,7 +430,7 @@ export default function VisitDetailView() {
                       USD
                     </Text>
                   ) : null}
-                  <StatusTypeBadge status={sale.status} type="sale" />
+                  <StatusTypeBadge status={sale.status} type="sales_orders" />
                 </View>
                 <MaterialCommunityIcons
                   name="chevron-right"
@@ -463,7 +460,7 @@ export default function VisitDetailView() {
           value={notesText}
           onChangeText={setNotesText}
           onBlur={handleNotesBlur}
-          placeholder="Añadir notas de la visita..."
+          placeholder="Añadir notas de la gestión..."
           placeholderTextColor={colors.textDisabled}
           multiline
           numberOfLines={6}
@@ -562,6 +559,26 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: colors.border,
+  },
+
+  // Title section
+  visitTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+    lineHeight: fontSize.lg * 1.3,
+  },
+
+  // Contact snapshot
+  contactSnapshotName: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+  },
+  contactSnapshotDetail: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    marginTop: spacing[1],
   },
 
   // Client section

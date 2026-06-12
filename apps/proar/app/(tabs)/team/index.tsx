@@ -42,18 +42,21 @@ import type { UserRole } from '@/types';
 
 const ROLE_LABEL: Record<UserRole, string> = {
   user: 'Usuario',
+  product_manager: 'Productos',
   admin: 'Admin',
   root: 'Root',
 };
 
 const ROLE_COLOR: Record<UserRole, string> = {
   user: colors.textSecondary,
+  product_manager: '#EA580C',
   admin: colors.primary,
   root: colors.error,
 };
 
 const ROLE_BG: Record<UserRole, string> = {
   user: colors.surface,
+  product_manager: '#FFEDD5',
   admin: colors.primaryLight ?? '#EFF6FF',
   root: '#FEE2E2',
 };
@@ -89,7 +92,7 @@ export default function TeamIndexScreen() {
 
   const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root';
 
-  const [selectedType, setSelectedType] = useState<'quote' | 'sale'>('quote');
+  // selectedType removed — sale/quote merged into sales_orders
 
   useEffect(() => {
     if (!isAdminOrRoot) return;
@@ -118,13 +121,8 @@ export default function TeamIndexScreen() {
   const thisMonthVisits = allVisits.filter((v) =>
     dayjs(v.scheduled_at).isSame(now, 'month')
   );
-  const quotesThisMonth = thisMonthVisits.filter((v) => v.type === 'quote');
-  const salesThisMonth = thisMonthVisits.filter((v) => v.type === 'sale');
-  const quoteAmountTotal = quotesThisMonth.reduce(
-    (s, v) => s + (v.amount ?? 0),
-    0
-  );
-  const saleAmountTotal = salesThisMonth.reduce(
+  const salesOrdersThisMonth = thisMonthVisits.filter((v) => v.type === 'sales_orders');
+  const salesOrdersAmountTotal = salesOrdersThisMonth.reduce(
     (s, v) => s + (v.amount ?? 0),
     0
   );
@@ -133,7 +131,7 @@ export default function TeamIndexScreen() {
   // Filtered visit list
   // ---------------------------------------------------------------------------
 
-  const filteredVisits = allVisits.filter((v) => v.type === selectedType);
+  const filteredVisits = allVisits.filter((v) => v.type === 'sales_orders');
 
   // ---------------------------------------------------------------------------
   // Render
@@ -154,31 +152,14 @@ export default function TeamIndexScreen() {
           </View>
 
           <View style={styles.cardsRow}>
-            {/* Cotizaciones card */}
-            <View style={[styles.statCard, styles.statCardQuote]}>
-              <Text style={styles.statCardLabel}>Cotizaciones</Text>
-              <Text style={[styles.statCardCount, styles.statCardCountQuote]}>
-                {quotesThisMonth.length}
-              </Text>
-              <Text style={[styles.statCardAmount, styles.statCardAmountQuote]}>
-                $
-                {quoteAmountTotal.toLocaleString('en-US', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}{' '}
-                USD
-              </Text>
-            </View>
-
-            {/* Ventas card */}
             <View style={[styles.statCard, styles.statCardSale]}>
-              <Text style={styles.statCardLabel}>Ventas</Text>
+              <Text style={styles.statCardLabel}>Ventas y pedidos</Text>
               <Text style={[styles.statCardCount, styles.statCardCountSale]}>
-                {salesThisMonth.length}
+                {salesOrdersThisMonth.length}
               </Text>
               <Text style={[styles.statCardAmount, styles.statCardAmountSale]}>
                 $
-                {saleAmountTotal.toLocaleString('en-US', {
+                {salesOrdersAmountTotal.toLocaleString('en-US', {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}{' '}
@@ -187,52 +168,11 @@ export default function TeamIndexScreen() {
             </View>
           </View>
 
-          {/* ── Segmented control ───────────────────────────────────────── */}
-          <View style={styles.segmentedControl}>
-            <Pressable
-              style={[
-                styles.segmentButton,
-                selectedType === 'quote' && styles.segmentButtonActive,
-              ]}
-              onPress={() => setSelectedType('quote')}
-              accessibilityRole="button"
-              accessibilityLabel="Ver cotizaciones"
-            >
-              <Text
-                style={[
-                  styles.segmentButtonText,
-                  selectedType === 'quote' && styles.segmentButtonTextActive,
-                ]}
-              >
-                Cotizaciones
-              </Text>
-            </Pressable>
-            <Pressable
-              style={[
-                styles.segmentButton,
-                selectedType === 'sale' && styles.segmentButtonActive,
-              ]}
-              onPress={() => setSelectedType('sale')}
-              accessibilityRole="button"
-              accessibilityLabel="Ver ventas"
-            >
-              <Text
-                style={[
-                  styles.segmentButtonText,
-                  selectedType === 'sale' && styles.segmentButtonTextActive,
-                ]}
-              >
-                Ventas
-              </Text>
-            </Pressable>
-          </View>
-
-          {/* ── Filtered visit list ─────────────────────────────────────── */}
+          {/* ── Sales orders list ───────────────────────────────────────── */}
           {filteredVisits.length === 0 ? (
             <View style={styles.emptyVisitsContainer}>
               <Text style={styles.emptyText}>
-                No hay {selectedType === 'quote' ? 'cotizaciones' : 'ventas'}{' '}
-                registradas
+                No hay ventas y pedidos registrados
               </Text>
             </View>
           ) : (
@@ -243,7 +183,7 @@ export default function TeamIndexScreen() {
                   visit={v}
                   onPress={() => router.push(`/visits/${v.id}` as never)}
                   showOwner
-                  showAmount={v.type === 'quote' || v.type === 'sale'}
+                  showAmount={v.type === 'sales_orders'}
                 />
               ))}
             </View>

@@ -13,6 +13,7 @@ import {
   UpdateVisitInput,
   updateStatusSchema,
 } from '../validators/visit';
+import { useClientsStore } from './clientsStore';
 
 const PAGE_SIZE = 100;
 const GAP_KEY = 'visit-gap-minutes';
@@ -213,7 +214,7 @@ export const useVisitsStore = create<VisitsState>()(
           .from('visits')
           .select('*, client:clients(*)')
           .eq('client_id', clientId)
-          .eq('type', 'quote')
+          .eq('type', 'sales_orders')
           .order('scheduled_at', { ascending: false });
         if (!error && data) set({ clientQuotes: data as VisitWithClient[] });
       },
@@ -225,7 +226,7 @@ export const useVisitsStore = create<VisitsState>()(
         return get()
           .visits.filter(
             (v) =>
-              v.type === 'sale' &&
+              v.type === 'sales_orders' &&
               v.status === 'completed' &&
               v.owner_user_id === userId &&
               dayjs(v.scheduled_at).isSame(now, 'month')
@@ -320,6 +321,10 @@ export const useVisitsStore = create<VisitsState>()(
         }
 
         set((state) => ({ visits: [newVisit, ...state.visits] }));
+
+        // Refresh client so last_visited_at updates (DB trigger fired)
+        useClientsStore.getState().fetchClient(data.client_id);
+
         return newVisit;
       },
 
@@ -415,6 +420,11 @@ export const useVisitsStore = create<VisitsState>()(
         set((state) => ({
           visits: state.visits.map((v) => (v.id === id ? updatedVisit : v)),
         }));
+
+        // Refresh client so last_visited_at updates (DB trigger fired)
+        if (updatedVisit.client_id) {
+          useClientsStore.getState().fetchClient(updatedVisit.client_id);
+        }
       },
 
       updateStatus: async (id: string, status: VisitStatus) => {
@@ -456,6 +466,11 @@ export const useVisitsStore = create<VisitsState>()(
         set((state) => ({
           visits: state.visits.map((v) => (v.id === id ? updatedVisit : v)),
         }));
+
+        // Refresh client so last_visited_at updates (DB trigger fired)
+        if (updatedVisit.client_id) {
+          useClientsStore.getState().fetchClient(updatedVisit.client_id);
+        }
       },
 
       deleteVisit: async (id: string) => {
@@ -485,6 +500,11 @@ export const useVisitsStore = create<VisitsState>()(
           deleteError: null,
           visits: state.visits.filter((v) => v.id !== id),
         }));
+
+        // Refresh client so last_visited_at updates (DB trigger fired)
+        if (existingVisit?.client_id) {
+          useClientsStore.getState().fetchClient(existingVisit.client_id);
+        }
       },
 
       deleteAllUserVisits: async () => {

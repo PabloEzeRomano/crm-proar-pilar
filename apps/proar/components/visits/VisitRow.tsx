@@ -73,7 +73,7 @@ export function VisitRow({
       ]}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`Ver visita a ${clientName}`}
+      accessibilityLabel={`Ver gestión de ${clientName}`}
     >
       <View style={styles.timeColumn}>
         <Text style={styles.dateText}>{scheduledDayjs.format('DD/MM')}</Text>
@@ -87,6 +87,16 @@ export function VisitRow({
         <Text style={styles.clientName} numberOfLines={1}>
           {clientName}
         </Text>
+        {visit.title ? (
+          <Text style={styles.visitTitleText} numberOfLines={1}>
+            {visit.title}
+          </Text>
+        ) : null}
+        {visit.contact_snapshot?.name ? (
+          <Text style={styles.contactText} numberOfLines={1}>
+            👤 {visit.contact_snapshot.name}
+          </Text>
+        ) : null}
         {ownerName ? (
           <Text style={styles.ownerText} numberOfLines={1}>
             {ownerName}
@@ -184,6 +194,15 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
+  },
+  visitTitleText: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  contactText: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
   },
   ownerText: {
     fontSize: fontSize.xs,

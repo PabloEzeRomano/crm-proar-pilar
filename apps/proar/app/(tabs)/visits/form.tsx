@@ -56,6 +56,7 @@ import {
 } from '@/constants/theme';
 import {
   Client,
+  ContactInfo,
   Product,
   ProductPresentation,
   QuoteItem,
@@ -72,22 +73,17 @@ import { getStatusLabel } from '@/lib/visitStatus';
 const GAP_KEY = 'visit-gap-minutes';
 const DEFAULT_GAP = 60;
 
-const MINUTA_TEMPLATE = 'Objetivo:\n\nResultado:\n\nPróximos pasos:\n';
+const MINUTA_TEMPLATE = 'Objetivo:\n\nMinuta:\n\nPróximos pasos:\n';
 
 const VISIT_TYPE_OPTIONS: { value: VisitType; label: string; icon: string }[] =
   [
-    { value: 'visit', label: 'Visita', icon: 'briefcase-outline' },
-    { value: 'call', label: 'Llamada', icon: 'phone-outline' },
-    { value: 'sale', label: 'Venta', icon: 'cash-register' },
-    { value: 'quote', label: 'Cotización', icon: 'file-document-outline' },
+    { value: 'customer_service', label: 'Atención al cliente', icon: 'headset' },
+    { value: 'sales_orders', label: 'Ventas y pedidos', icon: 'cart-outline' },
+    { value: 'new_projects', label: 'Nuevos proyectos', icon: 'lightbulb-outline' },
+    { value: 'payments', label: 'Pagos y cobranzas', icon: 'credit-card-outline' },
+    { value: 'technical_service', label: 'Servicio técnico', icon: 'wrench-outline' },
+    { value: 'other', label: 'Otros', icon: 'dots-horizontal-circle-outline' },
   ];
-
-const GAP_OPTIONS = [
-  { label: '30 min', value: 30 },
-  { label: '1 hora', value: 60 },
-  { label: '1 h 30', value: 90 },
-  { label: '2 horas', value: 120 },
-];
 
 type ProductFilterType = 'all' | 'formulated' | 'commodity';
 
@@ -123,7 +119,9 @@ export default function VisitFormScreen() {
   const navigation = useNavigation();
 
   const closeForm = useCallback(() => {
-    if (navigation.canGoBack()) {
+    if (router.canDismiss()) {
+      router.dismiss();
+    } else if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
       router.replace('/(tabs)/visits');
@@ -155,9 +153,11 @@ export default function VisitFormScreen() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(defaultDate);
   const [selectedTime, setSelectedTime] = useState<Date>(defaultTime);
+  const [title, setTitle] = useState<string>('');
+  const [selectedContact, setSelectedContact] = useState<ContactInfo | null>(null);
   const [notes, setNotes] = useState<string>(MINUTA_TEMPLATE);
   const [status, setStatus] = useState<VisitStatus>('pending');
-  const [visitType, setVisitType] = useState<VisitType>('visit');
+  const [visitType, setVisitType] = useState<VisitType>('customer_service');
   const [gapMinutes, setGapMinutes] = useState<number>(DEFAULT_GAP);
   const [quoteId, setQuoteId] = useState<string | null>(null);
   const clientQuotes = useVisitsStore((s) => s.clientQuotes);
@@ -229,9 +229,11 @@ export default function VisitFormScreen() {
       const scheduledDate = new Date(existingVisit.scheduled_at);
       setSelectedDate(scheduledDate);
       setSelectedTime(scheduledDate);
+      setTitle(existingVisit.title ?? '');
+      setSelectedContact(existingVisit.contact_snapshot ?? null);
       setNotes(existingVisit.notes ?? '');
       setStatus(existingVisit.status);
-      setVisitType(existingVisit.type ?? 'visit');
+      setVisitType(existingVisit.type ?? 'customer_service');
       setItems(existingVisit.items ?? []);
       setQuoteId(existingVisit.quote_id ?? null);
 
@@ -254,7 +256,7 @@ export default function VisitFormScreen() {
   }, [isEditMode, existingVisit?.id, paramClientId, clients]);
 
   useEffect(() => {
-    if (visitType === 'sale' && selectedClient) {
+    if (visitType === 'sales_orders' && selectedClient) {
       fetchQuotesByClient(selectedClient.id);
     } else {
       clearClientQuotes();
@@ -262,10 +264,10 @@ export default function VisitFormScreen() {
     return () => clearClientQuotes();
   }, [visitType, selectedClient?.id]);
 
-  // Pre-populate items from client habitual products (quote, create mode only)
+  // Pre-populate items from client habitual products (sales_orders, create mode only)
   useEffect(() => {
     if (
-      (visitType === 'quote' || visitType === 'sale') &&
+      visitType === 'sales_orders' &&
       selectedClient &&
       !isEditMode
     ) {
@@ -295,9 +297,7 @@ export default function VisitFormScreen() {
             unit_price_usd: presentation.price_usd,
             margin_pct: 0,
             total_usd:
-              visitType === 'sale'
-                ? 1 * (presentation.quantity ?? 0) * presentation.price_usd
-                : null,
+              1 * (presentation.quantity ?? 0) * presentation.price_usd,
           });
         }
 
@@ -305,7 +305,7 @@ export default function VisitFormScreen() {
           setItems(prePopulated);
         }
       });
-    } else if (visitType !== 'quote' && visitType !== 'sale') {
+    } else if (visitType !== 'sales_orders') {
       setItems([]);
     }
   }, [visitType, selectedClient?.id]);
@@ -324,7 +324,7 @@ export default function VisitFormScreen() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: isEditMode ? 'Editar visita' : 'Nueva visita',
+      title: isEditMode ? 'Editar gestión' : 'Nueva gestión',
       headerLeft: () => (
         <Pressable
           onPress={closeForm}
@@ -341,7 +341,7 @@ export default function VisitFormScreen() {
           onPress={handleSave}
           style={[styles.headerButton, !isValid && styles.headerButtonDisabled]}
           accessibilityRole="button"
-          accessibilityLabel="Guardar visita"
+          accessibilityLabel="Guardar gestión"
           disabled={!isValid || saving}
         >
           {saving ? (
@@ -385,17 +385,13 @@ export default function VisitFormScreen() {
       prev.map((item, i) => {
         if (i !== index) return item;
         const updated = { ...item, ...changes };
-        if (visitType === 'sale') {
-          const pkgKg =
-            updated.presentation_quantity_kg ?? updated.custom_quantity_kg ?? 0;
-          updated.total_usd =
-            updated.quantity *
-            pkgKg *
-            updated.unit_price_usd *
-            (1 + updated.margin_pct / 100);
-        } else {
-          updated.total_usd = null;
-        }
+        const pkgKg =
+          updated.presentation_quantity_kg ?? updated.custom_quantity_kg ?? 0;
+        updated.total_usd =
+          updated.quantity *
+          pkgKg *
+          updated.unit_price_usd *
+          (1 + updated.margin_pct / 100);
         return updated;
       })
     );
@@ -432,10 +428,7 @@ export default function VisitFormScreen() {
         quantity: 1,
         unit_price_usd: presentation.price_usd,
         margin_pct: 0,
-        total_usd:
-          visitType === 'sale'
-            ? 1 * (presentation.quantity ?? 0) * presentation.price_usd
-            : null,
+        total_usd: 1 * (presentation.quantity ?? 0) * presentation.price_usd,
       },
     ]);
     setShowProductPicker(false);
@@ -448,17 +441,19 @@ export default function VisitFormScreen() {
 
     setSaving(true);
     const isoString = combineDateAndTime(selectedDate, selectedTime);
-    const isQuoteOrSale = visitType === 'quote' || visitType === 'sale';
+    const isSalesOrders = visitType === 'sales_orders';
     const computedAmount =
-      visitType === 'sale' && items.length > 0 ? computeTotal(items) : null;
+      isSalesOrders && items.length > 0 ? computeTotal(items) : null;
     const itemsPayload =
-      isQuoteOrSale && items.length > 0
+      isSalesOrders && items.length > 0
         ? items.map((i) => ({ ...i, total_usd: i.total_usd ?? 0 }))
         : [];
 
     if (isEditMode && visitId) {
       await updateVisit(visitId, {
         scheduled_at: isoString,
+        title: title || undefined,
+        contact_snapshot: selectedContact,
         notes: notes || undefined,
         status,
         type: visitType,
@@ -474,6 +469,8 @@ export default function VisitFormScreen() {
       const newVisit = await createVisit({
         client_id: selectedClient.id,
         scheduled_at: isoString,
+        title: title || undefined,
+        contact_snapshot: selectedContact,
         notes: notes || undefined,
         status,
         type: visitType,
@@ -482,13 +479,13 @@ export default function VisitFormScreen() {
         items: itemsPayload,
       });
 
-      // Sync client products after successful quote save
-      if (newVisit && visitType === 'quote' && items.length > 0) {
+      // Sync client products after successful sales_orders save
+      if (newVisit && visitType === 'sales_orders' && items.length > 0) {
         await syncClientProducts(selectedClient.id, items);
       }
 
       // Send quote email (non-blocking — don't prevent navigation on failure)
-      if (newVisit && visitType === 'quote' && recipientEmail.trim()) {
+      if (newVisit && visitType === 'sales_orders' && recipientEmail.trim()) {
         const recipientName = selectedClient.contacts?.find(
           (c) => c.email === recipientEmail.trim()
         )?.name;
@@ -657,6 +654,21 @@ export default function VisitFormScreen() {
           </View>
         </View>
 
+        {/* ── Título ──────────────────────────────────────────────────────── */}
+        <View style={styles.fieldGroup}>
+          <FieldLabel label="Título (opcional)" />
+          <TextInput
+            style={styles.titleInput}
+            value={title}
+            onChangeText={setTitle}
+            placeholder="Ej: Seguimiento propuesta, Reclamo #123"
+            placeholderTextColor={colors.textDisabled}
+            autoCapitalize="sentences"
+            returnKeyType="next"
+            accessibilityLabel="Título de la gestión"
+          />
+        </View>
+
         {/* ── Cliente ─────────────────────────────────────────────────────── */}
         <View style={styles.fieldGroup}>
           <FieldLabel label="Cliente" required={!isEditMode} />
@@ -792,8 +804,71 @@ export default function VisitFormScreen() {
           ) : null}
         </View>
 
+        {/* ── Contacto involucrado ─────────────────────────────────────── */}
+        {selectedClient && selectedClient.contacts.length > 0 && (
+          <View style={styles.fieldGroup}>
+            <FieldLabel label="Contacto involucrado (opcional)" />
+            <View style={styles.contactPickerRow}>
+              {selectedClient.contacts.map((contact, idx) => {
+                const label = contact.name || contact.phone || contact.email || `Contacto ${idx + 1}`;
+                const isSelected =
+                  selectedContact != null &&
+                  contact.name === selectedContact.name &&
+                  contact.phone === selectedContact.phone &&
+                  contact.email === selectedContact.email;
+                return (
+                  <Pressable
+                    key={`contact-${idx}`}
+                    style={[
+                      styles.contactChip,
+                      isSelected && styles.contactChipActive,
+                    ]}
+                    onPress={() => {
+                      const next = isSelected ? null : contact;
+                      setSelectedContact(next);
+                      if (next?.email) setRecipientEmail(next.email);
+                    }}
+                    accessibilityRole="radio"
+                    accessibilityLabel={label}
+                    accessibilityState={{ checked: isSelected }}
+                  >
+                    <MaterialCommunityIcons
+                      name="account-outline"
+                      size={16}
+                      color={isSelected ? colors.primary : colors.textSecondary}
+                    />
+                    <Text
+                      style={[
+                        styles.contactChipLabel,
+                        isSelected && styles.contactChipLabelActive,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {selectedContact && (
+              <View style={styles.contactDetail}>
+                {selectedContact.phone ? (
+                  <Text style={styles.contactDetailText}>
+                    📞 {selectedContact.phone}
+                  </Text>
+                ) : null}
+                {selectedContact.email ? (
+                  <Text style={styles.contactDetailText}>
+                    ✉️ {selectedContact.email}
+                  </Text>
+                ) : null}
+              </View>
+            )}
+          </View>
+        )}
+
         {/* ── Productos ───────────────────────────────────────────────────── */}
-        {(visitType === 'quote' || visitType === 'sale') && (
+        {visitType === 'sales_orders' && (
           <View style={styles.fieldGroup}>
             <FieldLabel label="Productos" />
 
@@ -801,7 +876,7 @@ export default function VisitFormScreen() {
               <QuoteItemRow
                 key={`${item.presentation_id}-${index}`}
                 item={item}
-                visitType={visitType as 'quote' | 'sale'}
+                visitType={visitType}
                 onChangeQuantity={(qty) => updateItem(index, { quantity: qty })}
                 onChangeMargin={(pct) => updateItem(index, { margin_pct: pct })}
                 onChangeCustomQty={(kg) =>
@@ -830,7 +905,7 @@ export default function VisitFormScreen() {
               <Text style={styles.addProductButtonText}>Agregar producto</Text>
             </Pressable>
 
-            {visitType === 'sale' && items.length > 0 && (
+            {items.length > 0 && (
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Total</Text>
                 <Text style={styles.totalAmount}>
@@ -846,12 +921,12 @@ export default function VisitFormScreen() {
           </View>
         )}
 
-        {/* ── Destinatario del mail (quote only) ──────────────────────────── */}
-        {visitType === 'quote' && (
+        {/* ── Destinatario del mail (sales_orders) ─────────────────────────── */}
+        {visitType === 'sales_orders' && (
           <View style={styles.fieldGroup}>
             <FieldLabel label="Destinatario del mail" />
             <TextInput
-              style={styles.notesInput}
+              style={styles.titleInput}
               value={recipientEmail}
               onChangeText={setRecipientEmail}
               placeholder="email@empresa.com"
@@ -906,7 +981,7 @@ export default function VisitFormScreen() {
         )}
 
         {/* ── Cotización de origen ─────────────────────────────────────────── */}
-        {visitType === 'sale' && (
+        {visitType === 'sales_orders' && (
           <View style={styles.fieldGroup}>
             <FieldLabel label="Cotización de origen (opcional)" />
             {clientQuotes.length === 0 ? (
@@ -940,7 +1015,7 @@ export default function VisitFormScreen() {
                         USD
                       </Text>
                     )}
-                    <StatusTypeBadge status={q.status} type="quote" />
+                    <StatusTypeBadge status={q.status} type="sales_orders" />
                   </Pressable>
                 );
               })
@@ -1051,42 +1126,6 @@ export default function VisitFormScreen() {
           </View>
         </View>
 
-        {/* ── Intervalo (create mode only) ─────────────────────────────────── */}
-        {!isEditMode ? (
-          <View style={styles.fieldGroup}>
-            <FieldLabel label="Intervalo con visita anterior" />
-            <View style={styles.gapRow}>
-              {GAP_OPTIONS.map(({ label, value }) => {
-                const active = gapMinutes === value;
-                return (
-                  <Pressable
-                    key={value}
-                    style={[styles.gapOption, active && styles.gapOptionActive]}
-                    onPress={() => {
-                      setGapMinutes(value);
-                      AsyncStorage.setItem(GAP_KEY, String(value));
-                      // Recompute time with new gap
-                      applyDateDefaults(selectedDate);
-                    }}
-                    accessibilityRole="radio"
-                    accessibilityLabel={label}
-                    accessibilityState={{ checked: active }}
-                  >
-                    <Text
-                      style={[
-                        styles.gapOptionLabel,
-                        active && styles.gapOptionLabelActive,
-                      ]}
-                    >
-                      {label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        ) : null}
-
         {/* ── Estado ───────────────────────────────────────────────────────── */}
         <View style={styles.fieldGroup}>
           <FieldLabel label="Estado" />
@@ -1153,7 +1192,7 @@ export default function VisitFormScreen() {
             multiline
             numberOfLines={4}
             textAlignVertical="top"
-            accessibilityLabel="Notas de la visita"
+            accessibilityLabel="Notas de la gestión"
           />
         </View>
 
@@ -1616,34 +1655,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
 
-  // Gap picker
-  gapRow: {
-    flexDirection: 'row',
-    gap: spacing[2],
-  },
-  gapOption: {
-    flex: 1,
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.background,
-  },
-  gapOptionActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
-  },
-  gapOptionLabel: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
-    color: colors.textSecondary,
-  },
-  gapOptionLabelActive: {
-    color: colors.primary,
-  },
-
   // Status picker
   statusRow: {
     flexDirection: 'row',
@@ -1664,6 +1675,58 @@ const styles = StyleSheet.create({
   statusOptionLabel: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
+  },
+
+  // Title
+  titleInput: {
+    height: 48,
+    backgroundColor: colors.background,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing[3],
+    fontSize: fontSize.base,
+    color: colors.textPrimary,
+  },
+
+  // Contact picker
+  contactPickerRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing[2],
+  },
+  contactChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    height: 40,
+    paddingHorizontal: spacing[3],
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.background,
+  },
+  contactChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  contactChipLabel: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    maxWidth: 160,
+  },
+  contactChipLabelActive: {
+    color: colors.primary,
+    fontWeight: fontWeight.semibold,
+  },
+  contactDetail: {
+    gap: spacing[1],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+  },
+  contactDetailText: {
+    fontSize: fontSize.sm,
     color: colors.textSecondary,
   },
 

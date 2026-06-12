@@ -1,6 +1,13 @@
 import { z } from 'zod';
 
-export const visitTypeSchema = z.enum(['sale', 'visit', 'call', 'quote']);
+export const visitTypeSchema = z.enum([
+  'customer_service',
+  'sales_orders',
+  'new_projects',
+  'payments',
+  'technical_service',
+  'other',
+]);
 
 export const quoteItemSchema = z.object({
   product_id: z.uuid(),
@@ -17,9 +24,20 @@ export const quoteItemSchema = z.object({
 
 export type QuoteItemInput = z.infer<typeof quoteItemSchema>;
 
+const contactSnapshotSchema = z
+  .object({
+    name: z.string().optional(),
+    phone: z.string().optional(),
+    email: z.string().optional(),
+  })
+  .nullable()
+  .optional();
+
 export const createVisitSchema = z.object({
   client_id: z.uuid('Seleccioná un cliente'),
   scheduled_at: z.string().min(1, 'La fecha es requerida'), // ISO 8601 string
+  title: z.string().optional(),
+  contact_snapshot: contactSnapshotSchema,
   notes: z.string().optional(),
   status: z.enum(['pending', 'completed', 'canceled']).optional(),
   type: visitTypeSchema.optional(),
@@ -34,6 +52,8 @@ export const createVisitSchema = z.object({
 
 export const updateVisitSchema = z.object({
   scheduled_at: z.string().min(1, 'La fecha es requerida').optional(),
+  title: z.string().optional(),
+  contact_snapshot: contactSnapshotSchema,
   notes: z.string().optional(),
   status: z.enum(['pending', 'completed', 'canceled']).optional(),
   type: visitTypeSchema.optional(),

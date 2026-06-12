@@ -44,25 +44,35 @@ const STATUS_TYPE_CONFIG: BadgeConfig = {
     color: colors.statusCanceled,
     icon: 'close-circle-outline' as const,
   },
-  visit: {
-    icon: 'briefcase-outline' as const,
-    color: visitTypeColors.visit,
-    bg: visitTypeColors.visitLight,
+  customer_service: {
+    icon: 'headset' as const,
+    color: visitTypeColors.customer_service,
+    bg: visitTypeColors.customer_serviceLight,
   },
-  call: {
-    icon: 'phone-outline' as const,
-    color: visitTypeColors.call,
-    bg: visitTypeColors.callLight,
+  sales_orders: {
+    icon: 'cart-outline' as const,
+    color: visitTypeColors.sales_orders,
+    bg: visitTypeColors.sales_ordersLight,
   },
-  quote: {
-    icon: 'file-document-outline' as const,
-    color: visitTypeColors.quote,
-    bg: visitTypeColors.quoteLight,
+  new_projects: {
+    icon: 'lightbulb-outline' as const,
+    color: visitTypeColors.new_projects,
+    bg: visitTypeColors.new_projectsLight,
   },
-  sale: {
-    icon: 'cash-register' as const,
-    color: visitTypeColors.sale,
-    bg: visitTypeColors.saleLight,
+  payments: {
+    icon: 'credit-card-outline' as const,
+    color: visitTypeColors.payments,
+    bg: visitTypeColors.paymentsLight,
+  },
+  technical_service: {
+    icon: 'wrench-outline' as const,
+    color: visitTypeColors.technical_service,
+    bg: visitTypeColors.technical_serviceLight,
+  },
+  other: {
+    icon: 'dots-horizontal-circle-outline' as const,
+    color: visitTypeColors.other,
+    bg: visitTypeColors.otherLight,
   },
 } as const;
 

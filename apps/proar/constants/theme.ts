@@ -76,14 +76,18 @@ export const colors = {
 // ---------------------------------------------------------------------------
 
 export const visitTypeColors = {
-  visit: brand.primaryColor,
-  visitLight: brand.primaryColorLight,
-  call: '#0D9488',
-  callLight: '#CCFBF1',
-  quote: '#7C3AED',
-  quoteLight: '#EDE9FE',
-  sale: '#EA580C',
-  saleLight: '#FFEDD5',
+  customer_service: brand.primaryColor,
+  customer_serviceLight: brand.primaryColorLight,
+  sales_orders: '#0D9488',
+  sales_ordersLight: '#CCFBF1',
+  new_projects: '#2563EB',
+  new_projectsLight: '#DBEAFE',
+  payments: '#D97706',
+  paymentsLight: '#FEF3C7',
+  technical_service: '#9333EA',
+  technical_serviceLight: '#F3E8FF',
+  other: '#64748B',
+  otherLight: '#F1F5F9',
 } as const;
 
 // ---------------------------------------------------------------------------

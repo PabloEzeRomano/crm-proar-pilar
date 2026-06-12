@@ -1,35 +1,31 @@
 import { VisitStatus, VisitType } from '@/types';
 
-const STATUS_LABELS: Record<VisitType, Record<VisitStatus, string>> = {
-  visit: {
+const DEFAULT_STATUS_LABELS: Record<VisitStatus, string> = {
+  pending: 'Pendiente',
+  completed: 'Completada',
+  canceled: 'Cancelada',
+};
+
+const STATUS_LABELS: Partial<
+  Record<VisitType, Partial<Record<VisitStatus, string>>>
+> = {
+  sales_orders: {
     pending: 'Pendiente',
-    completed: 'Completada',
+    completed: 'Cerrada',
     canceled: 'Cancelada',
-  },
-  call: {
-    pending: 'Pendiente',
-    completed: 'Completada',
-    canceled: 'Cancelada',
-  },
-  quote: {
-    pending: 'Enviada',
-    completed: 'Aceptada',
-    canceled: 'Rechazada',
-  },
-  sale: {
-    pending: 'Pendiente',
-    completed: 'Pagada',
-    canceled: 'Demorada',
   },
 };
 
 const TYPE_LABELS: Record<VisitType, string> = {
-  visit: 'Visita',
-  call: 'Llamada',
-  quote: 'Cotización',
-  sale: 'Venta',
+  customer_service: 'Atención al cliente',
+  sales_orders: 'Ventas y pedidos',
+  new_projects: 'Nuevos proyectos',
+  payments: 'Pagos y cobranzas',
+  technical_service: 'Servicio técnico',
+  other: 'Otros',
 };
 
 export function getStatusLabel(type: VisitType, status?: VisitStatus): string {
-  return status ? STATUS_LABELS[type][status] : TYPE_LABELS[type];
+  if (!status) return TYPE_LABELS[type];
+  return STATUS_LABELS[type]?.[status] ?? DEFAULT_STATUS_LABELS[status];
 }
