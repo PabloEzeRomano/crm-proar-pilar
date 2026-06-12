@@ -14,7 +14,6 @@
     "build:web": "expo export --platform web",
     "import": "tsx scripts/import-excel.ts",
     "import:dry": "tsx scripts/import-excel.ts --dry-run",
-    "geocode": "tsx scripts/geocode-clients.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:debug": "playwright test --debug",
@@ -26,10 +25,16 @@
     "@react-native-community/datetimepicker": "^8.6.0",
     "expo-document-picker": "~55.0.8",
     "expo-linear-gradient": "~55.0.13",
-    "expo-location": "^56.0.0-canary-20260305-5163746",
+    "expo-linking": "~55.0.7",
     "expo-notifications": "^55.0.12",
     "react-native-keyboard-aware-scroll-view": "^0.9.5",
-    "xlsx": "^0.18.5"
+    "react-native-safe-area-context": "5.6.2",
+    "react-native-screens": "4.23.0",
+    "xlsx": "^0.18.5",
+    "zod": "^4.3.6",
+    "expo": "~55.0.5",
+    "react": "19.2.0",
+    "react-native": "0.83.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
