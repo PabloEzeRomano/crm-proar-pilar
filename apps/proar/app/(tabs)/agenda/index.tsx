@@ -22,8 +22,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -322,7 +320,6 @@ const groupStyles = StyleSheet.create({
 function TodayScreenContent() {
   const router = useRouter();
   const navigation = useNavigation();
-  const [sortLoading, setSortLoading] = useState(false);
   const [statsVisible, setStatsVisible] = useState(false);
   const profile = useAuthStore((state) => state.profile);
   const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root';
@@ -353,26 +350,6 @@ function TodayScreenContent() {
     setProgressVisible(false);
     AsyncStorage.setItem(PROGRESS_KEY, 'false');
   }
-
-  const sortedByDistance = useTodayStore((s) => s.sortedByDistance);
-  const sortByDistance = useTodayStore((s) => s.sortByDistance);
-  const resetDistanceSort = useTodayStore((s) => s.resetDistanceSort);
-
-  const handleToggleSort = async () => {
-    if (sortedByDistance) {
-      resetDistanceSort();
-      return;
-    }
-
-    setSortLoading(true);
-    try {
-      await sortByDistance();
-    } catch (error) {
-      Alert.alert('Error', 'No se pudieron obtener coordenadas de ubicación');
-    } finally {
-      setSortLoading(false);
-    }
-  };
 
   // ── Auto-refresh while screen is focused ────────────────────────────────
   useFocusEffect(
@@ -830,48 +807,12 @@ function TodayScreenContent() {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>{sectionTitle}</Text>
               {visits.length > 0 && (
-                <>
-                  <View style={styles.countBadge}>
-                    <Text style={styles.countBadgeText}>
-                      {visits.length}{' '}
-                      {visits.length === 1 ? 'gestión' : 'gestiones'}
-                    </Text>
-                  </View>
-                  {/* Sort toggle button — only on native platforms (expo-location not available on web) */}
-                  {Platform.OS !== 'web' && (
-                    <Pressable
-                      style={({ pressed }) => [
-                        styles.sortButton,
-                        pressed && styles.sortButtonPressed,
-                      ]}
-                      onPress={handleToggleSort}
-                      disabled={sortLoading}
-                      accessibilityRole="button"
-                      accessibilityLabel={
-                        sortedByDistance
-                          ? 'Ordenar por hora'
-                          : 'Ordenar por distancia'
-                      }
-                    >
-                      {sortLoading ? (
-                        <ActivityIndicator
-                          size="small"
-                          color={colors.textSecondary}
-                        />
-                      ) : (
-                        <MaterialCommunityIcons
-                          name={
-                            sortedByDistance
-                              ? 'clock-outline'
-                              : 'map-marker-distance'
-                          }
-                          size={20}
-                          color={colors.textSecondary}
-                        />
-                      )}
-                    </Pressable>
-                  )}
-                </>
+                <View style={styles.countBadge}>
+                  <Text style={styles.countBadgeText}>
+                    {visits.length}{' '}
+                    {visits.length === 1 ? 'gestión' : 'gestiones'}
+                  </Text>
+                </View>
               )}
             </View>
           </TourStep>
@@ -1047,17 +988,6 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold,
     color: colors.primary,
   },
-  sortButton: {
-    marginLeft: 'auto',
-    width: 48,
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sortButtonPressed: {
-    opacity: 0.7,
-  },
-
   // ── Daily progress card ───────────────────────────────────────────────────
   progressCardWrapper: {
     paddingHorizontal: spacing[4],

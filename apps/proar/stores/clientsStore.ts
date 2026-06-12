@@ -27,7 +27,6 @@ interface ClientsState {
   restoreClient: (id: string) => Promise<void>;
   deleteClient: (id: string) => Promise<void>;
   deleteAllUserClients: () => Promise<void>;
-  geocodeClient: (id: string) => Promise<void>;
 }
 
 function normalizeClientInput(data: CreateClientInput) {
@@ -219,11 +218,6 @@ export const useClientsStore = create<ClientsState>()(
 
         set((state) => ({ clients: [...state.clients, newClient] }));
 
-        // Geocode in background (fire-and-forget)
-        get()
-          .geocodeClient(newClient.id)
-          .catch(() => {});
-
         return newClient;
       },
 
@@ -249,11 +243,6 @@ export const useClientsStore = create<ClientsState>()(
         set((state) => ({
           clients: state.clients.map((c) => (c.id === id ? updatedClient : c)),
         }));
-
-        // Geocode in background (fire-and-forget)
-        get()
-          .geocodeClient(id)
-          .catch(() => {});
       },
 
       archiveClient: async (id: string) => {
@@ -339,49 +328,6 @@ export const useClientsStore = create<ClientsState>()(
         set({ clients: [] });
       },
 
-      geocodeClient: async (id: string) => {
-        const client = get().clients.find((c) => c.id === id);
-        if (!client || !client.address || !client.city) return;
-
-        try {
-          // Call Nominatim with rate limiting awareness
-          const query = encodeURIComponent(`${client.address}, ${client.city}`);
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1&countrycodes=ar`,
-            {
-              headers: {
-                'User-Agent': 'CRM-Proar-Pilar/1.0',
-              },
-            }
-          );
-
-          if (!response.ok) return;
-
-          const results = await response.json();
-          if (!results || results.length === 0) return;
-
-          const { lat, lon } = results[0];
-          const latitude = parseFloat(lat);
-          const longitude = parseFloat(lon);
-
-          if (isNaN(latitude) || isNaN(longitude)) return;
-
-          // Update in database (silent fail if error)
-          await supabase
-            .from('clients')
-            .update({ latitude, longitude })
-            .eq('id', id);
-
-          // Update local state
-          set((state) => ({
-            clients: state.clients.map((c) =>
-              c.id === id ? { ...c, latitude, longitude } : c
-            ),
-          }));
-        } catch {
-          // Silent fail - coords remain null
-        }
-      },
     }),
     {
       name: 'clients-store',

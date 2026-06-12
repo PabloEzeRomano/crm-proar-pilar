@@ -17,8 +17,6 @@ export const createClientSchema = z.object({
   commercial_classification: z.string().optional(),
   contacts: z.array(contactInfoSchema).optional(),
   notes: z.string().optional(),
-  latitude: z.number().nullable().optional(),
-  longitude: z.number().nullable().optional(),
 });
 
 export const updateClientSchema = createClientSchema.partial().extend({
