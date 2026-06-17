@@ -42,24 +42,49 @@ const statusColor: Record<CampaignStatus, string> = {
   completed: colors.statusCanceled,
 };
 
-function CampaignRow({ campaign, onPress }: { campaign: Campaign; onPress: () => void }) {
+function CampaignRow({
+  campaign,
+  onPress,
+}: {
+  campaign: Campaign;
+  onPress: () => void;
+}) {
   return (
     <Pressable style={styles.row} onPress={onPress} accessibilityRole="button">
       <View style={styles.rowIcon}>
-        <MaterialCommunityIcons name="bullhorn-outline" size={20} color={colors.primary} />
+        <MaterialCommunityIcons
+          name="bullhorn-outline"
+          size={20}
+          color={colors.primary}
+        />
       </View>
       <View style={styles.rowContent}>
-        <Text style={styles.rowName} numberOfLines={1}>{campaign.name}</Text>
+        <Text style={styles.rowName} numberOfLines={1}>
+          {campaign.name}
+        </Text>
         {campaign.description && (
-          <Text style={styles.rowSub} numberOfLines={1}>{campaign.description}</Text>
+          <Text style={styles.rowSub} numberOfLines={1}>
+            {campaign.description}
+          </Text>
         )}
       </View>
-      <View style={[styles.badge, { backgroundColor: statusColor[campaign.status] + '20' }]}>
-        <Text style={[styles.badgeText, { color: statusColor[campaign.status] }]}>
+      <View
+        style={[
+          styles.badge,
+          { backgroundColor: statusColor[campaign.status] + '20' },
+        ]}
+      >
+        <Text
+          style={[styles.badgeText, { color: statusColor[campaign.status] }]}
+        >
           {statusLabel[campaign.status]}
         </Text>
       </View>
-      <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textDisabled} />
+      <MaterialCommunityIcons
+        name="chevron-right"
+        size={20}
+        color={colors.textDisabled}
+      />
     </Pressable>
   );
 }
@@ -93,7 +118,11 @@ export default function CampaignsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.searchBar}>
-        <MaterialCommunityIcons name="magnify" size={20} color={colors.textSecondary} />
+        <MaterialCommunityIcons
+          name="magnify"
+          size={20}
+          color={colors.textSecondary}
+        />
         <TextInput
           style={styles.searchInput}
           placeholder="Buscar campaña…"
@@ -113,7 +142,12 @@ export default function CampaignsScreen() {
             onPress={() => setStatusTab(tab.key)}
             accessibilityRole="tab"
           >
-            <Text style={[styles.tabText, statusTab === tab.key && styles.tabTextActive]}>
+            <Text
+              style={[
+                styles.tabText,
+                statusTab === tab.key && styles.tabTextActive,
+              ]}
+            >
               {tab.label}
             </Text>
           </Pressable>
@@ -153,7 +187,11 @@ export default function CampaignsScreen() {
           accessibilityRole="button"
           accessibilityLabel="Nueva campaña"
         >
-          <MaterialCommunityIcons name="plus" size={28} color={colors.textOnPrimary} />
+          <MaterialCommunityIcons
+            name="plus"
+            size={28}
+            color={colors.textOnPrimary}
+          />
         </Pressable>
       )}
     </View>
@@ -175,8 +213,18 @@ const styles = StyleSheet.create({
     gap: spacing[2],
     ...shadows.subtle,
   },
-  searchInput: { flex: 1, fontSize: fontSize.base, color: colors.textPrimary, height: 36 },
-  tabs: { flexDirection: 'row', paddingHorizontal: spacing[4], gap: spacing[2], marginBottom: spacing[3] },
+  searchInput: {
+    flex: 1,
+    fontSize: fontSize.base,
+    color: colors.textPrimary,
+    height: 36,
+  },
+  tabs: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing[4],
+    gap: spacing[2],
+    marginBottom: spacing[3],
+  },
   tab: {
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[2],
@@ -186,8 +234,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabActive: { backgroundColor: colors.primary },
-  tabText: { fontSize: fontSize.sm, fontWeight: fontWeight.medium, color: colors.textSecondary },
-  tabTextActive: { color: colors.textOnPrimary, fontWeight: fontWeight.semibold },
+  tabText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
+  },
+  tabTextActive: {
+    color: colors.textOnPrimary,
+    fontWeight: fontWeight.semibold,
+  },
   listContent: { paddingHorizontal: spacing[4], paddingBottom: spacing[20] },
   separator: { height: spacing[2] },
   row: {
@@ -209,11 +264,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   rowContent: { flex: 1, gap: 2 },
-  rowName: { fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: colors.textPrimary },
+  rowName: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+  },
   rowSub: { fontSize: fontSize.sm, color: colors.textSecondary },
-  badge: { paddingHorizontal: spacing[2], paddingVertical: 2, borderRadius: borderRadius.full },
+  badge: {
+    paddingHorizontal: spacing[2],
+    paddingVertical: 2,
+    borderRadius: borderRadius.full,
+  },
   badgeText: { fontSize: fontSize.xs, fontWeight: fontWeight.semibold },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: spacing[12] },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing[12],
+  },
   emptyText: { fontSize: fontSize.base, color: colors.textSecondary },
   fab: {
     position: 'absolute',

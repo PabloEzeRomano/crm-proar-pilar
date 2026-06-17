@@ -49,9 +49,10 @@ function InteractionRow({
   interaction: InteractionWithClient;
   onPress: () => void;
 }) {
-  const resultColor = interaction.contact_result === 'contacted'
-    ? interactionResultColors.contacted
-    : interactionResultColors.not_contacted;
+  const resultColor =
+    interaction.contact_result === 'contacted'
+      ? interactionResultColors.contacted
+      : interactionResultColors.not_contacted;
 
   return (
     <Pressable style={styles.row} onPress={onPress} accessibilityRole="button">
@@ -65,15 +66,21 @@ function InteractionRow({
             {contactResultLabel[interaction.contact_result]}
           </Text>
           {interaction.interest_result && (
-            <Text style={styles.rowInterest}> · {interaction.interest_result}</Text>
+            <Text style={styles.rowInterest}>
+              {' '}
+              · {interaction.interest_result}
+            </Text>
           )}
         </View>
         {interaction.notes && (
-          <Text style={styles.rowNotes} numberOfLines={1}>{interaction.notes}</Text>
+          <Text style={styles.rowNotes} numberOfLines={1}>
+            {interaction.notes}
+          </Text>
         )}
       </View>
       <View style={styles.rowRight}>
         <MaterialCommunityIcons
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- icon name map value isn't narrowed to MCIcons glyph union
           name={channelIcon[interaction.channel] as any}
           size={18}
           color={colors.textSecondary}
@@ -93,7 +100,9 @@ export default function GestionesScreen() {
   const router = useRouter();
   const interactions = useInteractionsStore((s) => s.interactions);
   const loading = useInteractionsStore((s) => s.loading);
-  const fetchMyInteractions = useInteractionsStore((s) => s.fetchMyInteractions);
+  const fetchMyInteractions = useInteractionsStore(
+    (s) => s.fetchMyInteractions
+  );
 
   const [filterTab, setFilterTab] = useState<'all' | ContactResult>('all');
 
@@ -116,7 +125,12 @@ export default function GestionesScreen() {
             onPress={() => setFilterTab(tab.key)}
             accessibilityRole="tab"
           >
-            <Text style={[styles.tabText, filterTab === tab.key && styles.tabTextActive]}>
+            <Text
+              style={[
+                styles.tabText,
+                filterTab === tab.key && styles.tabTextActive,
+              ]}
+            >
               {tab.label}
             </Text>
           </Pressable>
@@ -153,7 +167,11 @@ export default function GestionesScreen() {
         accessibilityRole="button"
         accessibilityLabel="Nueva gestión"
       >
-        <MaterialCommunityIcons name="plus" size={28} color={colors.textOnPrimary} />
+        <MaterialCommunityIcons
+          name="plus"
+          size={28}
+          color={colors.textOnPrimary}
+        />
       </Pressable>
     </View>
   );
@@ -177,8 +195,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabActive: { backgroundColor: colors.primary },
-  tabText: { fontSize: fontSize.sm, fontWeight: fontWeight.medium, color: colors.textSecondary },
-  tabTextActive: { color: colors.textOnPrimary, fontWeight: fontWeight.semibold },
+  tabText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
+  },
+  tabTextActive: {
+    color: colors.textOnPrimary,
+    fontWeight: fontWeight.semibold,
+  },
   listContent: { paddingHorizontal: spacing[4], paddingBottom: spacing[20] },
   separator: { height: spacing[2] },
   row: {
@@ -193,14 +218,27 @@ const styles = StyleSheet.create({
   },
   rowDot: { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
   rowContent: { flex: 1, gap: 2 },
-  rowName: { fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: colors.textPrimary },
+  rowName: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+  },
   rowMeta: { flexDirection: 'row', alignItems: 'center' },
   rowResult: { fontSize: fontSize.sm, fontWeight: fontWeight.medium },
   rowInterest: { fontSize: fontSize.sm, color: colors.textSecondary },
-  rowNotes: { fontSize: fontSize.sm, color: colors.textSecondary, fontStyle: 'italic' },
+  rowNotes: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
   rowRight: { alignItems: 'center', gap: 4 },
   rowDate: { fontSize: fontSize.xs, color: colors.textDisabled },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: spacing[12] },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing[12],
+  },
   emptyText: { fontSize: fontSize.base, color: colors.textSecondary },
   fab: {
     position: 'absolute',

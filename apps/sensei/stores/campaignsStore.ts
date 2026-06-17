@@ -19,12 +19,15 @@ interface CampaignsState {
   deleteCampaign: (id: string) => Promise<void>;
 
   fetchOffers: (campaignId: string) => Promise<void>;
-  createOffer: (campaignId: string, data: CampaignOfferInput) => Promise<CampaignOffer | null>;
+  createOffer: (
+    campaignId: string,
+    data: CampaignOfferInput
+  ) => Promise<CampaignOffer | null>;
   updateOffer: (id: string, data: CampaignOfferInput) => Promise<void>;
   deleteOffer: (id: string) => Promise<void>;
 }
 
-export const useCampaignsStore = create<CampaignsState>()((set, get) => ({
+export const useCampaignsStore = create<CampaignsState>()((set) => ({
   campaigns: [],
   campaignsWithStats: [],
   offers: [],
@@ -98,7 +101,11 @@ export const useCampaignsStore = create<CampaignsState>()((set, get) => ({
       });
     }
 
-    set({ campaignsWithStats: withStats, campaigns: (campaigns as Campaign[]) ?? [], loading: false });
+    set({
+      campaignsWithStats: withStats,
+      campaigns: (campaigns as Campaign[]) ?? [],
+      loading: false,
+    });
   },
 
   createCampaign: async (input: CampaignInput) => {
@@ -218,7 +225,10 @@ export const useCampaignsStore = create<CampaignsState>()((set, get) => ({
   deleteOffer: async (id: string) => {
     set({ error: null });
 
-    const { error } = await supabase.from('campaign_offers').delete().eq('id', id);
+    const { error } = await supabase
+      .from('campaign_offers')
+      .delete()
+      .eq('id', id);
 
     if (error) {
       set({ error: error.message });

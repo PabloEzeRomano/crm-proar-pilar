@@ -4,8 +4,22 @@ export const interactionSchema = z.object({
   assignment_id: z.string().uuid().nullable().optional(),
   campaign_id: z.string().uuid(),
   client_id: z.string().uuid(),
-  contact_result: z.enum(['contacted', 'not_contacted', 'no_answer', 'wrong_number']),
-  interest_result: z.enum(['interested', 'not_interested', 'not_qualified', 'follow_up', 'sale']).nullable().optional(),
+  contact_result: z.enum([
+    'contacted',
+    'not_contacted',
+    'no_answer',
+    'wrong_number',
+  ]),
+  interest_result: z
+    .enum([
+      'interested',
+      'not_interested',
+      'not_qualified',
+      'follow_up',
+      'sale',
+    ])
+    .nullable()
+    .optional(),
   rejection_reason_id: z.string().uuid().nullable().optional(),
   offer_id: z.string().uuid().nullable().optional(),
   payment_method: z.string().nullable().optional(),

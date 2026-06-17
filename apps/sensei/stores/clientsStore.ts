@@ -9,7 +9,12 @@ interface ClientsState {
   error: string | null;
 
   fetchClients: () => Promise<void>;
-  createClient: (data: Omit<Client, 'id' | 'created_at' | 'updated_at' | 'owner_user_id' | 'company_id'>) => Promise<Client | null>;
+  createClient: (
+    data: Omit<
+      Client,
+      'id' | 'created_at' | 'updated_at' | 'owner_user_id' | 'company_id'
+    >
+  ) => Promise<Client | null>;
   updateClient: (id: string, data: Partial<Client>) => Promise<void>;
 }
 
@@ -50,7 +55,9 @@ export const useClientsStore = create<ClientsState>()((set) => ({
 
     const client = data as Client;
     set((state) => ({
-      clients: [...state.clients, client].sort((a, b) => a.name.localeCompare(b.name)),
+      clients: [...state.clients, client].sort((a, b) =>
+        a.name.localeCompare(b.name)
+      ),
     }));
     return client;
   },
@@ -71,7 +78,9 @@ export const useClientsStore = create<ClientsState>()((set) => ({
     }
 
     set((state) => ({
-      clients: state.clients.map((c) => (c.id === id ? (updated as Client) : c)),
+      clients: state.clients.map((c) =>
+        c.id === id ? (updated as Client) : c
+      ),
     }));
   },
 }));

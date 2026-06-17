@@ -16,7 +16,6 @@ import {
   borderRadius,
   colors,
   fontSize,
-  fontWeight,
   shadows,
   spacing,
 } from '@/constants/theme';
@@ -36,7 +35,11 @@ function ReasonRow({
     <View style={[styles.row, !reason.active && styles.rowInactive]}>
       <Pressable onPress={onToggle} hitSlop={8} style={styles.toggleBtn}>
         <MaterialCommunityIcons
-          name={reason.active ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
+          name={
+            reason.active
+              ? 'checkbox-marked-circle'
+              : 'checkbox-blank-circle-outline'
+          }
           size={22}
           color={reason.active ? colors.success : colors.textDisabled}
         />
@@ -48,7 +51,11 @@ function ReasonRow({
         {reason.value}
       </Text>
       <Pressable onPress={onDelete} hitSlop={8} style={styles.deleteBtn}>
-        <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors.error} />
+        <MaterialCommunityIcons
+          name="trash-can-outline"
+          size={18}
+          color={colors.error}
+        />
       </Pressable>
     </View>
   );
@@ -105,14 +112,21 @@ export default function RejectionReasonsScreen() {
           editable={!adding}
         />
         <Pressable
-          style={[styles.addBtn, (!newValue.trim() || adding) && styles.addBtnDisabled]}
+          style={[
+            styles.addBtn,
+            (!newValue.trim() || adding) && styles.addBtnDisabled,
+          ]}
           onPress={handleAdd}
           disabled={!newValue.trim() || adding}
         >
           {adding ? (
             <ActivityIndicator size="small" color={colors.textOnPrimary} />
           ) : (
-            <MaterialCommunityIcons name="plus" size={22} color={colors.textOnPrimary} />
+            <MaterialCommunityIcons
+              name="plus"
+              size={22}
+              color={colors.textOnPrimary}
+            />
           )}
         </Pressable>
       </View>
@@ -179,8 +193,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   addBtnDisabled: { opacity: 0.4 },
-  errorText: { color: colors.error, fontSize: fontSize.sm, paddingHorizontal: spacing[4], paddingTop: spacing[2] },
-  listContent: { paddingHorizontal: spacing[4], paddingTop: spacing[3], paddingBottom: spacing[20] },
+  errorText: {
+    color: colors.error,
+    fontSize: fontSize.sm,
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[2],
+  },
+  listContent: {
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[3],
+    paddingBottom: spacing[20],
+  },
   separator: { height: spacing[2] },
   row: {
     flexDirection: 'row',
@@ -193,10 +216,28 @@ const styles = StyleSheet.create({
     minHeight: 52,
   },
   rowInactive: { opacity: 0.5 },
-  toggleBtn: { minWidth: 40, minHeight: 40, alignItems: 'center', justifyContent: 'center' },
+  toggleBtn: {
+    minWidth: 40,
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   rowText: { flex: 1, fontSize: fontSize.base, color: colors.textPrimary },
-  rowTextInactive: { textDecorationLine: 'line-through', color: colors.textDisabled },
-  deleteBtn: { minWidth: 36, minHeight: 36, alignItems: 'center', justifyContent: 'center' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: spacing[12] },
+  rowTextInactive: {
+    textDecorationLine: 'line-through',
+    color: colors.textDisabled,
+  },
+  deleteBtn: {
+    minWidth: 36,
+    minHeight: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing[12],
+  },
   emptyText: { fontSize: fontSize.base, color: colors.textSecondary },
 });

@@ -64,7 +64,7 @@ export default function ForgotPasswordScreen() {
 
     setFieldError(undefined);
     setLoading(true);
-    const { error } = await requestPasswordReset(result.data.email);
+    await requestPasswordReset(result.data.email);
     setLoading(false);
 
     // Always show "sent" step regardless of error

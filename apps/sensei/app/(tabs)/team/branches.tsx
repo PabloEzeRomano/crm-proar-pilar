@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -35,10 +35,16 @@ function BranchRow({
   return (
     <View style={styles.row}>
       <View style={styles.rowIcon}>
-        <MaterialCommunityIcons name="office-building" size={20} color={colors.primary} />
+        <MaterialCommunityIcons
+          name="office-building"
+          size={20}
+          color={colors.primary}
+        />
       </View>
       <View style={styles.rowContent}>
-        <Text style={styles.rowName} numberOfLines={1}>{branch.name}</Text>
+        <Text style={styles.rowName} numberOfLines={1}>
+          {branch.name}
+        </Text>
         {(branch.address || branch.city) && (
           <Text style={styles.rowSub} numberOfLines={1}>
             {[branch.address, branch.city].filter(Boolean).join(', ')}
@@ -46,10 +52,18 @@ function BranchRow({
         )}
       </View>
       <Pressable onPress={onEdit} hitSlop={8} style={styles.iconBtn}>
-        <MaterialCommunityIcons name="pencil-outline" size={20} color={colors.textSecondary} />
+        <MaterialCommunityIcons
+          name="pencil-outline"
+          size={20}
+          color={colors.textSecondary}
+        />
       </Pressable>
       <Pressable onPress={onDelete} hitSlop={8} style={styles.iconBtn}>
-        <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.error} />
+        <MaterialCommunityIcons
+          name="trash-can-outline"
+          size={20}
+          color={colors.error}
+        />
       </Pressable>
     </View>
   );
@@ -74,7 +88,11 @@ export default function BranchesScreen() {
     } else {
       Alert.alert('Eliminar sucursal', `¿Eliminar "${branch.name}"?`, [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: () => deleteBranch(branch.id) },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => deleteBranch(branch.id),
+        },
       ]);
     }
   };
@@ -112,7 +130,11 @@ export default function BranchesScreen() {
         accessibilityRole="button"
         accessibilityLabel="Nueva sucursal"
       >
-        <MaterialCommunityIcons name="plus" size={28} color={colors.textOnPrimary} />
+        <MaterialCommunityIcons
+          name="plus"
+          size={28}
+          color={colors.textOnPrimary}
+        />
       </Pressable>
     </View>
   );
@@ -120,7 +142,11 @@ export default function BranchesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  listContent: { paddingHorizontal: spacing[4], paddingTop: spacing[3], paddingBottom: spacing[20] },
+  listContent: {
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[3],
+    paddingBottom: spacing[20],
+  },
   separator: { height: spacing[2] },
   row: {
     flexDirection: 'row',
@@ -141,10 +167,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   rowContent: { flex: 1, gap: 2 },
-  rowName: { fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: colors.textPrimary },
+  rowName: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+  },
   rowSub: { fontSize: fontSize.sm, color: colors.textSecondary },
-  iconBtn: { padding: spacing[2], minWidth: 40, minHeight: 40, alignItems: 'center', justifyContent: 'center' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: spacing[12] },
+  iconBtn: {
+    padding: spacing[2],
+    minWidth: 40,
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing[12],
+  },
   emptyText: { fontSize: fontSize.base, color: colors.textSecondary },
   fab: {
     position: 'absolute',

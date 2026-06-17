@@ -3,7 +3,7 @@
  * Adapted from Proar's users.tsx. Same edge functions, same table.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { z } from 'zod';
 import {
   ActivityIndicator,
@@ -40,18 +40,21 @@ type InviteErrors = { email?: string };
 
 const ROLE_LABEL: Record<UserRole, string> = {
   user: 'Usuario',
+  product_manager: 'Productos',
   admin: 'Admin',
   root: 'Root',
 };
 
 const ROLE_COLOR: Record<UserRole, string> = {
   user: colors.textSecondary,
+  product_manager: '#EA580C',
   admin: colors.primary,
   root: colors.error,
 };
 
 const ROLE_BG: Record<UserRole, string> = {
   user: colors.surface,
+  product_manager: '#FFEDD5',
   admin: colors.primaryLight,
   root: '#FEE2E2',
 };
@@ -69,16 +72,25 @@ function RoleBadge({ role }: { role: UserRole }) {
 function PendingBadge() {
   return (
     <View style={[styles.roleBadge, { backgroundColor: colors.warningLight }]}>
-      <Text style={[styles.roleBadgeText, { color: colors.warning }]}>Pendiente</Text>
+      <Text style={[styles.roleBadgeText, { color: colors.warning }]}>
+        Pendiente
+      </Text>
     </View>
   );
 }
 
-function UserRow({ user, onDeactivate }: { user: UserListItem; onDeactivate: (u: UserListItem) => void }) {
+function UserRow({
+  user,
+  onDeactivate,
+}: {
+  user: UserListItem;
+  onDeactivate: (u: UserListItem) => void;
+}) {
   const isPending = user.status === 'pending';
   const displayName = isPending ? user.email : (user.full_name ?? '—');
   const initial = displayName.charAt(0).toUpperCase();
-  const canDeactivate = user.status === 'active' && user.role !== 'admin' && user.role !== 'root';
+  const canDeactivate =
+    user.status === 'active' && user.role !== 'admin' && user.role !== 'root';
 
   return (
     <View style={styles.row}>
@@ -86,13 +98,31 @@ function UserRow({ user, onDeactivate }: { user: UserListItem; onDeactivate: (u:
         <Text style={styles.avatarText}>{initial}</Text>
       </View>
       <View style={styles.rowContent}>
-        <Text style={styles.rowName} numberOfLines={1}>{displayName}</Text>
-        {!isPending && <Text style={styles.rowSub} numberOfLines={1}>{user.email}</Text>}
+        <Text style={styles.rowName} numberOfLines={1}>
+          {displayName}
+        </Text>
+        {!isPending && (
+          <Text style={styles.rowSub} numberOfLines={1}>
+            {user.email}
+          </Text>
+        )}
       </View>
-      {isPending ? <PendingBadge /> : user.role ? <RoleBadge role={user.role} /> : null}
+      {isPending ? (
+        <PendingBadge />
+      ) : user.role ? (
+        <RoleBadge role={user.role} />
+      ) : null}
       {canDeactivate && (
-        <Pressable onPress={() => onDeactivate(user)} style={styles.deactivateBtn} hitSlop={8}>
-          <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.error} />
+        <Pressable
+          onPress={() => onDeactivate(user)}
+          style={styles.deactivateBtn}
+          hitSlop={8}
+        >
+          <MaterialCommunityIcons
+            name="trash-can-outline"
+            size={20}
+            color={colors.error}
+          />
         </Pressable>
       )}
     </View>
@@ -133,20 +163,32 @@ export default function UsersScreen() {
     fetchCompanyConfig();
   }, []);
 
-  const handleDeactivate = useCallback((user: UserListItem) => {
-    const doDeactivate = async () => {
-      await deactivateUser(user.id);
-      fetchUsers();
-    };
-    if (Platform.OS === 'web') {
-      if (window.confirm(`¿Dar de baja a ${user.full_name ?? user.email}?`)) doDeactivate();
-    } else {
-      Alert.alert('Dar de baja', `¿Dar de baja a ${user.full_name ?? user.email}?`, [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Dar de baja', style: 'destructive', onPress: doDeactivate },
-      ]);
-    }
-  }, [deactivateUser, fetchUsers]);
+  const handleDeactivate = useCallback(
+    (user: UserListItem) => {
+      const doDeactivate = async () => {
+        await deactivateUser(user.id);
+        fetchUsers();
+      };
+      if (Platform.OS === 'web') {
+        if (window.confirm(`¿Dar de baja a ${user.full_name ?? user.email}?`))
+          doDeactivate();
+      } else {
+        Alert.alert(
+          'Dar de baja',
+          `¿Dar de baja a ${user.full_name ?? user.email}?`,
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            {
+              text: 'Dar de baja',
+              style: 'destructive',
+              onPress: doDeactivate,
+            },
+          ]
+        );
+      }
+    },
+    [deactivateUser, fetchUsers]
+  );
 
   function openModal() {
     setEmail('');
@@ -158,37 +200,54 @@ export default function UsersScreen() {
   }
 
   const handleSubmit = useCallback(async () => {
-    const result = inviteSchema.safeParse({ email: email.trim().toLowerCase() });
+    const result = inviteSchema.safeParse({
+      email: email.trim().toLowerCase(),
+    });
     if (!result.success) {
       setFieldErrors({ email: result.error.issues[0]?.message });
       return;
     }
     setFieldErrors({});
-    const { error: err } = await inviteUser({ email: result.data.email, role: selectedRole });
+    const { error: err } = await inviteUser({
+      email: result.data.email,
+      role: selectedRole,
+    });
     if (!err) {
       setSuccessMessage(`Invitación enviada a ${result.data.email}`);
       fetchUsers();
-      setTimeout(() => { setModalVisible(false); setSuccessMessage(null); }, 1500);
+      setTimeout(() => {
+        setModalVisible(false);
+        setSuccessMessage(null);
+      }, 1500);
     }
   }, [email, selectedRole, inviteUser, fetchUsers]);
 
   if (!isAdminOrRoot) {
     return (
       <View style={styles.guard}>
-        <MaterialCommunityIcons name="lock-outline" size={48} color={colors.textDisabled} />
+        <MaterialCommunityIcons
+          name="lock-outline"
+          size={48}
+          color={colors.textDisabled}
+        />
         <Text style={styles.guardText}>Sin acceso</Text>
       </View>
     );
   }
 
-  const emailBorderColor = fieldErrors.email ? colors.error : emailFocused ? colors.primary : colors.border;
+  const emailBorderColor = fieldErrors.email
+    ? colors.error
+    : emailFocused
+      ? colors.primary
+      : colors.border;
 
   return (
     <View style={styles.container}>
       <View style={styles.counterRow}>
         <View>
           <Text style={styles.counterNumber}>
-            {currentCount}{maxUsers !== null ? ` / ${maxUsers}` : ''}
+            {currentCount}
+            {maxUsers !== null ? ` / ${maxUsers}` : ''}
           </Text>
           <Text style={styles.counterLabel}>
             {maxUsers !== null
@@ -206,53 +265,96 @@ export default function UsersScreen() {
             size={20}
             color={atLimit ? colors.textDisabled : colors.textOnPrimary}
           />
-          <Text style={[styles.inviteBtnText, atLimit && { color: colors.textDisabled }]}>Invitar</Text>
+          <Text
+            style={[
+              styles.inviteBtnText,
+              atLimit && { color: colors.textDisabled },
+            ]}
+          >
+            Invitar
+          </Text>
         </Pressable>
       </View>
 
       {loading ? (
-        <View style={styles.centered}><ActivityIndicator size="large" color={colors.primary} /></View>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
       ) : error ? (
-        <View style={styles.centered}><Text style={styles.errorText}>{error}</Text></View>
+        <View style={styles.centered}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
       ) : (
         <FlatList
           data={users}
           keyExtractor={(u) => u.id}
-          renderItem={({ item }) => <UserRow user={item} onDeactivate={handleDeactivate} />}
+          renderItem={({ item }) => (
+            <UserRow user={item} onDeactivate={handleDeactivate} />
+          )}
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={
-            <View style={styles.centered}><Text style={styles.emptyText}>No hay usuarios</Text></View>
+            <View style={styles.centered}>
+              <Text style={styles.emptyText}>No hay usuarios</Text>
+            </View>
           }
         />
       )}
 
       {/* Invite modal */}
-      <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={() => setModalVisible(false)}>
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <Pressable style={styles.modalBackdrop} onPress={() => setModalVisible(false)} />
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <Pressable
+            style={styles.modalBackdrop}
+            onPress={() => setModalVisible(false)}
+          />
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Invitar usuario</Text>
-              <Pressable onPress={() => setModalVisible(false)} style={styles.modalClose}>
-                <MaterialCommunityIcons name="close" size={22} color={colors.textSecondary} />
+              <Pressable
+                onPress={() => setModalVisible(false)}
+                style={styles.modalClose}
+              >
+                <MaterialCommunityIcons
+                  name="close"
+                  size={22}
+                  color={colors.textSecondary}
+                />
               </Pressable>
             </View>
 
             {successMessage && (
               <View style={styles.successBanner}>
-                <MaterialCommunityIcons name="check-circle-outline" size={18} color={colors.success} />
+                <MaterialCommunityIcons
+                  name="check-circle-outline"
+                  size={18}
+                  color={colors.success}
+                />
                 <Text style={styles.successText}>{successMessage}</Text>
               </View>
             )}
-            {inviteError && <Text style={styles.inviteErrorText}>{inviteError}</Text>}
+            {inviteError && (
+              <Text style={styles.inviteErrorText}>{inviteError}</Text>
+            )}
 
             <View style={styles.field}>
               <Text style={styles.label}>Email</Text>
               <TextInput
                 style={[styles.input, { borderColor: emailBorderColor }]}
                 value={email}
-                onChangeText={(t) => { setEmail(t); if (fieldErrors.email) setFieldErrors({}); clearInviteError(); }}
+                onChangeText={(t) => {
+                  setEmail(t);
+                  if (fieldErrors.email) setFieldErrors({});
+                  clearInviteError();
+                }}
                 onFocus={() => setEmailFocused(true)}
                 onBlur={() => setEmailFocused(false)}
                 keyboardType="email-address"
@@ -261,7 +363,9 @@ export default function UsersScreen() {
                 placeholderTextColor={colors.textDisabled}
                 editable={!inviteLoading}
               />
-              {fieldErrors.email && <Text style={styles.fieldError}>{fieldErrors.email}</Text>}
+              {fieldErrors.email && (
+                <Text style={styles.fieldError}>{fieldErrors.email}</Text>
+              )}
             </View>
 
             <View style={styles.field}>
@@ -270,10 +374,18 @@ export default function UsersScreen() {
                 {(['user', 'admin'] as const).map((r) => (
                   <Pressable
                     key={r}
-                    style={[styles.roleOption, selectedRole === r && styles.roleOptionActive]}
+                    style={[
+                      styles.roleOption,
+                      selectedRole === r && styles.roleOptionActive,
+                    ]}
                     onPress={() => setSelectedRole(r)}
                   >
-                    <Text style={[styles.roleOptionText, selectedRole === r && styles.roleOptionTextActive]}>
+                    <Text
+                      style={[
+                        styles.roleOptionText,
+                        selectedRole === r && styles.roleOptionTextActive,
+                      ]}
+                    >
                       {ROLE_LABEL[r]}
                     </Text>
                   </Pressable>
@@ -301,74 +413,197 @@ export default function UsersScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  guard: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing[4], backgroundColor: colors.background },
+  guard: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing[4],
+    backgroundColor: colors.background,
+  },
   guardText: { fontSize: fontSize.base, color: colors.textSecondary },
   counterRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing[4], paddingVertical: spacing[4],
-    borderBottomWidth: 1, borderBottomColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  counterNumber: { fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, color: colors.textPrimary },
+  counterNumber: {
+    fontSize: fontSize['2xl'],
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+  },
   counterLabel: { fontSize: fontSize.sm, color: colors.textSecondary },
   inviteBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing[2],
-    backgroundColor: colors.primary, paddingHorizontal: spacing[4], paddingVertical: spacing[3],
-    borderRadius: borderRadius.md, minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    borderRadius: borderRadius.md,
+    minHeight: 48,
   },
-  inviteBtnDisabled: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-  inviteBtnText: { fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: colors.textOnPrimary },
+  inviteBtnDisabled: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  inviteBtnText: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.textOnPrimary,
+  },
   listContent: { paddingHorizontal: spacing[4], paddingVertical: spacing[3] },
   separator: { height: spacing[2] },
   row: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface,
-    borderRadius: borderRadius.md, padding: spacing[3], gap: spacing[3],
-    ...shadows.subtle, minHeight: 64,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing[3],
+    gap: spacing[3],
+    ...shadows.subtle,
+    minHeight: 64,
   },
   avatar: {
-    width: 40, height: 40, borderRadius: borderRadius.full, backgroundColor: colors.primaryLight,
-    alignItems: 'center', justifyContent: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  avatarText: { fontSize: fontSize.base, fontWeight: fontWeight.bold, color: colors.primary },
+  avatarText: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.bold,
+    color: colors.primary,
+  },
   rowContent: { flex: 1, gap: spacing[1] },
-  rowName: { fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: colors.textPrimary },
+  rowName: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+  },
   rowSub: { fontSize: fontSize.xs, color: colors.textDisabled },
-  deactivateBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  roleBadge: { paddingHorizontal: spacing[2], paddingVertical: spacing[1], borderRadius: borderRadius.full, minHeight: 28, justifyContent: 'center' },
+  deactivateBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  roleBadge: {
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.full,
+    minHeight: 28,
+    justifyContent: 'center',
+  },
   roleBadgeText: { fontSize: fontSize.xs, fontWeight: fontWeight.semibold },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  errorText: { fontSize: fontSize.base, color: colors.error, textAlign: 'center' },
+  errorText: {
+    fontSize: fontSize.base,
+    color: colors.error,
+    textAlign: 'center',
+  },
   emptyText: { fontSize: fontSize.base, color: colors.textSecondary },
   // Modal
   modalOverlay: { flex: 1, justifyContent: 'flex-end' },
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
-  modalSheet: {
-    backgroundColor: colors.background, borderTopLeftRadius: borderRadius.xl, borderTopRightRadius: borderRadius.xl,
-    padding: spacing[6], gap: spacing[4], paddingBottom: spacing[8],
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  modalTitle: { fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: colors.textPrimary },
-  modalClose: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  successBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing[2], backgroundColor: '#F0FDF4', borderRadius: borderRadius.md, padding: spacing[3] },
+  modalSheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    padding: spacing[6],
+    gap: spacing[4],
+    paddingBottom: spacing[8],
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  modalTitle: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+  },
+  modalClose: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    backgroundColor: '#F0FDF4',
+    borderRadius: borderRadius.md,
+    padding: spacing[3],
+  },
   successText: { fontSize: fontSize.sm, color: colors.success, flex: 1 },
-  inviteErrorText: { fontSize: fontSize.sm, color: colors.error, textAlign: 'center' },
+  inviteErrorText: {
+    fontSize: fontSize.sm,
+    color: colors.error,
+    textAlign: 'center',
+  },
   field: { gap: spacing[1] },
-  label: { fontSize: fontSize.sm, fontWeight: fontWeight.medium, color: colors.textSecondary },
+  label: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
+  },
   input: {
-    height: 48, backgroundColor: colors.surface, borderWidth: 1.5, borderRadius: borderRadius.md,
-    paddingHorizontal: spacing[3], fontSize: fontSize.base, color: colors.textPrimary,
+    height: 48,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing[3],
+    fontSize: fontSize.base,
+    color: colors.textPrimary,
   },
   fieldError: { fontSize: fontSize.sm, color: colors.error },
   rolePicker: { flexDirection: 'row', gap: spacing[3] },
   roleOption: {
-    flex: 1, height: 48, alignItems: 'center', justifyContent: 'center',
-    borderRadius: borderRadius.md, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.surface,
+    flex: 1,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
-  roleOptionActive: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
-  roleOptionText: { fontSize: fontSize.base, fontWeight: fontWeight.medium, color: colors.textSecondary },
-  roleOptionTextActive: { color: colors.primary, fontWeight: fontWeight.semibold },
+  roleOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  roleOptionText: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
+  },
+  roleOptionTextActive: {
+    color: colors.primary,
+    fontWeight: fontWeight.semibold,
+  },
   submitBtn: {
-    height: 52, backgroundColor: colors.primary, borderRadius: borderRadius.md,
-    alignItems: 'center', justifyContent: 'center', marginTop: spacing[2],
+    height: 52,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing[2],
   },
-  submitBtnText: { fontSize: fontSize.lg, fontWeight: fontWeight.semibold, color: colors.textOnPrimary },
+  submitBtnText: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold,
+    color: colors.textOnPrimary,
+  },
 });

@@ -1,10 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { useLocalSearchParams, Stack } from 'expo-router';
 import { useEffect } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  Pressable,
   StyleSheet,
   Text,
   View,
@@ -21,7 +20,11 @@ import {
 } from '@/constants/theme';
 import { useClientsStore } from '@/stores/clientsStore';
 import { useInteractionsStore } from '@/stores/interactionsStore';
-import type { InteractionWithClient, ContactResult } from '@/types';
+import type {
+  InteractionWithClient,
+  ContactResult,
+  ContactInfo,
+} from '@/types';
 
 const contactResultLabel: Record<ContactResult, string> = {
   contacted: 'Contactado',
@@ -37,10 +40,15 @@ const channelIcon: Record<string, string> = {
   email: 'email-outline',
 };
 
-function InteractionRow({ interaction }: { interaction: InteractionWithClient }) {
-  const resultColor = interaction.contact_result === 'contacted'
-    ? interactionResultColors.contacted
-    : interactionResultColors.not_contacted;
+function InteractionRow({
+  interaction,
+}: {
+  interaction: InteractionWithClient;
+}) {
+  const resultColor =
+    interaction.contact_result === 'contacted'
+      ? interactionResultColors.contacted
+      : interactionResultColors.not_contacted;
 
   return (
     <View style={styles.interactionRow}>
@@ -51,16 +59,21 @@ function InteractionRow({ interaction }: { interaction: InteractionWithClient })
             {contactResultLabel[interaction.contact_result]}
           </Text>
           <MaterialCommunityIcons
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- icon name map value isn't narrowed to MCIcons glyph union
             name={channelIcon[interaction.channel] as any}
             size={16}
             color={colors.textSecondary}
           />
         </View>
         {interaction.interest_result && (
-          <Text style={styles.interactionInterest}>{interaction.interest_result}</Text>
+          <Text style={styles.interactionInterest}>
+            {interaction.interest_result}
+          </Text>
         )}
         {interaction.notes && (
-          <Text style={styles.interactionNotes} numberOfLines={2}>{interaction.notes}</Text>
+          <Text style={styles.interactionNotes} numberOfLines={2}>
+            {interaction.notes}
+          </Text>
         )}
         <Text style={styles.interactionDate}>
           {new Date(interaction.created_at).toLocaleDateString('es-AR', {
@@ -77,7 +90,6 @@ function InteractionRow({ interaction }: { interaction: InteractionWithClient })
 
 export default function ClientDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
 
   const clients = useClientsStore((s) => s.clients);
   const client = clients.find((c) => c.id === id);
@@ -107,13 +119,21 @@ export default function ClientDetailScreen() {
           <Text style={styles.clientName}>{client.name}</Text>
           {client.industry && (
             <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="tag-outline" size={16} color={colors.textSecondary} />
+              <MaterialCommunityIcons
+                name="tag-outline"
+                size={16}
+                color={colors.textSecondary}
+              />
               <Text style={styles.infoText}>{client.industry}</Text>
             </View>
           )}
           {client.address && (
             <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="map-marker-outline" size={16} color={colors.textSecondary} />
+              <MaterialCommunityIcons
+                name="map-marker-outline"
+                size={16}
+                color={colors.textSecondary}
+              />
               <Text style={styles.infoText}>
                 {[client.address, client.city].filter(Boolean).join(', ')}
               </Text>
@@ -121,11 +141,17 @@ export default function ClientDetailScreen() {
           )}
           {client.contacts && client.contacts.length > 0 && (
             <View style={styles.contactsSection}>
-              {client.contacts.map((contact: any, i: number) => (
+              {client.contacts.map((contact: ContactInfo, i: number) => (
                 <View key={i} style={styles.infoRow}>
-                  <MaterialCommunityIcons name="account-outline" size={16} color={colors.textSecondary} />
+                  <MaterialCommunityIcons
+                    name="account-outline"
+                    size={16}
+                    color={colors.textSecondary}
+                  />
                   <Text style={styles.infoText}>
-                    {[contact.name, contact.phone, contact.email].filter(Boolean).join(' · ')}
+                    {[contact.name, contact.phone, contact.email]
+                      .filter(Boolean)
+                      .join(' · ')}
                   </Text>
                 </View>
               ))}
@@ -139,7 +165,11 @@ export default function ClientDetailScreen() {
         </View>
 
         {interactionsLoading ? (
-          <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: spacing[4] }} />
+          <ActivityIndicator
+            size="small"
+            color={colors.primary}
+            style={{ marginTop: spacing[4] }}
+          />
         ) : (
           <FlatList
             data={interactions}
@@ -169,12 +199,20 @@ const styles = StyleSheet.create({
     gap: spacing[2],
     ...shadows.subtle,
   },
-  clientName: { fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: colors.textPrimary },
+  clientName: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+  },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
   infoText: { fontSize: fontSize.sm, color: colors.textSecondary, flex: 1 },
   contactsSection: { marginTop: spacing[1], gap: spacing[1] },
   sectionHeader: { paddingHorizontal: spacing[4], marginBottom: spacing[2] },
-  sectionTitle: { fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: colors.textPrimary },
+  sectionTitle: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+  },
   listContent: { paddingHorizontal: spacing[4], paddingBottom: spacing[20] },
   separator: { height: spacing[2] },
   interactionRow: {
@@ -187,11 +225,32 @@ const styles = StyleSheet.create({
   },
   interactionDot: { width: 8, height: 8, borderRadius: 4, marginTop: 6 },
   interactionContent: { flex: 1, gap: 2 },
-  interactionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  interactionResult: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: colors.textPrimary },
+  interactionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  interactionResult: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+  },
   interactionInterest: { fontSize: fontSize.sm, color: colors.textSecondary },
-  interactionNotes: { fontSize: fontSize.sm, color: colors.textSecondary, fontStyle: 'italic' },
-  interactionDate: { fontSize: fontSize.xs, color: colors.textDisabled, marginTop: 2 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: spacing[12] },
+  interactionNotes: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  interactionDate: {
+    fontSize: fontSize.xs,
+    color: colors.textDisabled,
+    marginTop: 2,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing[12],
+  },
   emptyText: { fontSize: fontSize.base, color: colors.textSecondary },
 });

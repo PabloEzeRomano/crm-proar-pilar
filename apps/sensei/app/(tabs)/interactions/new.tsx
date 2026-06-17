@@ -20,7 +20,6 @@ import {
   fontWeight,
   spacing,
 } from '@/constants/theme';
-import { useAssignmentsStore } from '@/stores/assignmentsStore';
 import { useCampaignsStore } from '@/stores/campaignsStore';
 import { useClientsStore } from '@/stores/clientsStore';
 import { useInteractionsStore } from '@/stores/interactionsStore';
@@ -80,12 +79,20 @@ function ChipSelector<T extends string>({
         >
           {opt.icon && (
             <MaterialCommunityIcons
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- icon name string isn't narrowed to MCIcons glyph union
               name={opt.icon as any}
               size={16}
-              color={value === opt.key ? colors.textOnPrimary : colors.textSecondary}
+              color={
+                value === opt.key ? colors.textOnPrimary : colors.textSecondary
+              }
             />
           )}
-          <Text style={[styles.chipText, value === opt.key && styles.chipTextActive]}>
+          <Text
+            style={[
+              styles.chipText,
+              value === opt.key && styles.chipTextActive,
+            ]}
+          >
             {opt.label}
           </Text>
         </Pressable>
@@ -124,8 +131,12 @@ export default function NewInteractionScreen() {
   const [campaignId, setCampaignId] = useState(params.campaignId ?? '');
   const [clientId, setClientId] = useState(params.clientId ?? '');
   const [channel, setChannel] = useState<InteractionChannel | null>(null);
-  const [contactResult, setContactResult] = useState<ContactResult | null>(null);
-  const [interestResult, setInterestResult] = useState<InterestResult | null>(null);
+  const [contactResult, setContactResult] = useState<ContactResult | null>(
+    null
+  );
+  const [interestResult, setInterestResult] = useState<InterestResult | null>(
+    null
+  );
   const [rejectionReasonId, setRejectionReasonId] = useState('');
   const [offerId, setOfferId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
@@ -160,7 +171,9 @@ export default function NewInteractionScreen() {
     setError(null);
     setSaving(true);
 
-    const { data: { user } } = await (await import('../../../lib/supabase')).supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await (await import('../../../lib/supabase')).supabase.auth.getUser();
 
     if (!user) {
       setError('No autenticado');
@@ -176,7 +189,8 @@ export default function NewInteractionScreen() {
       channel,
       contact_result: contactResult,
       interest_result: showInterest ? interestResult : null,
-      rejection_reason_id: showRejection && rejectionReasonId ? rejectionReasonId : null,
+      rejection_reason_id:
+        showRejection && rejectionReasonId ? rejectionReasonId : null,
       offer_id: showSaleDetails && offerId ? offerId : null,
       payment_method: showSaleDetails && paymentMethod ? paymentMethod : null,
       financing: showSaleDetails && financing ? financing : null,
@@ -206,17 +220,27 @@ export default function NewInteractionScreen() {
         <View style={styles.field}>
           <Text style={styles.label}>Campaña *</Text>
           <View style={styles.pickerRow}>
-            {campaigns.filter((c) => c.status === 'active').map((c) => (
-              <Pressable
-                key={c.id}
-                style={[styles.chip, campaignId === c.id && styles.chipActive]}
-                onPress={() => setCampaignId(c.id)}
-              >
-                <Text style={[styles.chipText, campaignId === c.id && styles.chipTextActive]}>
-                  {c.name}
-                </Text>
-              </Pressable>
-            ))}
+            {campaigns
+              .filter((c) => c.status === 'active')
+              .map((c) => (
+                <Pressable
+                  key={c.id}
+                  style={[
+                    styles.chip,
+                    campaignId === c.id && styles.chipActive,
+                  ]}
+                  onPress={() => setCampaignId(c.id)}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      campaignId === c.id && styles.chipTextActive,
+                    ]}
+                  >
+                    {c.name}
+                  </Text>
+                </Pressable>
+              ))}
           </View>
         </View>
 
@@ -230,7 +254,12 @@ export default function NewInteractionScreen() {
                 style={[styles.chip, clientId === c.id && styles.chipActive]}
                 onPress={() => setClientId(c.id)}
               >
-                <Text style={[styles.chipText, clientId === c.id && styles.chipTextActive]}>
+                <Text
+                  style={[
+                    styles.chipText,
+                    clientId === c.id && styles.chipTextActive,
+                  ]}
+                >
                   {c.name}
                 </Text>
               </Pressable>
@@ -244,20 +273,32 @@ export default function NewInteractionScreen() {
         {/* Channel */}
         <View style={styles.field}>
           <Text style={styles.label}>Canal *</Text>
-          <ChipSelector options={CHANNELS} value={channel} onChange={setChannel} />
+          <ChipSelector
+            options={CHANNELS}
+            value={channel}
+            onChange={setChannel}
+          />
         </View>
 
         {/* Contact result */}
         <View style={styles.field}>
           <Text style={styles.label}>Resultado de contacto *</Text>
-          <ChipSelector options={CONTACT_RESULTS} value={contactResult} onChange={setContactResult} />
+          <ChipSelector
+            options={CONTACT_RESULTS}
+            value={contactResult}
+            onChange={setContactResult}
+          />
         </View>
 
         {/* Interest result — only if contacted */}
         {showInterest && (
           <View style={styles.field}>
             <Text style={styles.label}>Resultado de interés</Text>
-            <ChipSelector options={INTEREST_RESULTS} value={interestResult} onChange={setInterestResult} />
+            <ChipSelector
+              options={INTEREST_RESULTS}
+              value={interestResult}
+              onChange={setInterestResult}
+            />
           </View>
         )}
 
@@ -266,17 +307,27 @@ export default function NewInteractionScreen() {
           <View style={styles.field}>
             <Text style={styles.label}>Motivo de rechazo</Text>
             <View style={styles.pickerRow}>
-              {reasons.filter((r) => r.active).map((r) => (
-                <Pressable
-                  key={r.id}
-                  style={[styles.chip, rejectionReasonId === r.id && styles.chipActive]}
-                  onPress={() => setRejectionReasonId(r.id)}
-                >
-                  <Text style={[styles.chipText, rejectionReasonId === r.id && styles.chipTextActive]}>
-                    {r.value}
-                  </Text>
-                </Pressable>
-              ))}
+              {reasons
+                .filter((r) => r.active)
+                .map((r) => (
+                  <Pressable
+                    key={r.id}
+                    style={[
+                      styles.chip,
+                      rejectionReasonId === r.id && styles.chipActive,
+                    ]}
+                    onPress={() => setRejectionReasonId(r.id)}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        rejectionReasonId === r.id && styles.chipTextActive,
+                      ]}
+                    >
+                      {r.value}
+                    </Text>
+                  </Pressable>
+                ))}
             </View>
           </View>
         )}
@@ -293,7 +344,12 @@ export default function NewInteractionScreen() {
                     style={[styles.chip, offerId === o.id && styles.chipActive]}
                     onPress={() => setOfferId(o.id)}
                   >
-                    <Text style={[styles.chipText, offerId === o.id && styles.chipTextActive]}>
+                    <Text
+                      style={[
+                        styles.chipText,
+                        offerId === o.id && styles.chipTextActive,
+                      ]}
+                    >
                       {o.name}
                     </Text>
                   </Pressable>
@@ -389,7 +445,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing[4], gap: spacing[4], paddingBottom: spacing[20] },
   field: { gap: spacing[1] },
-  label: { fontSize: fontSize.sm, fontWeight: fontWeight.medium, color: colors.textSecondary },
+  label: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
+  },
   input: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.md,
@@ -422,8 +482,15 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   chipText: { fontSize: fontSize.sm, color: colors.textSecondary },
-  chipTextActive: { color: colors.textOnPrimary, fontWeight: fontWeight.semibold },
-  moreText: { fontSize: fontSize.sm, color: colors.textDisabled, alignSelf: 'center' },
+  chipTextActive: {
+    color: colors.textOnPrimary,
+    fontWeight: fontWeight.semibold,
+  },
+  moreText: {
+    fontSize: fontSize.sm,
+    color: colors.textDisabled,
+    alignSelf: 'center',
+  },
   errorText: { color: colors.error, fontSize: fontSize.sm },
   button: {
     backgroundColor: colors.primary,
@@ -435,5 +502,9 @@ const styles = StyleSheet.create({
     marginTop: spacing[2],
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: colors.textOnPrimary },
+  buttonText: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.textOnPrimary,
+  },
 });

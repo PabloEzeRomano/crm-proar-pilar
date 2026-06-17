@@ -36,9 +36,11 @@ export const useInteractionsStore = create<InteractionsState>()((set) => ({
       .select('*, client:clients(*), campaign:campaigns(*)')
       .order('created_at', { ascending: false });
 
-    if (filters?.campaignId) query = query.eq('campaign_id', filters.campaignId);
+    if (filters?.campaignId)
+      query = query.eq('campaign_id', filters.campaignId);
     if (filters?.clientId) query = query.eq('client_id', filters.clientId);
-    if (filters?.assignmentId) query = query.eq('assignment_id', filters.assignmentId);
+    if (filters?.assignmentId)
+      query = query.eq('assignment_id', filters.assignmentId);
 
     const { data, error } = await query;
 
@@ -47,7 +49,10 @@ export const useInteractionsStore = create<InteractionsState>()((set) => ({
       return;
     }
 
-    set({ interactions: (data as InteractionWithClient[]) ?? [], loading: false });
+    set({
+      interactions: (data as InteractionWithClient[]) ?? [],
+      loading: false,
+    });
   },
 
   fetchMyInteractions: async () => {
@@ -64,7 +69,10 @@ export const useInteractionsStore = create<InteractionsState>()((set) => ({
       return;
     }
 
-    set({ interactions: (data as InteractionWithClient[]) ?? [], loading: false });
+    set({
+      interactions: (data as InteractionWithClient[]) ?? [],
+      loading: false,
+    });
   },
 
   createInteraction: async (input) => {

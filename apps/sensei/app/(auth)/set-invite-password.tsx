@@ -100,8 +100,8 @@ export default function SetInvitePasswordScreen() {
       return;
     }
 
-    // isInviteUser is now false → useAuthGuard routes to /(tabs)/agenda
-    router.replace('/(tabs)/agenda');
+    // isInviteUser is now false → useAuthGuard routes to /(tabs)/dashboard
+    router.replace('/(tabs)/dashboard');
   }
 
   const fullNameBorderColor = fieldErrors.fullName

@@ -19,7 +19,10 @@ export default function TeamLayout() {
       <Stack.Screen name="branches" options={{ title: 'Sucursales' }} />
       <Stack.Screen name="branch-form" options={{ title: 'Sucursal' }} />
       <Stack.Screen name="users" options={{ title: 'Usuarios' }} />
-      <Stack.Screen name="rejection-reasons" options={{ title: 'Motivos de rechazo' }} />
+      <Stack.Screen
+        name="rejection-reasons"
+        options={{ title: 'Motivos de rechazo' }}
+      />
     </Stack>
   );
 }

@@ -35,7 +35,14 @@ interface StatCardProps {
   onPress?: () => void;
 }
 
-function StatCard({ icon, label, value, color, bgColor, onPress }: StatCardProps) {
+function StatCard({
+  icon,
+  label,
+  value,
+  color,
+  bgColor,
+  onPress,
+}: StatCardProps) {
   return (
     <Pressable
       style={[styles.statCard, { borderLeftColor: color }]}
@@ -73,8 +80,15 @@ function CampaignQuickCard({
   return (
     <Pressable style={styles.campaignCard} onPress={onPress}>
       <View style={styles.campaignHeader}>
-        <Text style={styles.campaignName} numberOfLines={1}>{name}</Text>
-        <View style={[styles.statusDot, { backgroundColor: statusColors[status] ?? colors.textDisabled }]} />
+        <Text style={styles.campaignName} numberOfLines={1}>
+          {name}
+        </Text>
+        <View
+          style={[
+            styles.statusDot,
+            { backgroundColor: statusColors[status] ?? colors.textDisabled },
+          ]}
+        />
       </View>
       <Text style={styles.campaignMeta}>{assignments} asignaciones</Text>
     </Pressable>
@@ -88,11 +102,15 @@ export default function DashboardScreen() {
 
   const campaigns = useCampaignsStore((s) => s.campaigns);
   const campaignsLoading = useCampaignsStore((s) => s.loading);
-  const fetchCampaignsWithStats = useCampaignsStore((s) => s.fetchCampaignsWithStats);
+  const fetchCampaignsWithStats = useCampaignsStore(
+    (s) => s.fetchCampaignsWithStats
+  );
   const campaignsWithStats = useCampaignsStore((s) => s.campaignsWithStats);
 
   const interactions = useInteractionsStore((s) => s.interactions);
-  const fetchMyInteractions = useInteractionsStore((s) => s.fetchMyInteractions);
+  const fetchMyInteractions = useInteractionsStore(
+    (s) => s.fetchMyInteractions
+  );
 
   const assignments = useAssignmentsStore((s) => s.assignments);
   const fetchMyAssignments = useAssignmentsStore((s) => s.fetchMyAssignments);
@@ -109,26 +127,41 @@ export default function DashboardScreen() {
 
   const activeCampaigns = campaigns.filter((c) => c.status === 'active');
   const myPending = assignments.filter((a) => a.status === 'pending').length;
-  const myInProgress = assignments.filter((a) => a.status === 'in_progress').length;
+  const myInProgress = assignments.filter(
+    (a) => a.status === 'in_progress'
+  ).length;
   const todayInteractions = interactions.filter((i) => {
     const today = new Date().toISOString().slice(0, 10);
     return i.created_at.slice(0, 10) === today;
   }).length;
 
   // Admin stats from campaignsWithStats
-  const totalAssignments = campaignsWithStats.reduce((sum, c) => sum + c.total_assignments, 0);
-  const totalContacted = campaignsWithStats.reduce((sum, c) => sum + c.contacted, 0);
+  const totalAssignments = campaignsWithStats.reduce(
+    (sum, c) => sum + c.total_assignments,
+    0
+  );
+  const totalContacted = campaignsWithStats.reduce(
+    (sum, c) => sum + c.contacted,
+    0
+  );
   const totalSales = campaignsWithStats.reduce((sum, c) => sum + c.sales, 0);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+    >
       <Text style={styles.title}>{brand.appName}</Text>
       <Text style={styles.subtitle}>
         {profile?.full_name ? `Hola, ${profile.full_name}` : 'Dashboard'}
       </Text>
 
       {campaignsLoading ? (
-        <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: spacing[8] }} />
+        <ActivityIndicator
+          size="small"
+          color={colors.primary}
+          style={{ marginTop: spacing[8] }}
+        />
       ) : (
         <>
           {/* Stats grid */}
@@ -265,18 +298,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   statContent: { flex: 1 },
-  statValue: { fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: colors.textPrimary },
+  statValue: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+  },
   statLabel: { fontSize: fontSize.xs, color: colors.textSecondary },
   section: { gap: spacing[3] },
-  sectionTitle: { fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: colors.textPrimary },
+  sectionTitle: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+  },
   campaignCard: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.md,
     padding: spacing[3],
     ...shadows.subtle,
   },
-  campaignHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  campaignName: { fontSize: fontSize.base, fontWeight: fontWeight.medium, color: colors.textPrimary, flex: 1 },
+  campaignHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  campaignName: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.medium,
+    color: colors.textPrimary,
+    flex: 1,
+  },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
-  campaignMeta: { fontSize: fontSize.sm, color: colors.textSecondary, marginTop: 2 },
+  campaignMeta: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
 });

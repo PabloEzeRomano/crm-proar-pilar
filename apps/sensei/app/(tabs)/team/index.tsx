@@ -28,7 +28,11 @@ function MenuItem({ icon, label, subtitle, onPress }: MenuItemProps) {
         <Text style={styles.rowLabel}>{label}</Text>
         <Text style={styles.rowSub}>{subtitle}</Text>
       </View>
-      <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textDisabled} />
+      <MaterialCommunityIcons
+        name="chevron-right"
+        size={20}
+        color={colors.textDisabled}
+      />
     </Pressable>
   );
 }

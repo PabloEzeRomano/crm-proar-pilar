@@ -16,7 +16,10 @@ interface AssignmentsState {
     assignedTo: string,
     branchId?: string
   ) => Promise<number>;
-  updateAssignmentStatus: (id: string, status: ClientAssignment['status']) => Promise<void>;
+  updateAssignmentStatus: (
+    id: string,
+    status: ClientAssignment['status']
+  ) => Promise<void>;
   deleteAssignment: (id: string) => Promise<void>;
 }
 
@@ -40,7 +43,10 @@ export const useAssignmentsStore = create<AssignmentsState>()((set) => ({
       return;
     }
 
-    set({ assignments: (data as ClientAssignmentWithClient[]) ?? [], loading: false });
+    set({
+      assignments: (data as ClientAssignmentWithClient[]) ?? [],
+      loading: false,
+    });
   },
 
   // Vendedor: fetch my assignments (optionally filtered by campaign)
@@ -63,7 +69,10 @@ export const useAssignmentsStore = create<AssignmentsState>()((set) => ({
       return;
     }
 
-    set({ assignments: (data as ClientAssignmentWithClient[]) ?? [], loading: false });
+    set({
+      assignments: (data as ClientAssignmentWithClient[]) ?? [],
+      loading: false,
+    });
   },
 
   // Admin: bulk assign clients to a user for a campaign
@@ -75,7 +84,9 @@ export const useAssignmentsStore = create<AssignmentsState>()((set) => ({
   ) => {
     set({ error: null });
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       set({ error: 'No autenticado' });
       return 0;
@@ -101,15 +112,19 @@ export const useAssignmentsStore = create<AssignmentsState>()((set) => ({
 
     const created = (data as ClientAssignmentWithClient[]) ?? [];
     set((state) => ({
-      assignments: [...created, ...state.assignments.filter(
-        (a) => !created.some((c) => c.id === a.id)
-      )],
+      assignments: [
+        ...created,
+        ...state.assignments.filter((a) => !created.some((c) => c.id === a.id)),
+      ],
     }));
 
     return created.length;
   },
 
-  updateAssignmentStatus: async (id: string, status: ClientAssignment['status']) => {
+  updateAssignmentStatus: async (
+    id: string,
+    status: ClientAssignment['status']
+  ) => {
     set({ error: null });
 
     const { data, error } = await supabase

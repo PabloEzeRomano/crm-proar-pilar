@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -26,7 +26,6 @@ import { useUsersStore } from '@/stores/usersStore';
 import type { Client } from '@/types';
 
 export default function AssignScreen() {
-  const router = useRouter();
   const { campaignId } = useLocalSearchParams<{ campaignId: string }>();
 
   const clients = useClientsStore((s) => s.clients);
@@ -44,7 +43,9 @@ export default function AssignScreen() {
   const error = useAssignmentsStore((s) => s.error);
 
   const [search, setSearch] = useState('');
-  const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(new Set());
+  const [selectedClientIds, setSelectedClientIds] = useState<Set<string>>(
+    new Set()
+  );
   const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const [saving, setSaving] = useState(false);
@@ -120,12 +121,26 @@ export default function AssignScreen() {
         disabled={isAssigned}
       >
         <MaterialCommunityIcons
-          name={isAssigned ? 'check-circle' : isSelected ? 'checkbox-marked' : 'checkbox-blank-outline'}
+          name={
+            isAssigned
+              ? 'check-circle'
+              : isSelected
+                ? 'checkbox-marked'
+                : 'checkbox-blank-outline'
+          }
           size={22}
-          color={isAssigned ? colors.success : isSelected ? colors.primary : colors.textDisabled}
+          color={
+            isAssigned
+              ? colors.success
+              : isSelected
+                ? colors.primary
+                : colors.textDisabled
+          }
         />
         <View style={styles.clientContent}>
-          <Text style={[styles.clientName, isAssigned && styles.clientNameAssigned]}>
+          <Text
+            style={[styles.clientName, isAssigned && styles.clientNameAssigned]}
+          >
             {client.name}
           </Text>
           {client.city && <Text style={styles.clientCity}>{client.city}</Text>}
@@ -143,10 +158,18 @@ export default function AssignScreen() {
           {vendedores.map((u) => (
             <Pressable
               key={u.id}
-              style={[styles.chip, selectedUserId === u.id && styles.chipActive]}
+              style={[
+                styles.chip,
+                selectedUserId === u.id && styles.chipActive,
+              ]}
               onPress={() => setSelectedUserId(u.id)}
             >
-              <Text style={[styles.chipText, selectedUserId === u.id && styles.chipTextActive]}>
+              <Text
+                style={[
+                  styles.chipText,
+                  selectedUserId === u.id && styles.chipTextActive,
+                ]}
+              >
                 {u.full_name || u.email}
               </Text>
             </Pressable>
@@ -165,10 +188,20 @@ export default function AssignScreen() {
             {branches.map((b) => (
               <Pressable
                 key={b.id}
-                style={[styles.chip, selectedBranchId === b.id && styles.chipActive]}
-                onPress={() => setSelectedBranchId(selectedBranchId === b.id ? '' : b.id)}
+                style={[
+                  styles.chip,
+                  selectedBranchId === b.id && styles.chipActive,
+                ]}
+                onPress={() =>
+                  setSelectedBranchId(selectedBranchId === b.id ? '' : b.id)
+                }
               >
-                <Text style={[styles.chipText, selectedBranchId === b.id && styles.chipTextActive]}>
+                <Text
+                  style={[
+                    styles.chipText,
+                    selectedBranchId === b.id && styles.chipTextActive,
+                  ]}
+                >
                   {b.name}
                 </Text>
               </Pressable>
@@ -188,7 +221,11 @@ export default function AssignScreen() {
       </View>
 
       <View style={styles.searchBar}>
-        <MaterialCommunityIcons name="magnify" size={20} color={colors.textSecondary} />
+        <MaterialCommunityIcons
+          name="magnify"
+          size={20}
+          color={colors.textSecondary}
+        />
         <TextInput
           style={styles.searchInput}
           placeholder="Buscar cliente…"
@@ -218,7 +255,8 @@ export default function AssignScreen() {
               <ActivityIndicator size="small" color={colors.textOnPrimary} />
             ) : (
               <Text style={styles.buttonText}>
-                Asignar {selectedClientIds.size} cliente{selectedClientIds.size !== 1 ? 's' : ''}
+                Asignar {selectedClientIds.size} cliente
+                {selectedClientIds.size !== 1 ? 's' : ''}
               </Text>
             )}
           </Pressable>
@@ -230,8 +268,16 @@ export default function AssignScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  section: { paddingHorizontal: spacing[4], paddingVertical: spacing[3], gap: spacing[2] },
-  sectionTitle: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: colors.textPrimary },
+  section: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    gap: spacing[2],
+  },
+  sectionTitle: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+  },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] },
   chip: {
     paddingHorizontal: spacing[3],
@@ -245,7 +291,10 @@ const styles = StyleSheet.create({
   },
   chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { fontSize: fontSize.sm, color: colors.textSecondary },
-  chipTextActive: { color: colors.textOnPrimary, fontWeight: fontWeight.semibold },
+  chipTextActive: {
+    color: colors.textOnPrimary,
+    fontWeight: fontWeight.semibold,
+  },
   clientsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -253,7 +302,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[4],
     marginTop: spacing[2],
   },
-  selectAllText: { fontSize: fontSize.sm, color: colors.primary, fontWeight: fontWeight.medium },
+  selectAllText: {
+    fontSize: fontSize.sm,
+    color: colors.primary,
+    fontWeight: fontWeight.medium,
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -266,7 +319,12 @@ const styles = StyleSheet.create({
     gap: spacing[2],
     ...shadows.subtle,
   },
-  searchInput: { flex: 1, fontSize: fontSize.base, color: colors.textPrimary, height: 36 },
+  searchInput: {
+    flex: 1,
+    fontSize: fontSize.base,
+    color: colors.textPrimary,
+    height: 36,
+  },
   listContent: { paddingHorizontal: spacing[4], paddingBottom: spacing[20] },
   clientRow: {
     flexDirection: 'row',
@@ -290,7 +348,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
-  errorText: { color: colors.error, fontSize: fontSize.sm, marginBottom: spacing[2] },
+  errorText: {
+    color: colors.error,
+    fontSize: fontSize.sm,
+    marginBottom: spacing[2],
+  },
   button: {
     backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
@@ -300,5 +362,9 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: colors.textOnPrimary },
+  buttonText: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.textOnPrimary,
+  },
 });

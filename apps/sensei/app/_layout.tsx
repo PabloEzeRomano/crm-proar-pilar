@@ -46,17 +46,25 @@ function useDeepLinkHandler(): void {
   async function handleWebFragment(hash: string) {
     const params = parseFragmentParams(hash);
     if (params.error) {
-      useAuthStore.getState().setError(params.error_description || params.error);
+      useAuthStore
+        .getState()
+        .setError(params.error_description || params.error);
       return;
     }
     if (params.access_token && params.refresh_token) {
       useAuthStore.getState().setInviteSetup(true);
-      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      window.history.replaceState(
+        null,
+        '',
+        window.location.pathname + window.location.search
+      );
       const { error } = await supabase.auth.setSession({
         access_token: params.access_token,
         refresh_token: params.refresh_token,
       });
-      useAuthStore.getState().completeInviteFlow(!error && params.type === 'invite');
+      useAuthStore
+        .getState()
+        .completeInviteFlow(!error && params.type === 'invite');
       if (error) useAuthStore.getState().setError(error.message);
     }
   }
@@ -86,7 +94,8 @@ function useDeepLinkHandler(): void {
         refresh_token: params.refresh_token,
       });
       if (error) useAuthStore.getState().setError(error.message);
-      else if (params.type === 'invite') useAuthStore.getState().setInviteUser(true);
+      else if (params.type === 'invite')
+        useAuthStore.getState().setInviteUser(true);
       return;
     }
 
@@ -107,9 +116,15 @@ function useAuthGuard(): void {
 
   useEffect(() => {
     if (loading) return;
-    if (isPasswordRecovery) { router.replace('/(auth)/reset-password'); return; }
+    if (isPasswordRecovery) {
+      router.replace('/(auth)/reset-password');
+      return;
+    }
     if (isInviteSetup) return;
-    if (isInviteUser) { router.replace('/(auth)/set-invite-password'); return; }
+    if (isInviteUser) {
+      router.replace('/(auth)/set-invite-password');
+      return;
+    }
     if (!userId) router.replace('/(auth)/login');
     else router.replace('/(tabs)/dashboard');
   }, [userId, loading, isPasswordRecovery, isInviteSetup, isInviteUser]);
@@ -128,7 +143,9 @@ export default function RootLayout() {
   const userId = useAuthStore((s) => s.session?.user?.id ?? null);
   const fetchLookups = useLookupsStore((s) => s.fetchLookups);
 
-  useEffect(() => { initialize(); }, []);
+  useEffect(() => {
+    initialize();
+  }, []);
 
   useEffect(() => {
     if (!userId) return;

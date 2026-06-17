@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
   Platform,
   Pressable,
   ScrollView,
@@ -24,7 +23,7 @@ import {
 } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
 import { useCampaignsStore } from '@/stores/campaignsStore';
-import type { Campaign, CampaignOffer, CampaignStatus } from '@/types';
+import type { CampaignOffer, CampaignStatus } from '@/types';
 
 const statusLabel: Record<CampaignStatus, string> = {
   active: 'Activa',
@@ -52,14 +51,20 @@ function OfferRow({
       <View style={styles.offerContent}>
         <Text style={styles.offerName}>{offer.name}</Text>
         {offer.description && (
-          <Text style={styles.offerDesc} numberOfLines={2}>{offer.description}</Text>
+          <Text style={styles.offerDesc} numberOfLines={2}>
+            {offer.description}
+          </Text>
         )}
         {offer.financing && (
           <Text style={styles.offerMeta}>Financiación: {offer.financing}</Text>
         )}
       </View>
       <Pressable onPress={onDelete} hitSlop={8} style={styles.iconBtn}>
-        <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors.error} />
+        <MaterialCommunityIcons
+          name="trash-can-outline"
+          size={18}
+          color={colors.error}
+        />
       </Pressable>
     </View>
   );
@@ -170,7 +175,10 @@ export default function CampaignDetailScreen() {
   return (
     <>
       <Stack.Screen options={{ title: campaign.name }} />
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Header / Edit */}
         {isEditing ? (
           <View style={styles.section}>
@@ -190,7 +198,10 @@ export default function CampaignDetailScreen() {
               multiline
             />
             <View style={styles.editActions}>
-              <Pressable style={styles.btnSecondary} onPress={() => setIsEditing(false)}>
+              <Pressable
+                style={styles.btnSecondary}
+                onPress={() => setIsEditing(false)}
+              >
                 <Text style={styles.btnSecondaryText}>Cancelar</Text>
               </Pressable>
               <Pressable
@@ -199,7 +210,10 @@ export default function CampaignDetailScreen() {
                 disabled={saving}
               >
                 {saving ? (
-                  <ActivityIndicator size="small" color={colors.textOnPrimary} />
+                  <ActivityIndicator
+                    size="small"
+                    color={colors.textOnPrimary}
+                  />
                 ) : (
                   <Text style={styles.btnPrimaryText}>Guardar</Text>
                 )}
@@ -217,11 +231,27 @@ export default function CampaignDetailScreen() {
               </View>
               {isAdmin && (
                 <View style={styles.headerActions}>
-                  <Pressable onPress={startEdit} hitSlop={8} style={styles.iconBtn}>
-                    <MaterialCommunityIcons name="pencil-outline" size={20} color={colors.textSecondary} />
+                  <Pressable
+                    onPress={startEdit}
+                    hitSlop={8}
+                    style={styles.iconBtn}
+                  >
+                    <MaterialCommunityIcons
+                      name="pencil-outline"
+                      size={20}
+                      color={colors.textSecondary}
+                    />
                   </Pressable>
-                  <Pressable onPress={confirmDelete} hitSlop={8} style={styles.iconBtn}>
-                    <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.error} />
+                  <Pressable
+                    onPress={confirmDelete}
+                    hitSlop={8}
+                    style={styles.iconBtn}
+                  >
+                    <MaterialCommunityIcons
+                      name="trash-can-outline"
+                      size={20}
+                      color={colors.error}
+                    />
                   </Pressable>
                 </View>
               )}
@@ -239,14 +269,20 @@ export default function CampaignDetailScreen() {
                   key={s}
                   style={[
                     styles.statusBtn,
-                    campaign.status === s && { backgroundColor: statusColor[s] + '20', borderColor: statusColor[s] },
+                    campaign.status === s && {
+                      backgroundColor: statusColor[s] + '20',
+                      borderColor: statusColor[s],
+                    },
                   ]}
                   onPress={() => changeStatus(s)}
                 >
                   <Text
                     style={[
                       styles.statusBtnText,
-                      campaign.status === s && { color: statusColor[s], fontWeight: fontWeight.semibold },
+                      campaign.status === s && {
+                        color: statusColor[s],
+                        fontWeight: fontWeight.semibold,
+                      },
                     ]}
                   >
                     {statusLabel[s]}
@@ -264,7 +300,9 @@ export default function CampaignDetailScreen() {
               <Text style={styles.sectionTitle}>Asignaciones</Text>
               <Pressable
                 style={styles.btnPrimary}
-                onPress={() => router.push(`/campaigns/assign?campaignId=${id}`)}
+                onPress={() =>
+                  router.push(`/campaigns/assign?campaignId=${id}`)
+                }
               >
                 <Text style={styles.btnPrimaryText}>Asignar clientes</Text>
               </Pressable>
@@ -277,7 +315,10 @@ export default function CampaignDetailScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Ofertas</Text>
             {isAdmin && (
-              <Pressable onPress={() => setShowOfferForm(!showOfferForm)} hitSlop={8}>
+              <Pressable
+                onPress={() => setShowOfferForm(!showOfferForm)}
+                hitSlop={8}
+              >
                 <MaterialCommunityIcons
                   name={showOfferForm ? 'close' : 'plus-circle-outline'}
                   size={24}
@@ -317,12 +358,20 @@ export default function CampaignDetailScreen() {
           )}
 
           {offersLoading ? (
-            <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: spacing[3] }} />
+            <ActivityIndicator
+              size="small"
+              color={colors.primary}
+              style={{ marginTop: spacing[3] }}
+            />
           ) : offers.length === 0 ? (
             <Text style={styles.emptyText}>Sin ofertas</Text>
           ) : (
             offers.map((o) => (
-              <OfferRow key={o.id} offer={o} onDelete={() => confirmDeleteOffer(o)} />
+              <OfferRow
+                key={o.id}
+                offer={o}
+                onDelete={() => confirmDeleteOffer(o)}
+              />
             ))
           )}
         </View>
@@ -333,7 +382,11 @@ export default function CampaignDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  scrollContent: { padding: spacing[4], gap: spacing[4], paddingBottom: spacing[20] },
+  scrollContent: {
+    padding: spacing[4],
+    gap: spacing[4],
+    paddingBottom: spacing[20],
+  },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   section: {
     backgroundColor: colors.surface,
@@ -342,12 +395,24 @@ const styles = StyleSheet.create({
     gap: spacing[3],
     ...shadows.subtle,
   },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sectionTitle: { fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: colors.textPrimary },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionTitle: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+  },
   headerRow: { flexDirection: 'row', gap: spacing[3] },
   headerContent: { flex: 1, gap: spacing[1] },
   headerActions: { flexDirection: 'row', gap: spacing[1] },
-  title: { fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: colors.textPrimary },
+  title: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+  },
   description: { fontSize: fontSize.base, color: colors.textSecondary },
   statusRow: { flexDirection: 'row', gap: spacing[2] },
   statusBtn: {
@@ -372,7 +437,11 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
-  editActions: { flexDirection: 'row', gap: spacing[2], justifyContent: 'flex-end' },
+  editActions: {
+    flexDirection: 'row',
+    gap: spacing[2],
+    justifyContent: 'flex-end',
+  },
   btnPrimary: {
     backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
@@ -383,7 +452,11 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   btnDisabled: { opacity: 0.6 },
-  btnPrimaryText: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: colors.textOnPrimary },
+  btnPrimaryText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    color: colors.textOnPrimary,
+  },
   btnSecondary: {
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing[4],
@@ -394,9 +467,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  btnSecondaryText: { fontSize: fontSize.sm, fontWeight: fontWeight.medium, color: colors.textSecondary },
-  iconBtn: { padding: spacing[2], minWidth: 40, minHeight: 40, alignItems: 'center', justifyContent: 'center' },
-  offerForm: { gap: spacing[3], padding: spacing[3], backgroundColor: colors.background, borderRadius: borderRadius.md },
+  btnSecondaryText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
+  },
+  iconBtn: {
+    padding: spacing[2],
+    minWidth: 40,
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  offerForm: {
+    gap: spacing[3],
+    padding: spacing[3],
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+  },
   offerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -406,8 +494,20 @@ const styles = StyleSheet.create({
     gap: spacing[2],
   },
   offerContent: { flex: 1, gap: 2 },
-  offerName: { fontSize: fontSize.base, fontWeight: fontWeight.medium, color: colors.textPrimary },
+  offerName: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.medium,
+    color: colors.textPrimary,
+  },
   offerDesc: { fontSize: fontSize.sm, color: colors.textSecondary },
-  offerMeta: { fontSize: fontSize.xs, color: colors.textSecondary, fontStyle: 'italic' },
-  emptyText: { fontSize: fontSize.sm, color: colors.textDisabled, paddingVertical: spacing[2] },
+  offerMeta: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  emptyText: {
+    fontSize: fontSize.sm,
+    color: colors.textDisabled,
+    paddingVertical: spacing[2],
+  },
 });

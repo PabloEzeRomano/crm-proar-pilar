@@ -115,7 +115,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing[4], gap: spacing[4] },
   field: { gap: spacing[1] },
-  label: { fontSize: fontSize.sm, fontWeight: fontWeight.medium, color: colors.textSecondary },
+  label: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
+  },
   input: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.md,
@@ -139,5 +143,9 @@ const styles = StyleSheet.create({
     marginTop: spacing[2],
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: colors.textOnPrimary },
+  buttonText: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.textOnPrimary,
+  },
 });

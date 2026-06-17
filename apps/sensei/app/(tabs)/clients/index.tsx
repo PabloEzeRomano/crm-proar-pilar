@@ -23,21 +23,37 @@ import { useAuthStore } from '@/stores/authStore';
 import { useClientsStore } from '@/stores/clientsStore';
 import type { Client } from '@/types';
 
-function ClientRow({ client, onPress }: { client: Client; onPress: () => void }) {
+function ClientRow({
+  client,
+  onPress,
+}: {
+  client: Client;
+  onPress: () => void;
+}) {
   return (
     <Pressable style={styles.row} onPress={onPress} accessibilityRole="button">
       <View style={styles.rowIcon}>
-        <MaterialCommunityIcons name="domain" size={20} color={colors.primary} />
+        <MaterialCommunityIcons
+          name="domain"
+          size={20}
+          color={colors.primary}
+        />
       </View>
       <View style={styles.rowContent}>
-        <Text style={styles.rowName} numberOfLines={1}>{client.name}</Text>
+        <Text style={styles.rowName} numberOfLines={1}>
+          {client.name}
+        </Text>
         {(client.city || client.industry) && (
           <Text style={styles.rowSub} numberOfLines={1}>
             {[client.industry, client.city].filter(Boolean).join(' · ')}
           </Text>
         )}
       </View>
-      <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textDisabled} />
+      <MaterialCommunityIcons
+        name="chevron-right"
+        size={20}
+        color={colors.textDisabled}
+      />
     </Pressable>
   );
 }
@@ -71,7 +87,11 @@ export default function ClientsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.searchBar}>
-        <MaterialCommunityIcons name="magnify" size={20} color={colors.textSecondary} />
+        <MaterialCommunityIcons
+          name="magnify"
+          size={20}
+          color={colors.textSecondary}
+        />
         <TextInput
           style={styles.searchInput}
           placeholder="Buscar cliente…"
@@ -116,7 +136,11 @@ export default function ClientsScreen() {
           accessibilityRole="button"
           accessibilityLabel="Nuevo cliente"
         >
-          <MaterialCommunityIcons name="plus" size={28} color={colors.textOnPrimary} />
+          <MaterialCommunityIcons
+            name="plus"
+            size={28}
+            color={colors.textOnPrimary}
+          />
         </Pressable>
       )}
     </View>
@@ -138,7 +162,12 @@ const styles = StyleSheet.create({
     gap: spacing[2],
     ...shadows.subtle,
   },
-  searchInput: { flex: 1, fontSize: fontSize.base, color: colors.textPrimary, height: 36 },
+  searchInput: {
+    flex: 1,
+    fontSize: fontSize.base,
+    color: colors.textPrimary,
+    height: 36,
+  },
   listContent: { paddingHorizontal: spacing[4], paddingBottom: spacing[20] },
   separator: { height: spacing[2] },
   row: {
@@ -160,9 +189,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   rowContent: { flex: 1, gap: 2 },
-  rowName: { fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: colors.textPrimary },
+  rowName: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+  },
   rowSub: { fontSize: fontSize.sm, color: colors.textSecondary },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: spacing[12] },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing[12],
+  },
   emptyText: { fontSize: fontSize.base, color: colors.textSecondary },
   fab: {
     position: 'absolute',
