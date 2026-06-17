@@ -67,6 +67,31 @@ function corsHeaders(): Record<string, string> {
   };
 }
 
+interface AuthUser {
+  id: string;
+  email?: string;
+  email_confirmed_at?: string | null;
+  last_sign_in_at?: string | null;
+}
+
+/** Look up an auth user by email (case-insensitive). Null if none. */
+async function findUserByEmail(
+  // deno-lint-ignore no-explicit-any
+  adminClient: any,
+  email: string
+): Promise<AuthUser | null> {
+  const target = email.toLowerCase();
+  const { data } = await adminClient.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000,
+  });
+  return (
+    (data?.users as AuthUser[] | undefined)?.find(
+      (u) => u.email?.toLowerCase() === target
+    ) ?? null
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Handler
 // ---------------------------------------------------------------------------
@@ -193,20 +218,52 @@ Deno.serve(async (req) => {
 
     // ── 6. Send invite ──────────────────────────────────────────────────────
 
-    const { data: inviteData, error: inviteErr } =
+    // needs_password lets the app force the password-setup screen on first
+    // sign-in regardless of the auth flow (token / PKCE code / callback).
+    const inviteMeta = {
+      role,
+      company_id: callerProfile.company_id,
+      needs_password: true,
+    };
+
+    let { data: inviteData, error: inviteErr } =
       await adminClient.auth.admin.inviteUserByEmail(email, {
-        data: {
-          role,
-          company_id: callerProfile.company_id,
-        },
+        data: inviteMeta,
       });
 
     if (inviteErr) {
-      // Surface a friendly message for already-registered emails
-      const msg = inviteErr.message.toLowerCase().includes('already')
-        ? 'A user with this email already exists'
-        : inviteErr.message;
-      return jsonResponse({ error: msg }, 422);
+      const lower = inviteErr.message.toLowerCase();
+      const alreadyExists =
+        lower.includes('already') ||
+        lower.includes('registered') ||
+        lower.includes('exists');
+
+      if (alreadyExists) {
+        // The email exists. If it's a pending invite that was never accepted
+        // (unconfirmed + never signed in), it's safe to delete and re-invite,
+        // which resends the email. An active (confirmed) user is rejected.
+        const existing = await findUserByEmail(adminClient, email);
+        const isPending =
+          !!existing && !existing.email_confirmed_at && !existing.last_sign_in_at;
+
+        if (existing && isPending) {
+          await adminClient.auth.admin.deleteUser(existing.id);
+          ({ data: inviteData, error: inviteErr } =
+            await adminClient.auth.admin.inviteUserByEmail(email, {
+              data: inviteMeta,
+            }));
+          if (inviteErr) {
+            return jsonResponse({ error: inviteErr.message }, 422);
+          }
+        } else {
+          return jsonResponse(
+            { error: 'A user with this email already exists' },
+            422
+          );
+        }
+      } else {
+        return jsonResponse({ error: inviteErr.message }, 422);
+      }
     }
 
     return jsonResponse({

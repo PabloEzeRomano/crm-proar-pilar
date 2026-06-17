@@ -107,6 +107,19 @@ async function validateCrmType(companyId: string | null, role?: string): Promise
   return null;
 }
 
+/**
+ * True when the user was invited and has not set a password yet. Set in the
+ * invite-user Edge Function (user_metadata.needs_password) and cleared by
+ * setInitialPassword. Flow-agnostic invite detection: works for the implicit
+ * (token) flow, the PKCE (code) flow, and the /auth/callback redirect.
+ */
+function userNeedsPassword(user: User): boolean {
+  return (
+    (user.user_metadata as Record<string, unknown> | undefined)
+      ?.needs_password === true
+  );
+}
+
 export const useAuthStore = create<AuthState>()((set) => ({
   session: null,
   user: null,
@@ -125,7 +138,11 @@ export const useAuthStore = create<AuthState>()((set) => ({
     const existingSession = sessionData.session;
 
     if (existingSession) {
-      set({ session: existingSession, user: existingSession.user });
+      set({
+        session: existingSession,
+        user: existingSession.user,
+        isInviteUser: userNeedsPassword(existingSession.user),
+      });
       const profile = await fetchProfile(existingSession.user.id);
 
       if (profile) {
@@ -146,8 +163,16 @@ export const useAuthStore = create<AuthState>()((set) => ({
 
     const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
       if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
-        // Set session and user immediately, unblock the UI
-        set({ session, user: session.user, loading: false });
+        // Set session and user immediately, unblock the UI.
+        // needs_password (set at invite time, cleared by setInitialPassword)
+        // forces the password-setup screen regardless of which auth flow
+        // established the session (implicit token, PKCE code, or callback).
+        set({
+          session,
+          user: session.user,
+          loading: false,
+          ...(userNeedsPassword(session.user) ? { isInviteUser: true } : {}),
+        });
 
         // Fetch profile and validate CRM type
         fetchProfile(session.user.id)
@@ -279,10 +304,16 @@ export const useAuthStore = create<AuthState>()((set) => ({
   // and writes company_id from auth metadata as a safety net (in case the handle_new_user
   // trigger ran before migration 0024 was applied).
   setInitialPassword: async (newPassword: string, fullName?: string) => {
-    const updateData: { password: string; data?: { full_name: string } } = {
+    // Always clear needs_password so the invite gate (checked in
+    // onAuthStateChange) releases this user on subsequent sessions.
+    const updateData: {
+      password: string;
+      data: { needs_password: false; full_name?: string };
+    } = {
       password: newPassword,
+      data: { needs_password: false },
     };
-    if (fullName) updateData.data = { full_name: fullName };
+    if (fullName) updateData.data.full_name = fullName;
     const { error } = await supabase.auth.updateUser(updateData);
     if (error) return { error: error.message };
 

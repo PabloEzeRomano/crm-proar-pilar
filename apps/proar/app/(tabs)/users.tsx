@@ -463,6 +463,11 @@ export default function UsersScreen() {
       role: selectedRole,
     });
 
+    if (err) {
+      showAlert('Error', `No se pudo enviar la invitación: ${err}`);
+      return;
+    }
+
     if (!err) {
       setSuccessMessage(`Invitación enviada a ${result.data.email}`);
       fetchUsers();
