@@ -432,6 +432,10 @@ Deno.serve(async (req) => {
       // no body — fine
     }
 
+    // Manual "send now" requests target a specific user. They bypass the
+    // email_config.enabled gate (that toggle only governs the automatic cron).
+    const isManual = bodyUserId !== undefined;
+
     // If targeting a specific user, verify caller is admin/root
     if (bodyUserId) {
       const authHeader = req.headers.get('Authorization');
@@ -499,8 +503,16 @@ Deno.serve(async (req) => {
     let profilesQuery = supabase
       .from('profiles')
       .select('id, full_name, email_config')
-      .not('email_config', 'is', null)
-      .filter('email_config->>enabled', 'eq', 'true');
+      .not('email_config', 'is', null);
+
+    // The cron run only targets users who opted in; a manual send ignores it.
+    if (!isManual) {
+      profilesQuery = profilesQuery.filter(
+        'email_config->>enabled',
+        'eq',
+        'true'
+      );
+    }
 
     if (bodyUserId) profilesQuery = profilesQuery.eq('id', bodyUserId);
 
@@ -525,7 +537,7 @@ Deno.serve(async (req) => {
       const effectiveRecipients = bodyRecipients?.length
         ? bodyRecipients
         : (config?.recipients ?? []);
-      if (!config?.enabled || !effectiveRecipients?.length) {
+      if ((!isManual && !config?.enabled) || !effectiveRecipients?.length) {
         results.push({
           userId: profile.id,
           status: 'skipped: email disabled or no recipients',
