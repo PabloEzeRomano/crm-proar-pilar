@@ -5,7 +5,6 @@
  * - Web: HTML <input type="date"> / <input type="time"> via TextInput
  */
 
-import React from 'react';
 import { Platform, TextInput, ViewStyle } from 'react-native';
 import DateTimePicker, {
   DateTimePickerEvent,
