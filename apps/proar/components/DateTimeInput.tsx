@@ -75,7 +75,9 @@ export default function DateTimeInput({
       <TextInput
         style={[webStyles, containerStyle]}
         defaultValue={webValue}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- web-only DOM input props spread onto RN TextInput
         {...({ type: mode, step: mode === 'time' ? '60' : undefined } as any)}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- web DOM change event, not RN's synthetic event
         onChange={(e: any) => {
           const raw = e.target.value;
           if (!raw) return;

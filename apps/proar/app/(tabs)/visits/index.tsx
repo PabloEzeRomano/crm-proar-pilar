@@ -137,8 +137,9 @@ export default function VisitsIndexScreen() {
         return false;
       return true;
     })
-    .sort((a, b) =>
-      dayjs(a.scheduled_at).valueOf() - dayjs(b.scheduled_at).valueOf()
+    .sort(
+      (a, b) =>
+        dayjs(a.scheduled_at).valueOf() - dayjs(b.scheduled_at).valueOf()
     );
 
   // ── Filter count ────────────────────────────────────────────────────────
@@ -223,10 +224,6 @@ export default function VisitsIndexScreen() {
     );
   }
 
-  function renderSeparator() {
-    return <View style={styles.rowGap} />;
-  }
-
   function renderEmpty() {
     if (loading) {
       return (
@@ -277,7 +274,9 @@ export default function VisitsIndexScreen() {
           style={[styles.filterButton, showPast && styles.filterButtonActive]}
           onPress={() => setShowPast((v) => !v)}
           accessibilityRole="button"
-          accessibilityLabel={showPast ? 'Ocultar gestiones pasadas' : 'Mostrar gestiones pasadas'}
+          accessibilityLabel={
+            showPast ? 'Ocultar gestiones pasadas' : 'Mostrar gestiones pasadas'
+          }
         >
           <MaterialCommunityIcons
             name="history"

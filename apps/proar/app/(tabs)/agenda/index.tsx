@@ -44,7 +44,7 @@ import {
 import { useToday } from '@/hooks/useToday';
 import dayjs from '@/lib/dayjs';
 import { useAuthStore } from '@/stores/authStore';
-import { TodaySpan, useTodayStore } from '@/stores/todayStore';
+import { TodaySpan } from '@/stores/todayStore';
 import { VisitWithClient } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -483,8 +483,10 @@ function TodayScreenContent() {
     return Array.from(groups.values()).sort((a, b) => {
       const aFirst = a[0];
       const bFirst = b[0];
-      const aCompleted = aFirst.status === 'completed' || aFirst.status === 'canceled';
-      const bCompleted = bFirst.status === 'completed' || bFirst.status === 'canceled';
+      const aCompleted =
+        aFirst.status === 'completed' || aFirst.status === 'canceled';
+      const bCompleted =
+        bFirst.status === 'completed' || bFirst.status === 'canceled';
       if (aCompleted !== bCompleted) return aCompleted ? 1 : -1;
       return dayjs(aFirst.scheduled_at).diff(dayjs(bFirst.scheduled_at));
     });
@@ -539,7 +541,10 @@ function TodayScreenContent() {
     if (cardState === 'overdue') {
       return (
         <Pressable
-          style={({ pressed }) => [styles.nextCardHero, pressed && styles.nextCardPressed]}
+          style={({ pressed }) => [
+            styles.nextCardHero,
+            pressed && styles.nextCardPressed,
+          ]}
           onPress={handleNextCardPress}
           accessibilityRole="button"
           accessibilityLabel={`Gestión atrasada: ${nextVisit?.client.name}`}
@@ -559,8 +564,17 @@ function TodayScreenContent() {
             />
             {/* Label pill */}
             <View style={styles.nextCardPill}>
-              <MaterialCommunityIcons name="alert-circle" size={13} color="rgba(255,220,80,0.95)" />
-              <Text style={[styles.nextCardPillText, { color: 'rgba(255,220,80,0.95)' }]}>
+              <MaterialCommunityIcons
+                name="alert-circle"
+                size={13}
+                color="rgba(255,220,80,0.95)"
+              />
+              <Text
+                style={[
+                  styles.nextCardPillText,
+                  { color: 'rgba(255,220,80,0.95)' },
+                ]}
+              >
                 ATRASADO · {nextVisitCountdownLabel}
               </Text>
             </View>
@@ -570,17 +584,26 @@ function TodayScreenContent() {
             </Text>
             {/* Address + scheduled time */}
             <View style={styles.nextCardAddressRow}>
-              <MaterialCommunityIcons name="map-marker-outline" size={13} color="rgba(255,255,255,0.7)" />
+              <MaterialCommunityIcons
+                name="map-marker-outline"
+                size={13}
+                color="rgba(255,255,255,0.7)"
+              />
               <Text style={styles.nextCardAddressText} numberOfLines={1}>
                 {nextVisit?.client.address
                   ? `${nextVisit.client.address}${nextVisit.client.city ? ', ' + nextVisit.client.city : ''}`
-                  : nextVisit?.client.city ?? ''}
-                {' · debía ser '}{nextVisitTimeLabel}
+                  : (nextVisit?.client.city ?? '')}
+                {' · debía ser '}
+                {nextVisitTimeLabel}
               </Text>
             </View>
             {/* Navegar action */}
             <View style={styles.nextCardNavRow}>
-              <MaterialCommunityIcons name="navigation" size={12} color="#fff" />
+              <MaterialCommunityIcons
+                name="navigation"
+                size={12}
+                color="#fff"
+              />
               <Text style={styles.nextCardNavText}>Navegar</Text>
             </View>
           </LinearGradient>
@@ -591,7 +614,10 @@ function TodayScreenContent() {
     // cardState === 'upcoming'
     return (
       <Pressable
-        style={({ pressed }) => [styles.nextCardHero, pressed && styles.nextCardPressed]}
+        style={({ pressed }) => [
+          styles.nextCardHero,
+          pressed && styles.nextCardPressed,
+        ]}
         onPress={handleNextCardPress}
         accessibilityRole="button"
         accessibilityLabel={`Siguiente gestión: ${nextVisit?.client.name}`}
@@ -609,8 +635,17 @@ function TodayScreenContent() {
             style={styles.nextCardBgGlyph}
           />
           <View style={styles.nextCardPill}>
-            <MaterialCommunityIcons name="clock-outline" size={13} color="rgba(255,255,255,0.8)" />
-            <Text style={[styles.nextCardPillText, { color: 'rgba(255,255,255,0.85)' }]}>
+            <MaterialCommunityIcons
+              name="clock-outline"
+              size={13}
+              color="rgba(255,255,255,0.8)"
+            />
+            <Text
+              style={[
+                styles.nextCardPillText,
+                { color: 'rgba(255,255,255,0.85)' },
+              ]}
+            >
               SIGUIENTE · {nextVisitCountdownLabel}
             </Text>
           </View>
@@ -618,12 +653,17 @@ function TodayScreenContent() {
             {nextVisit?.client.name}
           </Text>
           <View style={styles.nextCardAddressRow}>
-            <MaterialCommunityIcons name="map-marker-outline" size={13} color="rgba(255,255,255,0.7)" />
+            <MaterialCommunityIcons
+              name="map-marker-outline"
+              size={13}
+              color="rgba(255,255,255,0.7)"
+            />
             <Text style={styles.nextCardAddressText} numberOfLines={1}>
               {nextVisit?.client.address
                 ? `${nextVisit.client.address}${nextVisit.client.city ? ', ' + nextVisit.client.city : ''}`
-                : nextVisit?.client.city ?? ''}
-              {' · '}{nextVisitTimeLabel}
+                : (nextVisit?.client.city ?? '')}
+              {' · '}
+              {nextVisitTimeLabel}
             </Text>
           </View>
           {/* <View style={styles.nextCardNavRow}>
@@ -757,10 +797,7 @@ function TodayScreenContent() {
                 <Text style={styles.progressCardTitle}>Progreso del día</Text>
                 <View style={styles.progressTrack}>
                   <View
-                    style={[
-                      styles.progressFill,
-                      { width: `${progressPct}%` },
-                    ]}
+                    style={[styles.progressFill, { width: `${progressPct}%` }]}
                   />
                 </View>
                 <Text style={styles.progressCardLabel}>

@@ -10,7 +10,7 @@
  */
 
 import { Stack } from 'expo-router';
-import { colors, fontSize, fontWeight } from '@/constants/theme';
+import { colors, fontSize } from '@/constants/theme';
 
 const headerOptions = {
   headerStyle: { backgroundColor: colors.surface },

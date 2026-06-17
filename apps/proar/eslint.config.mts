@@ -32,4 +32,25 @@ export default defineConfig([
     // which crashes on ESLint 10 (uses the removed context.getFilename API).
     settings: { react: { version: '19.2' } },
   },
+  {
+    // CommonJS config files (metro.config.js, etc.) legitimately use require().
+    files: ['**/*.{js,cjs}'],
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
+  },
+  {
+    rules: {
+      // Allow underscore-prefixed names for intentionally-unused bindings
+      // (e.g. destructuring to omit a key, unused callback args).
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+    },
+  },
+  {
+    // E2E specs use scaffolding locators/fixtures that aren't always asserted.
+    // Placed last so it wins over the global no-unused-vars rule above.
+    files: ['e2e/**'],
+    rules: { '@typescript-eslint/no-unused-vars': 'off' },
+  },
 ]);

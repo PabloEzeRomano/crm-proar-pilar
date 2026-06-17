@@ -11,7 +11,7 @@
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -34,42 +34,6 @@ import dayjs from '@/lib/dayjs';
 import { useAuthStore } from '@/stores/authStore';
 import { useUsersStore } from '@/stores/usersStore';
 import { useVisitsStore } from '@/stores/visitsStore';
-import type { UserRole } from '@/types';
-
-// ---------------------------------------------------------------------------
-// Role badge
-// ---------------------------------------------------------------------------
-
-const ROLE_LABEL: Record<UserRole, string> = {
-  user: 'Usuario',
-  product_manager: 'Productos',
-  admin: 'Admin',
-  root: 'Root',
-};
-
-const ROLE_COLOR: Record<UserRole, string> = {
-  user: colors.textSecondary,
-  product_manager: '#EA580C',
-  admin: colors.primary,
-  root: colors.error,
-};
-
-const ROLE_BG: Record<UserRole, string> = {
-  user: colors.surface,
-  product_manager: '#FFEDD5',
-  admin: colors.primaryLight ?? '#EFF6FF',
-  root: '#FEE2E2',
-};
-
-function RoleBadge({ role }: { role: UserRole }) {
-  return (
-    <View style={[styles.roleBadge, { backgroundColor: ROLE_BG[role] }]}>
-      <Text style={[styles.roleBadgeText, { color: ROLE_COLOR[role] }]}>
-        {ROLE_LABEL[role]}
-      </Text>
-    </View>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Main component
@@ -79,9 +43,6 @@ export default function TeamIndexScreen() {
   const router = useRouter();
   const profile = useAuthStore((s) => s.profile);
 
-  const users = useUsersStore((s) => s.users);
-  const loading = useUsersStore((s) => s.loading);
-  const error = useUsersStore((s) => s.error);
   const fetchUsers = useUsersStore((s) => s.fetchUsers);
 
   const allVisits = useVisitsStore((s) => s.allVisits);
@@ -121,7 +82,9 @@ export default function TeamIndexScreen() {
   const thisMonthVisits = allVisits.filter((v) =>
     dayjs(v.scheduled_at).isSame(now, 'month')
   );
-  const salesOrdersThisMonth = thisMonthVisits.filter((v) => v.type === 'sales_orders');
+  const salesOrdersThisMonth = thisMonthVisits.filter(
+    (v) => v.type === 'sales_orders'
+  );
   const salesOrdersAmountTotal = salesOrdersThisMonth.reduce(
     (s, v) => s + (v.amount ?? 0),
     0
@@ -203,14 +166,31 @@ export default function TeamIndexScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Gestión de usuarios"
                 >
-                  <View style={[styles.adminLinkIcon, { backgroundColor: colors.primaryLight }]}>
-                    <MaterialCommunityIcons name="account-multiple-outline" size={20} color={colors.primary} />
+                  <View
+                    style={[
+                      styles.adminLinkIcon,
+                      { backgroundColor: colors.primaryLight },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="account-multiple-outline"
+                      size={20}
+                      color={colors.primary}
+                    />
                   </View>
                   <View style={styles.adminLinkContent}>
-                    <Text style={styles.adminLinkLabel}>Gestión de usuarios</Text>
-                    <Text style={styles.adminLinkSub}>Invitá y administrá el equipo</Text>
+                    <Text style={styles.adminLinkLabel}>
+                      Gestión de usuarios
+                    </Text>
+                    <Text style={styles.adminLinkSub}>
+                      Invitá y administrá el equipo
+                    </Text>
                   </View>
-                  <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textDisabled} />
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={20}
+                    color={colors.textDisabled}
+                  />
                 </Pressable>
 
                 <View style={styles.adminLinkDivider} />
@@ -221,14 +201,31 @@ export default function TeamIndexScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Gestión de productos"
                 >
-                  <View style={[styles.adminLinkIcon, { backgroundColor: colors.successLight }]}>
-                    <MaterialCommunityIcons name="package-variant-closed" size={20} color={colors.success} />
+                  <View
+                    style={[
+                      styles.adminLinkIcon,
+                      { backgroundColor: colors.successLight },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="package-variant-closed"
+                      size={20}
+                      color={colors.success}
+                    />
                   </View>
                   <View style={styles.adminLinkContent}>
-                    <Text style={styles.adminLinkLabel}>Gestión de productos</Text>
-                    <Text style={styles.adminLinkSub}>Catálogo, presentaciones y precios</Text>
+                    <Text style={styles.adminLinkLabel}>
+                      Gestión de productos
+                    </Text>
+                    <Text style={styles.adminLinkSub}>
+                      Catálogo, presentaciones y precios
+                    </Text>
                   </View>
-                  <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textDisabled} />
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={20}
+                    color={colors.textDisabled}
+                  />
                 </Pressable>
               </View>
             </>

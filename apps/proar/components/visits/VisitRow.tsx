@@ -11,7 +11,6 @@
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import dayjs from '@/lib/dayjs';
 import {
-  borderRadius,
   colors,
   fontSize,
   fontWeight,

@@ -4,7 +4,6 @@ import { useClientsStore } from '../stores/clientsStore';
 import { useVisitsStore } from '../stores/visitsStore';
 import { useAuthStore } from '../stores/authStore';
 import { Client, VisitType } from '../types';
-import { CreateClientInput, UpdateClientInput } from '../validators/client';
 
 export type ClientSortOrder =
   | 'name-asc'

@@ -42,7 +42,7 @@ function normalizeClientInput(data: CreateClientInput) {
 
 export const useClientsStore = create<ClientsState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       clients: [],
       inactiveClients: [],
       loading: false,
@@ -327,7 +327,6 @@ export const useClientsStore = create<ClientsState>()(
 
         set({ clients: [] });
       },
-
     }),
     {
       name: 'clients-store',

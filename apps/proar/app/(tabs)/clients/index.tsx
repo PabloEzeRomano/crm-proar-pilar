@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   FlatList,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -43,7 +42,11 @@ import { Client, VisitType } from '@/types';
 const SORT_KEY = 'clients-sort-order';
 
 const SORT_OPTIONS: { key: ClientSortOrder; label: string; icon: string }[] = [
-  { key: 'name-asc', label: 'Razón Social A–Z', icon: 'sort-alphabetical-ascending' },
+  {
+    key: 'name-asc',
+    label: 'Razón Social A–Z',
+    icon: 'sort-alphabetical-ascending',
+  },
   {
     key: 'name-desc',
     label: 'Razón Social Z–A',

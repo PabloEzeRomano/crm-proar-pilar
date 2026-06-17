@@ -73,10 +73,6 @@ interface RawRow {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function isString(val: unknown): val is string {
-  return typeof val === 'string' && val.length > 0;
-}
-
 function str(val: unknown): string | null {
   if (val === undefined || val === null) return null;
   const s = String(val).trim();
@@ -167,10 +163,10 @@ function parseEmailCell(raw: unknown): { name?: string; email: string }[] {
   while ((m = emailRe.exec(s)) !== null) {
     const email = m[0];
     const before = s.slice(0, m.index);
-    const parts = before.split(/[\/\n,]/);
+    const parts = before.split(/[/\n,]/);
     const lastPart = (parts[parts.length - 1] ?? '')
       .replace(/<.*$/, '')
-      .replace(/[=>\-]+$/, '')
+      .replace(/[=>-]+$/, '')
       .replace(/\(/, '')
       .trim();
     // Discard if the "name" is itself an email address
@@ -501,7 +497,7 @@ export const useImportStore = create<ImportState>()((set) => ({
 
         const address = str(row['Domicilio']);
         const key = clientKey(name, address);
-        let clientId = clientMap.get(key);
+        const clientId = clientMap.get(key);
 
         if (!clientId) {
           // Register sentinel so subsequent rows with the same client reuse this slot

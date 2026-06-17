@@ -57,6 +57,7 @@ export default function TourStep({
       // elements (e.g. FABs) are always visible; calling scrollIntoView on them
       // scrolls the page and pushes their bounding rect off-screen. We guard
       // against this by checking getBoundingClientRect first.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- web-only DOM node access on an RN ref
       const domEl = viewRef.current as any;
       if (
         typeof document !== 'undefined' &&

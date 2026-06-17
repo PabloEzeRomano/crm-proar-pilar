@@ -184,7 +184,7 @@ function useDeepLinkHandler(): void {
 
     // Error in callback (e.g., otp_expired)
     if (params.error) {
-      const errDesc = !!params.error_description
+      const errDesc = params.error_description
         ? Array.isArray(params.error_description)
           ? params.error_description[0]
           : params.error_description

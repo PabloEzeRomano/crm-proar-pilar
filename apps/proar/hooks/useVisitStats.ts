@@ -70,7 +70,7 @@ export function useVisitStats(filters?: VisitStatsFilters): VisitStats {
     }
 
     // Apply global filters first
-    let baseVisits = sourceVisits.filter((v) => {
+    const baseVisits = sourceVisits.filter((v) => {
       if (v.status === 'canceled') return false;
       if (completedOnly && v.status !== 'completed') return false;
       const scheduled = dayjs(v.scheduled_at);

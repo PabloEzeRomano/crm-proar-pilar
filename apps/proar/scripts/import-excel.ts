@@ -183,10 +183,10 @@ function parseEmailCell(raw: unknown): { name?: string; email: string }[] {
   while ((m = emailRe.exec(s)) !== null) {
     const email = m[0];
     const before = s.slice(0, m.index);
-    const parts = before.split(/[\/\n,]/);
+    const parts = before.split(/[/\n,]/);
     const lastPart = (parts[parts.length - 1] ?? '')
       .replace(/<.*$/, '')
-      .replace(/[=>\-]+$/, '')
+      .replace(/[=>-]+$/, '')
       .replace(/\(/, '')
       .trim();
     // Discard if the "name" is itself an email address

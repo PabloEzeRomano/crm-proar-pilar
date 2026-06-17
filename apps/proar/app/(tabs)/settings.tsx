@@ -269,8 +269,10 @@ function SettingsScreenContent() {
         content: {
           title: 'Prueba de notificación',
           body: 'Esta es una notificación de prueba para verificar que el sistema funciona.',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- expo-notifications content type is overly strict here
         } as any,
         trigger: { type: 'date', date: new Date(Date.now() + 500) }, // Show in 500ms
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- expo-notifications trigger type mismatch
       } as any);
       setNotificationFeedback({
         ok: true,
