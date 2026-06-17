@@ -12,7 +12,7 @@
  * All data read/written through useAuthStore. No direct Supabase calls.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import Constants from 'expo-constants';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -22,11 +22,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
-  Alert,
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -38,6 +36,7 @@ import TourStep from '@/components/tour/TourStep';
 import AppDatePicker from '@/components/ui/AppDatePicker';
 
 import dayjs from '@/lib/dayjs';
+import { showConfirm } from '@/lib/dialog';
 import { brand } from '@/constants/brand';
 import {
   borderRadius,
@@ -417,29 +416,13 @@ function SettingsScreenContent() {
   }
 
   async function handleDevReset() {
-    const confirmed =
-      Platform.OS === 'web'
-        ? window.confirm(
-            'Esto eliminará TODOS los clientes y gestiones del usuario. ¿Continuar?'
-          )
-        : await new Promise<boolean>((resolve) =>
-            Alert.alert(
-              'Borrar todos los datos',
-              'Esto eliminará TODOS los clientes y gestiones del usuario. ¿Continuar?',
-              [
-                {
-                  text: 'Cancelar',
-                  style: 'cancel',
-                  onPress: () => resolve(false),
-                },
-                {
-                  text: 'Borrar todo',
-                  style: 'destructive',
-                  onPress: () => resolve(true),
-                },
-              ]
-            )
-          );
+    const confirmed = await showConfirm({
+      title: 'Borrar todos los datos',
+      message:
+        'Esto eliminará TODOS los clientes y gestiones del usuario. ¿Continuar?',
+      confirmText: 'Borrar todo',
+      destructive: true,
+    });
     if (!confirmed) return;
     await deleteAllVisits();
     await deleteAllClients();
@@ -447,15 +430,14 @@ function SettingsScreenContent() {
     fetchTodayVisits();
   }
 
-  function handleSignOut() {
-    if (Platform.OS === 'web') {
-      if (window.confirm('¿Estás seguro que querés cerrar sesión?')) signOut();
-      return;
-    }
-    Alert.alert('Cerrar sesión', '¿Estás seguro que querés cerrar sesión?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Cerrar sesión', style: 'destructive', onPress: signOut },
-    ]);
+  async function handleSignOut() {
+    const ok = await showConfirm({
+      title: 'Cerrar sesión',
+      message: '¿Estás seguro que querés cerrar sesión?',
+      confirmText: 'Cerrar sesión',
+      destructive: true,
+    });
+    if (ok) signOut();
   }
 
   // -------------------------------------------------------------------------

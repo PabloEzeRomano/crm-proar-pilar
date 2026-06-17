@@ -10,11 +10,9 @@
  * Back button behavior is naturally correct in each stack.
  */
 
-import React, { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -31,6 +29,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { StatusTypeBadge } from '@/components/ui/StatusTypeBadge';
+import { showConfirm } from '@/lib/dialog';
 
 import { useVisitsStore } from '@/stores/visitsStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -160,31 +159,18 @@ export default function VisitDetailView() {
     setTimeout(() => setSaveState('idle'), 2000);
   }
 
-  function handleDelete() {
-    if (Platform.OS === 'web') {
-      if (window.confirm('¿Estás seguro que querés eliminar esta gestión?')) {
-        deleteVisit(id);
-        router.back();
-        return;
-      }
+  async function handleDelete() {
+    const ok = await showConfirm({
+      title: 'Eliminar gestión',
+      message: '¿Estás seguro? Esta acción no se puede deshacer.',
+      confirmText: 'Eliminar',
+      destructive: true,
+    });
+    if (!ok) return;
+    await deleteVisit(id);
+    if (!deleteError) {
+      router.back();
     }
-    Alert.alert(
-      'Eliminar gestión',
-      '¿Estás seguro? Esta acción no se puede deshacer.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            await deleteVisit(id);
-            if (!deleteError) {
-              router.back();
-            }
-          },
-        },
-      ]
-    );
   }
 
   // -------------------------------------------------------------------------
@@ -278,9 +264,21 @@ export default function VisitDetailView() {
           {(['pending', 'completed', 'canceled'] as const).map((s) => {
             const active = visit.status === s;
             const cfg = {
-              pending:   { label: 'Pendiente',  color: colors.statusPending,   bg: colors.statusPendingLight },
-              completed: { label: 'Completada', color: colors.statusCompleted, bg: colors.statusCompletedLight },
-              canceled:  { label: 'Cancelada',  color: colors.statusCanceled,  bg: colors.statusCanceledLight },
+              pending: {
+                label: 'Pendiente',
+                color: colors.statusPending,
+                bg: colors.statusPendingLight,
+              },
+              completed: {
+                label: 'Completada',
+                color: colors.statusCompleted,
+                bg: colors.statusCompletedLight,
+              },
+              canceled: {
+                label: 'Cancelada',
+                color: colors.statusCanceled,
+                bg: colors.statusCanceledLight,
+              },
             }[s];
             return (
               <Pressable
@@ -299,10 +297,12 @@ export default function VisitDetailView() {
                 accessibilityRole="radio"
                 accessibilityState={{ selected: active }}
               >
-                <Text style={[
-                  styles.switcherPillText,
-                  active && { color: cfg.color, fontWeight: fontWeight.bold },
-                ]}>
+                <Text
+                  style={[
+                    styles.switcherPillText,
+                    active && { color: cfg.color, fontWeight: fontWeight.bold },
+                  ]}
+                >
                   {cfg.label}
                 </Text>
               </Pressable>
@@ -338,107 +338,107 @@ export default function VisitDetailView() {
       visit.items.length > 0 &&
       visit.type === 'sales_orders' ? (
         <View style={styles.section}>
-            <SectionLabel title="Productos" />
-            {visit.items.map((item, index) => (
-              <View key={index} style={styles.itemRow}>
-                <View style={styles.itemLeft}>
-                  <Text style={styles.itemName}>
-                    {item.product_code ? `[${item.product_code}] ` : ''}
-                    {item.product_name}
-                  </Text>
-                  <Text style={styles.itemSub}>
-                    {item.presentation_label} · {item.quantity} envase
-                    {item.quantity !== 1 ? 's' : ''}
-                    {item.margin_pct > 0 ? ` · +${item.margin_pct}%` : ''}
-                  </Text>
-                  <Text style={styles.itemSub}>
-                    $
-                    {item.unit_price_usd.toLocaleString('en-US', {
-                      minimumFractionDigits: 4,
-                      maximumFractionDigits: 4,
-                    })}{' '}
-                    USD/{item.unit}
-                  </Text>
-                </View>
-                <Text style={styles.itemTotal}>
+          <SectionLabel title="Productos" />
+          {visit.items.map((item, index) => (
+            <View key={index} style={styles.itemRow}>
+              <View style={styles.itemLeft}>
+                <Text style={styles.itemName}>
+                  {item.product_code ? `[${item.product_code}] ` : ''}
+                  {item.product_name}
+                </Text>
+                <Text style={styles.itemSub}>
+                  {item.presentation_label} · {item.quantity} envase
+                  {item.quantity !== 1 ? 's' : ''}
+                  {item.margin_pct > 0 ? ` · +${item.margin_pct}%` : ''}
+                </Text>
+                <Text style={styles.itemSub}>
                   $
-                  {(item.total_usd ?? 0).toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
+                  {item.unit_price_usd.toLocaleString('en-US', {
+                    minimumFractionDigits: 4,
+                    maximumFractionDigits: 4,
                   })}{' '}
-                  USD
+                  USD/{item.unit}
                 </Text>
               </View>
-            ))}
-            <View style={styles.itemsTotalRow}>
-              <Text style={styles.itemsTotalLabel}>Total</Text>
-              <Text style={styles.itemsTotalAmount}>
+              <Text style={styles.itemTotal}>
                 $
-                {visit.amount?.toLocaleString('en-US', {
+                {(item.total_usd ?? 0).toLocaleString('en-US', {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}{' '}
                 USD
               </Text>
             </View>
+          ))}
+          <View style={styles.itemsTotalRow}>
+            <Text style={styles.itemsTotalLabel}>Total</Text>
+            <Text style={styles.itemsTotalAmount}>
+              $
+              {visit.amount?.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}{' '}
+              USD
+            </Text>
+          </View>
         </View>
       ) : null}
 
       {/* ── Cotización de origen (solo ventas con quote_id) ─────────────── */}
       {visit.quote_id ? (
         <View style={styles.section}>
-            <SectionLabel title="Cotización de origen" />
-            <Pressable
-              style={styles.linkedRow}
-              onPress={() => router.push(`/visits/${visit.quote_id}` as never)}
-              accessibilityRole="link"
-              accessibilityLabel="Ver cotización de origen"
-            >
-              <Text style={styles.linkedRowText}>Ver cotización</Text>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={18}
-                color={colors.primary}
-              />
-            </Pressable>
+          <SectionLabel title="Cotización de origen" />
+          <Pressable
+            style={styles.linkedRow}
+            onPress={() => router.push(`/visits/${visit.quote_id}` as never)}
+            accessibilityRole="link"
+            accessibilityLabel="Ver cotización de origen"
+          >
+            <Text style={styles.linkedRowText}>Ver cotización</Text>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={18}
+              color={colors.primary}
+            />
+          </Pressable>
         </View>
       ) : null}
 
       {/* ── Ventas generadas (solo cotizaciones con ventas vinculadas) ───── */}
       {visit.type === 'sales_orders' && linkedSales.length > 0 ? (
         <View style={styles.section}>
-            <SectionLabel title="Ventas generadas" />
-            {linkedSales.map((sale) => (
-              <Pressable
-                key={sale.id}
-                style={styles.linkedRow}
-                onPress={() => router.push(`/visits/${sale.id}` as never)}
-                accessibilityRole="link"
-                accessibilityLabel={`Ver venta del ${dayjs(sale.scheduled_at).format('DD/MM/YYYY')}`}
-              >
-                <View style={styles.linkedRowContent}>
-                  <Text style={styles.linkedRowDate}>
-                    {dayjs(sale.scheduled_at).format('DD/MM/YYYY')}
+          <SectionLabel title="Ventas generadas" />
+          {linkedSales.map((sale) => (
+            <Pressable
+              key={sale.id}
+              style={styles.linkedRow}
+              onPress={() => router.push(`/visits/${sale.id}` as never)}
+              accessibilityRole="link"
+              accessibilityLabel={`Ver venta del ${dayjs(sale.scheduled_at).format('DD/MM/YYYY')}`}
+            >
+              <View style={styles.linkedRowContent}>
+                <Text style={styles.linkedRowDate}>
+                  {dayjs(sale.scheduled_at).format('DD/MM/YYYY')}
+                </Text>
+                {sale.amount != null ? (
+                  <Text style={styles.linkedRowAmount}>
+                    $
+                    {sale.amount.toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{' '}
+                    USD
                   </Text>
-                  {sale.amount != null ? (
-                    <Text style={styles.linkedRowAmount}>
-                      $
-                      {sale.amount.toLocaleString('en-US', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}{' '}
-                      USD
-                    </Text>
-                  ) : null}
-                  <StatusTypeBadge status={sale.status} type="sales_orders" />
-                </View>
-                <MaterialCommunityIcons
-                  name="chevron-right"
-                  size={18}
-                  color={colors.textSecondary}
-                />
-              </Pressable>
-            ))}
+                ) : null}
+                <StatusTypeBadge status={sale.status} type="sales_orders" />
+              </View>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={18}
+                color={colors.textSecondary}
+              />
+            </Pressable>
+          ))}
         </View>
       ) : null}
 

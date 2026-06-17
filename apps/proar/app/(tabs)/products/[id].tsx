@@ -1,9 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import React, { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import {
-  Alert,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -20,6 +18,7 @@ import {
   shadows,
   spacing,
 } from '@/constants/theme';
+import { showConfirm } from '@/lib/dialog';
 import { useAuthStore } from '@/stores/authStore';
 import { useProductsStore } from '@/stores/productsStore';
 import type { Product, ProductPresentation } from '@/types';
@@ -222,50 +221,26 @@ export default function ProductDetailScreen() {
   }
 
   async function handleDelete() {
-    if (Platform.OS === 'web') {
-      if (
-        window.confirm(
-          `¿Estás seguro que querés eliminar "${product!.name}"? Esto eliminará todas sus presentaciones?`
-        )
-      ) {
-        await deleteProduct(product!.id);
-        router.back();
-        return;
-      }
-    }
-    Alert.alert(
-      'Eliminar producto',
-      `¿Eliminar "${product!.name}"? Esto eliminará todas sus presentaciones.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            await deleteProduct(product!.id);
-            router.back();
-          },
-        },
-      ]
-    );
+    const ok = await showConfirm({
+      title: 'Eliminar producto',
+      message: `¿Eliminar "${product!.name}"? Esto eliminará todas sus presentaciones.`,
+      confirmText: 'Eliminar',
+      destructive: true,
+    });
+    if (!ok) return;
+    await deleteProduct(product!.id);
+    router.back();
   }
 
-  function handleDeletePresentation(presId: string) {
-    if (Platform.OS === 'web') {
-      if (
-        window.confirm('¿Estás seguro que querés eliminar esta presentación?')
-      )
-        deletePresentation(presId);
-      return;
-    }
-    Alert.alert('Eliminar presentación', '¿Eliminar esta presentación?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: () => deletePresentation(presId),
-      },
-    ]);
+  async function handleDeletePresentation(presId: string) {
+    const ok = await showConfirm({
+      title: 'Eliminar presentación',
+      message: '¿Eliminar esta presentación?',
+      confirmText: 'Eliminar',
+      destructive: true,
+    });
+    if (!ok) return;
+    deletePresentation(presId);
   }
 
   return (

@@ -14,10 +14,9 @@
  */
 
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import React, { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Linking,
   Modal,
   Pressable,
@@ -41,6 +40,7 @@ import {
 } from '@/constants/theme';
 import { useVisits } from '@/hooks/useVisits';
 import dayjs from '@/lib/dayjs';
+import { showActionSheet, showAlert, showConfirm } from '@/lib/dialog';
 import { useAuthStore } from '@/stores/authStore';
 import { useClientsStore } from '@/stores/clientsStore';
 import { useVisitsStore } from '@/stores/visitsStore';
@@ -61,8 +61,7 @@ function formatArgentinaWhatsApp(phone: string, name: string): string {
 }
 
 function handleContactPhone(phone: string, clientName?: string) {
-  const whatsappLabel = clientName ? `Hola ${clientName}!` : 'WhatsApp';
-  Alert.alert(phone, undefined, [
+  showActionSheet(phone, undefined, [
     { text: 'Llamar', onPress: () => Linking.openURL(`tel:${phone}`) },
     {
       text: 'WhatsApp',
@@ -199,22 +198,17 @@ export default function ClientDetailScreen() {
     (v) => v.client_id === id && dayjs(v.scheduled_at).isSame(dayjs(), 'day')
   );
 
-  function handleArchiveClient() {
-    Alert.alert(
-      'Archivar cliente',
-      '¿Archivar este cliente? Podrás verlo en la sección de inactivos.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Archivar',
-          style: 'destructive',
-          onPress: async () => {
-            await archiveClient(id);
-            router.back();
-          },
-        },
-      ]
-    );
+  async function handleArchiveClient() {
+    const ok = await showConfirm({
+      title: 'Archivar cliente',
+      message:
+        '¿Archivar este cliente? Podrás verlo en la sección de inactivos.',
+      confirmText: 'Archivar',
+      destructive: true,
+    });
+    if (!ok) return;
+    await archiveClient(id);
+    router.back();
   }
 
   const handleVisitarHoy = async () => {
@@ -251,10 +245,10 @@ export default function ClientDetailScreen() {
         await fetchTodayVisits();
         router.push(`/clients/visits/${newVisit.id}`);
       } else {
-        Alert.alert('Error', 'No se pudo crear la gestión');
+        showAlert('Error', 'No se pudo crear la gestión');
       }
-    } catch (error) {
-      Alert.alert('Error', 'Ocurrió un error al crear la gestión');
+    } catch {
+      showAlert('Error', 'Ocurrió un error al crear la gestión');
     } finally {
       setVisitarHoyLoading(false);
     }
@@ -315,19 +309,14 @@ export default function ClientDetailScreen() {
     return <Text style={styles.sectionHeader}>{title}</Text>;
   }
 
-  function handleRemoveClientProduct(clientProductId: string) {
-    Alert.alert(
-      'Quitar producto',
-      '¿Quitar este producto de los habituales del cliente?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Quitar',
-          style: 'destructive',
-          onPress: () => removeClientProduct(clientProductId),
-        },
-      ]
-    );
+  async function handleRemoveClientProduct(clientProductId: string) {
+    const ok = await showConfirm({
+      title: 'Quitar producto',
+      message: '¿Quitar este producto de los habituales del cliente?',
+      confirmText: 'Quitar',
+      destructive: true,
+    });
+    if (ok) removeClientProduct(clientProductId);
   }
 
   function toggleProductExpanded(productId: string) {
@@ -367,13 +356,25 @@ export default function ClientDetailScreen() {
           ) : null}
           {(() => {
             const lastVisitedAt = client.last_visited_at;
-            if (!lastVisitedAt) return (
-              <Text style={[styles.lastVisitText, { color: colors.textDisabled }]}>Sin gestiones</Text>
-            );
+            if (!lastVisitedAt)
+              return (
+                <Text
+                  style={[styles.lastVisitText, { color: colors.textDisabled }]}
+                >
+                  Sin gestiones
+                </Text>
+              );
             const days = dayjs().diff(dayjs(lastVisitedAt), 'day');
-            const color = days < 30 ? colors.success : days <= 60 ? colors.warning : colors.error;
+            const color =
+              days < 30
+                ? colors.success
+                : days <= 60
+                  ? colors.warning
+                  : colors.error;
             return (
-              <Text style={[styles.lastVisitText, { color }]}>Hace {days} días</Text>
+              <Text style={[styles.lastVisitText, { color }]}>
+                Hace {days} días
+              </Text>
             );
           })()}
         </View>
@@ -383,12 +384,20 @@ export default function ClientDetailScreen() {
           {client.contacts[0]?.phone ? (
             <Pressable
               style={styles.quickActionBtn}
-              onPress={() => handleContactPhone(client.contacts[0].phone!, client.name)}
+              onPress={() =>
+                handleContactPhone(client.contacts[0].phone!, client.name)
+              }
               accessibilityRole="button"
               accessibilityLabel="Llamar"
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: '#CCFBF1' }]}>
-                <MaterialCommunityIcons name="phone" size={18} color="#0D9488" />
+              <View
+                style={[styles.quickActionIcon, { backgroundColor: '#CCFBF1' }]}
+              >
+                <MaterialCommunityIcons
+                  name="phone"
+                  size={18}
+                  color="#0D9488"
+                />
               </View>
               <Text style={styles.quickActionLabel}>Llamar</Text>
             </Pressable>
@@ -400,8 +409,17 @@ export default function ClientDetailScreen() {
               accessibilityRole="button"
               accessibilityLabel="Navegar"
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: colors.primaryLight }]}>
-                <MaterialCommunityIcons name="navigation" size={18} color={colors.primary} />
+              <View
+                style={[
+                  styles.quickActionIcon,
+                  { backgroundColor: colors.primaryLight },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="navigation"
+                  size={18}
+                  color={colors.primary}
+                />
               </View>
               <Text style={styles.quickActionLabel}>Navegar</Text>
             </Pressable>
@@ -413,14 +431,19 @@ export default function ClientDetailScreen() {
               accessibilityRole="button"
               accessibilityLabel="Agendar gestión"
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: '#EDE9FE' }]}>
-                <MaterialCommunityIcons name="calendar-plus" size={18} color="#7C3AED" />
+              <View
+                style={[styles.quickActionIcon, { backgroundColor: '#EDE9FE' }]}
+              >
+                <MaterialCommunityIcons
+                  name="calendar-plus"
+                  size={18}
+                  color="#7C3AED"
+                />
               </View>
               <Text style={styles.quickActionLabel}>Agendar</Text>
             </Pressable>
           ) : null}
         </View>
-
 
         {/* ── Sección: Contacto ────────────────────────────────────────── */}
         <View style={styles.section}>
@@ -467,7 +490,6 @@ export default function ClientDetailScreen() {
           )}
         </View>
 
-
         {/* ── Sección: Ubicación ───────────────────────────────────────── */}
         <View style={styles.section}>
           <SectionHeader title="Ubicación" />
@@ -475,7 +497,10 @@ export default function ClientDetailScreen() {
           <InfoRow label="Localidad" value={client.city} />
           <InfoRow label="Planta / Sitio" value={client.site} />
           <InfoRow label="Ronda / Zona" value={client.zone} />
-          <InfoRow label="Clasificación Comercial" value={client.commercial_classification} />
+          <InfoRow
+            label="Clasificación Comercial"
+            value={client.commercial_classification}
+          />
 
           {hasMapTarget ? (
             <Pressable
@@ -496,7 +521,6 @@ export default function ClientDetailScreen() {
           ) : null}
         </View>
 
-
         {/* ── Sección: Notas ───────────────────────────────────────────── */}
         <View style={styles.section}>
           <SectionHeader title="Notas" />
@@ -506,7 +530,6 @@ export default function ClientDetailScreen() {
             <Text style={styles.emptyField}>Sin notas</Text>
           )}
         </View>
-
 
         {/* ── Sección: Productos habituales ───────────────────────────── */}
         <View style={styles.section}>
@@ -565,7 +588,6 @@ export default function ClientDetailScreen() {
           )}
         </View>
 
-
         {/* ── Sección: Historial de gestiones ────────────────────────────── */}
         <View style={styles.section}>
           <SectionHeader title="Historial de gestiones" />
@@ -603,7 +625,9 @@ export default function ClientDetailScreen() {
                   styles.newVisitButton,
                   pressed && styles.newVisitButtonPressed,
                 ]}
-                onPress={() => router.push(`/clients/visits/form?clientId=${id}`)}
+                onPress={() =>
+                  router.push(`/clients/visits/form?clientId=${id}`)
+                }
                 accessibilityRole="button"
                 accessibilityLabel="Agregar nueva gestión"
               >

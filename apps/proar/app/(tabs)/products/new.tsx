@@ -1,7 +1,6 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +16,7 @@ import {
   fontWeight,
   spacing,
 } from '@/constants/theme';
+import { showAlert } from '@/lib/dialog';
 import { useProductsStore } from '@/stores/productsStore';
 import type { ProductType } from '@/types';
 import type { CreatePresentationInput } from '@/validators/product';
@@ -52,16 +52,16 @@ export default function NewProductScreen() {
 
   async function handleCreate() {
     if (!name.trim()) {
-      Alert.alert('Error', 'El nombre es requerido');
+      showAlert('Error', 'El nombre es requerido');
       return;
     }
     if (!presLabel.trim() || !presUnit.trim()) {
-      Alert.alert('Error', 'Completá la presentación (etiqueta y unidad)');
+      showAlert('Error', 'Completá la presentación (etiqueta y unidad)');
       return;
     }
     const priceVal = parseFloat(presPrice);
     if (isNaN(priceVal) || priceVal < 0) {
-      Alert.alert('Error', 'Ingresá un precio válido');
+      showAlert('Error', 'Ingresá un precio válido');
       return;
     }
 

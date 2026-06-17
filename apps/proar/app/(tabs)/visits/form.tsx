@@ -14,7 +14,7 @@
  *   - Header: Cancel (left) + Guardar (right, disabled when invalid)
  */
 
-import React, {
+import {
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -23,7 +23,6 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   Platform,
@@ -40,6 +39,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import AppDatePicker from '@/components/ui/AppDatePicker';
+import { showAlert } from '@/lib/dialog';
 import { StatusTypeBadge } from '@/components/ui/StatusTypeBadge';
 import QuoteItemRow from '@/components/visits/QuoteItemRow';
 import { useVisitsStore } from '@/stores/visitsStore';
@@ -77,11 +77,27 @@ const MINUTA_TEMPLATE = 'Objetivo:\n\nMinuta:\n\nPróximos pasos:\n';
 
 const VISIT_TYPE_OPTIONS: { value: VisitType; label: string; icon: string }[] =
   [
-    { value: 'customer_service', label: 'Atención al cliente', icon: 'headset' },
+    {
+      value: 'customer_service',
+      label: 'Atención al cliente',
+      icon: 'headset',
+    },
     { value: 'sales_orders', label: 'Ventas y pedidos', icon: 'cart-outline' },
-    { value: 'new_projects', label: 'Nuevos proyectos', icon: 'lightbulb-outline' },
-    { value: 'payments', label: 'Pagos y cobranzas', icon: 'credit-card-outline' },
-    { value: 'technical_service', label: 'Servicio técnico', icon: 'wrench-outline' },
+    {
+      value: 'new_projects',
+      label: 'Nuevos proyectos',
+      icon: 'lightbulb-outline',
+    },
+    {
+      value: 'payments',
+      label: 'Pagos y cobranzas',
+      icon: 'credit-card-outline',
+    },
+    {
+      value: 'technical_service',
+      label: 'Servicio técnico',
+      icon: 'wrench-outline',
+    },
     { value: 'other', label: 'Otros', icon: 'dots-horizontal-circle-outline' },
   ];
 
@@ -154,7 +170,9 @@ export default function VisitFormScreen() {
   const [selectedDate, setSelectedDate] = useState<Date>(defaultDate);
   const [selectedTime, setSelectedTime] = useState<Date>(defaultTime);
   const [title, setTitle] = useState<string>('');
-  const [selectedContact, setSelectedContact] = useState<ContactInfo | null>(null);
+  const [selectedContact, setSelectedContact] = useState<ContactInfo | null>(
+    null
+  );
   const [notes, setNotes] = useState<string>(MINUTA_TEMPLATE);
   const [status, setStatus] = useState<VisitStatus>('pending');
   const [visitType, setVisitType] = useState<VisitType>('customer_service');
@@ -266,11 +284,7 @@ export default function VisitFormScreen() {
 
   // Pre-populate items from client habitual products (sales_orders, create mode only)
   useEffect(() => {
-    if (
-      visitType === 'sales_orders' &&
-      selectedClient &&
-      !isEditMode
-    ) {
+    if (visitType === 'sales_orders' && selectedClient && !isEditMode) {
       fetchClientProducts(selectedClient.id).then(() => {
         const clientProds = useProductsStore.getState().clientProducts;
         const allProducts = useProductsStore.getState().products;
@@ -495,7 +509,7 @@ export default function VisitFormScreen() {
           recipientName
         );
         if (emailErr) {
-          Alert.alert(
+          showAlert(
             'Email no enviado',
             `La cotización se guardó pero el email falló: ${emailErr}`
           );
@@ -810,7 +824,11 @@ export default function VisitFormScreen() {
             <FieldLabel label="Contacto involucrado (opcional)" />
             <View style={styles.contactPickerRow}>
               {selectedClient.contacts.map((contact, idx) => {
-                const label = contact.name || contact.phone || contact.email || `Contacto ${idx + 1}`;
+                const label =
+                  contact.name ||
+                  contact.phone ||
+                  contact.email ||
+                  `Contacto ${idx + 1}`;
                 const isSelected =
                   selectedContact != null &&
                   contact.name === selectedContact.name &&
@@ -957,12 +975,12 @@ export default function VisitFormScreen() {
                   );
                   setSendingQuote(false);
                   if (emailErr) {
-                    Alert.alert(
+                    showAlert(
                       'Error',
                       `No se pudo enviar el email: ${emailErr}`
                     );
                   } else {
-                    Alert.alert('Enviado', 'Cotización enviada correctamente.');
+                    showAlert('Enviado', 'Cotización enviada correctamente.');
                   }
                 }}
                 accessibilityRole="button"
