@@ -25,6 +25,8 @@ export interface UsersState {
   fetchCompanyConfig: () => Promise<void>;
   inviteUser: (input: InviteUserInput) => Promise<{ error: string | null }>;
   deactivateUser: (userId: string) => Promise<{ error: string | null }>;
+  reactivateUser: (userId: string) => Promise<{ error: string | null }>;
+  deleteUser: (userId: string) => Promise<{ error: string | null }>;
   updateUserRole: (
     userId: string,
     role: 'user' | 'product_manager' | 'admin'
@@ -99,6 +101,46 @@ export const useUsersStore = create<UsersState>()((set) => ({
 
     if (error) {
       let msg = 'Error al dar de baja al usuario';
+      if (error && typeof error === 'object' && 'message' in error) {
+        msg = (error as { message: string }).message;
+      }
+      set({ deactivateLoading: false, deactivateError: msg });
+      return { error: msg };
+    }
+
+    set({ deactivateLoading: false });
+    return { error: null };
+  },
+
+  reactivateUser: async (userId: string) => {
+    set({ deactivateLoading: true, deactivateError: null });
+
+    const { error } = await supabase.functions.invoke('reactivate-user', {
+      body: { userId },
+    });
+
+    if (error) {
+      let msg = 'Error al reactivar al usuario';
+      if (error && typeof error === 'object' && 'message' in error) {
+        msg = (error as { message: string }).message;
+      }
+      set({ deactivateLoading: false, deactivateError: msg });
+      return { error: msg };
+    }
+
+    set({ deactivateLoading: false });
+    return { error: null };
+  },
+
+  deleteUser: async (userId: string) => {
+    set({ deactivateLoading: true, deactivateError: null });
+
+    const { error } = await supabase.functions.invoke('delete-user', {
+      body: { userId },
+    });
+
+    if (error) {
+      let msg = 'Error al eliminar al usuario';
       if (error && typeof error === 'object' && 'message' in error) {
         msg = (error as { message: string }).message;
       }

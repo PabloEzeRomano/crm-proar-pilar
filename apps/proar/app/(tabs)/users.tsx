@@ -18,16 +18,10 @@
  * All visual values reference constants/theme.ts tokens.
  */
 
-import React, {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { z } from 'zod';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -49,6 +43,7 @@ import {
   shadows,
   spacing,
 } from '@/constants/theme';
+import { showAlert, showConfirm } from '@/lib/dialog';
 import { useAuthStore } from '@/stores/authStore';
 import { useUsersStore } from '@/stores/usersStore';
 import type { UserListItem, UserRole } from '@/types';
@@ -125,6 +120,16 @@ function PendingBadge() {
   );
 }
 
+function BannedBadge() {
+  return (
+    <View style={[styles.roleBadge, { backgroundColor: colors.errorLight }]}>
+      <Text style={[styles.roleBadgeText, { color: colors.error }]}>
+        Baneado
+      </Text>
+    </View>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // User row
 // ---------------------------------------------------------------------------
@@ -133,10 +138,19 @@ interface UserRowProps {
   user: UserListItem;
   callerRole: UserRole;
   onDeactivate: (user: UserListItem) => void;
+  onReactivate: (user: UserListItem) => void;
+  onDelete: (user: UserListItem) => void;
   onChangeRole: (user: UserListItem) => void;
 }
 
-function UserRow({ user, callerRole, onDeactivate, onChangeRole }: UserRowProps) {
+function UserRow({
+  user,
+  callerRole,
+  onDeactivate,
+  onReactivate,
+  onDelete,
+  onChangeRole,
+}: UserRowProps) {
   const isPending = user.status === 'pending';
   const displayName = isPending ? user.email : (user.full_name ?? '—');
   const initial = displayName.charAt(0).toUpperCase();
@@ -145,8 +159,16 @@ function UserRow({ user, callerRole, onDeactivate, onChangeRole }: UserRowProps)
   const targetLevel = user.role ? ROLE_LEVEL[user.role] : 0;
 
   // Can deactivate: active users below caller's level
-  const canDeactivate =
-    user.status === 'active' && targetLevel < callerLevel;
+  const canDeactivate = user.status === 'active' && targetLevel < callerLevel;
+
+  // Can reactivate: banned users below caller's level
+  const canReactivate = user.status === 'banned' && targetLevel < callerLevel;
+
+  // Can permanently delete: banned users, root only, below caller's level
+  const canDelete =
+    user.status === 'banned' &&
+    callerRole === 'root' &&
+    targetLevel < callerLevel;
 
   // Can change role: active users below caller's level (not self, not pending)
   const canChangeRole =
@@ -170,6 +192,8 @@ function UserRow({ user, callerRole, onDeactivate, onChangeRole }: UserRowProps)
 
       {isPending ? (
         <PendingBadge />
+      ) : user.status === 'banned' ? (
+        <BannedBadge />
       ) : user.role ? (
         canChangeRole ? (
           <Pressable
@@ -178,8 +202,16 @@ function UserRow({ user, callerRole, onDeactivate, onChangeRole }: UserRowProps)
             accessibilityLabel={`Cambiar rol de ${user.full_name ?? user.email}`}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <View style={[styles.roleBadge, { backgroundColor: ROLE_BG[user.role] }, styles.roleBadgeTappable]}>
-              <Text style={[styles.roleBadgeText, { color: ROLE_COLOR[user.role] }]}>
+            <View
+              style={[
+                styles.roleBadge,
+                { backgroundColor: ROLE_BG[user.role] },
+                styles.roleBadgeTappable,
+              ]}
+            >
+              <Text
+                style={[styles.roleBadgeText, { color: ROLE_COLOR[user.role] }]}
+              >
                 {ROLE_LABEL[user.role]}
               </Text>
               <MaterialCommunityIcons
@@ -209,6 +241,38 @@ function UserRow({ user, callerRole, onDeactivate, onChangeRole }: UserRowProps)
           />
         </Pressable>
       )}
+
+      {canReactivate && (
+        <Pressable
+          onPress={() => onReactivate(user)}
+          style={styles.deactivateButton}
+          accessibilityRole="button"
+          accessibilityLabel={`Reactivar a ${user.full_name ?? user.email}`}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MaterialCommunityIcons
+            name="account-check-outline"
+            size={20}
+            color={colors.success}
+          />
+        </Pressable>
+      )}
+
+      {canDelete && (
+        <Pressable
+          onPress={() => onDelete(user)}
+          style={styles.deactivateButton}
+          accessibilityRole="button"
+          accessibilityLabel={`Eliminar definitivamente a ${user.full_name ?? user.email}`}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MaterialCommunityIcons
+            name="account-remove-outline"
+            size={20}
+            color={colors.error}
+          />
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -232,6 +296,8 @@ export default function UsersScreen() {
   const fetchCompanyConfig = useUsersStore((s) => s.fetchCompanyConfig);
   const inviteUser = useUsersStore((s) => s.inviteUser);
   const deactivateUser = useUsersStore((s) => s.deactivateUser);
+  const reactivateUser = useUsersStore((s) => s.reactivateUser);
+  const deleteUser = useUsersStore((s) => s.deleteUser);
   const clearInviteError = useUsersStore((s) => s.clearInviteError);
 
   const updateUserRole = useUsersStore((s) => s.updateUserRole);
@@ -288,24 +354,52 @@ export default function UsersScreen() {
   // ── Deactivate handler ────────────────────────────────────────────────────
 
   const handleDeactivate = useCallback(
-    (user: UserListItem) => {
-      Alert.alert(
-        'Dar de baja usuario',
-        '¿Dar de baja a este usuario? Se archivarán sus clientes y gestiones.',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Dar de baja',
-            style: 'destructive',
-            onPress: async () => {
-              await deactivateUser(user.id);
-              fetchUsers();
-            },
-          },
-        ]
-      );
+    async (user: UserListItem) => {
+      const ok = await showConfirm({
+        title: 'Dar de baja usuario',
+        message:
+          '¿Dar de baja a este usuario? Se archivarán sus clientes y gestiones.',
+        confirmText: 'Dar de baja',
+        destructive: true,
+      });
+      if (!ok) return;
+      await deactivateUser(user.id);
+      fetchUsers();
     },
     [deactivateUser, fetchUsers]
+  );
+
+  const handleReactivate = useCallback(
+    async (user: UserListItem) => {
+      const ok = await showConfirm({
+        title: 'Reactivar usuario',
+        message:
+          '¿Reactivar a este usuario? Recuperará el acceso y se restaurarán sus clientes.',
+        confirmText: 'Reactivar',
+      });
+      if (!ok) return;
+      const { error } = await reactivateUser(user.id);
+      if (error) showAlert('Error', error);
+      fetchUsers();
+    },
+    [reactivateUser, fetchUsers]
+  );
+
+  const handleDelete = useCallback(
+    async (user: UserListItem) => {
+      const ok = await showConfirm({
+        title: 'Eliminar definitivamente',
+        message:
+          'Esta acción es irreversible. Se borrarán el usuario, sus clientes y gestiones. El email quedará libre para una nueva invitación.',
+        confirmText: 'Eliminar',
+        destructive: true,
+      });
+      if (!ok) return;
+      const { error } = await deleteUser(user.id);
+      if (error) showAlert('Error', error);
+      fetchUsers();
+    },
+    [deleteUser, fetchUsers]
   );
 
   // ── Role change handlers ──────────────────────────────────────────────────
@@ -322,10 +416,13 @@ export default function UsersScreen() {
       return;
     }
     setRoleChanging(true);
-    const { error: err } = await updateUserRole(roleModalUser.id, roleModalRole);
+    const { error: err } = await updateUserRole(
+      roleModalUser.id,
+      roleModalRole
+    );
     setRoleChanging(false);
     if (err) {
-      Alert.alert('Error', `No se pudo cambiar el rol: ${err}`);
+      showAlert('Error', `No se pudo cambiar el rol: ${err}`);
     } else {
       fetchUsers();
       setRoleModalUser(null);
@@ -465,6 +562,8 @@ export default function UsersScreen() {
               user={item}
               callerRole={profile?.role ?? 'user'}
               onDeactivate={handleDeactivate}
+              onReactivate={handleReactivate}
+              onDelete={handleDelete}
               onChangeRole={openRoleModal}
             />
           )}
@@ -558,34 +657,33 @@ export default function UsersScreen() {
             <View style={styles.fieldWrapper}>
               <Text style={styles.label}>Rol</Text>
               <View style={styles.rolePicker}>
-                {ASSIGNABLE_ROLES
-                  .filter((r) => {
-                    // Admin can only assign level-1 roles; root can assign all
-                    const callerLevel = ROLE_LEVEL[profile?.role ?? 'user'];
-                    return ROLE_LEVEL[r.value] < callerLevel || callerLevel >= 3;
-                  })
+                {ASSIGNABLE_ROLES.filter((r) => {
+                  // Admin can only assign level-1 roles; root can assign all
+                  const callerLevel = ROLE_LEVEL[profile?.role ?? 'user'];
+                  return ROLE_LEVEL[r.value] < callerLevel || callerLevel >= 3;
+                })
                   .map((r) => r.value)
                   .map((r) => (
-                  <Pressable
-                    key={r}
-                    style={[
-                      styles.roleOption,
-                      selectedRole === r && styles.roleOptionActive,
-                    ]}
-                    onPress={() => setSelectedRole(r)}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: selectedRole === r }}
-                  >
-                    <Text
+                    <Pressable
+                      key={r}
                       style={[
-                        styles.roleOptionText,
-                        selectedRole === r && styles.roleOptionTextActive,
+                        styles.roleOption,
+                        selectedRole === r && styles.roleOptionActive,
                       ]}
+                      onPress={() => setSelectedRole(r)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: selectedRole === r }}
                     >
-                      {ROLE_LABEL[r]}
-                    </Text>
-                  </Pressable>
-                ))}
+                      <Text
+                        style={[
+                          styles.roleOptionText,
+                          selectedRole === r && styles.roleOptionTextActive,
+                        ]}
+                      >
+                        {ROLE_LABEL[r]}
+                      </Text>
+                    </Pressable>
+                  ))}
               </View>
             </View>
 
@@ -650,32 +748,30 @@ export default function UsersScreen() {
             </Text>
 
             <View style={styles.rolePicker}>
-              {ASSIGNABLE_ROLES
-                .filter((r) => {
-                  const callerLevel = ROLE_LEVEL[profile?.role ?? 'user'];
-                  return ROLE_LEVEL[r.value] < callerLevel || callerLevel >= 3;
-                })
-                .map((r) => (
-                  <Pressable
-                    key={r.value}
+              {ASSIGNABLE_ROLES.filter((r) => {
+                const callerLevel = ROLE_LEVEL[profile?.role ?? 'user'];
+                return ROLE_LEVEL[r.value] < callerLevel || callerLevel >= 3;
+              }).map((r) => (
+                <Pressable
+                  key={r.value}
+                  style={[
+                    styles.roleOption,
+                    roleModalRole === r.value && styles.roleOptionActive,
+                  ]}
+                  onPress={() => setRoleModalRole(r.value)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: roleModalRole === r.value }}
+                >
+                  <Text
                     style={[
-                      styles.roleOption,
-                      roleModalRole === r.value && styles.roleOptionActive,
+                      styles.roleOptionText,
+                      roleModalRole === r.value && styles.roleOptionTextActive,
                     ]}
-                    onPress={() => setRoleModalRole(r.value)}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: roleModalRole === r.value }}
                   >
-                    <Text
-                      style={[
-                        styles.roleOptionText,
-                        roleModalRole === r.value && styles.roleOptionTextActive,
-                      ]}
-                    >
-                      {r.label}
-                    </Text>
-                  </Pressable>
-                ))}
+                    {r.label}
+                  </Text>
+                </Pressable>
+              ))}
             </View>
 
             <Pressable
