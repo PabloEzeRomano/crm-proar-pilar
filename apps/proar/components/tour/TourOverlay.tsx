@@ -20,7 +20,7 @@
  *   safe-area containers or navigation wrappers in the React tree.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   LayoutChangeEvent,
   Platform,

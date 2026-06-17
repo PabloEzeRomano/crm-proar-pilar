@@ -4,7 +4,7 @@
  * EP-019: Added rn-tourguide chapter "clients" (3 steps)
  */
 
-import React, { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,

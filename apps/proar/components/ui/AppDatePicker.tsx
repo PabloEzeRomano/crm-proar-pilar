@@ -10,7 +10,7 @@
  * Props are a superset of DateTimeInputProps so it is a drop-in replacement.
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Modal,
   Platform,

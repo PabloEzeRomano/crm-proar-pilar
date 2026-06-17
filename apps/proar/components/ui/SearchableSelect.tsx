@@ -12,7 +12,7 @@
  *                Modal stays open until user taps outside or closes.
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   FlatList,
   Modal,

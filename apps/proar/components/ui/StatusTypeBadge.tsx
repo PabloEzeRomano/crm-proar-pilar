@@ -5,7 +5,6 @@
  * Used across visit/client screens to consolidate status display logic.
  */
 
-import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { VisitStatus, VisitType } from '@/types';

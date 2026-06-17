@@ -10,7 +10,7 @@
  *   - Grid of day cells for the current month
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import dayjs from '@/lib/dayjs';
 import {

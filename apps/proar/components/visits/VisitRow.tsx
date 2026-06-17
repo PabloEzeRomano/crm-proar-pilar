@@ -8,7 +8,6 @@
  *   Col 4 (fixed)      — type chip + status badge
  */
 
-import React from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import dayjs from '@/lib/dayjs';
 import {

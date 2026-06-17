@@ -10,7 +10,7 @@
  *   - EP-039: "Completed only" toggle + date range filter
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Modal,
   Platform,

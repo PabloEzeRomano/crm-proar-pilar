@@ -9,7 +9,7 @@
  * - All Supabase access goes through useClients hook (store)
  */
 
-import React, {
+import {
   useCallback,
   useEffect,
   useLayoutEffect,
