@@ -2,11 +2,12 @@
  * supabase/functions/invite-user/index.ts — Admin-controlled user invitation
  *
  * Called by admin/root users to invite a new user to their company.
- * Uses the Supabase Auth Admin API (service-role key) so the invite email
- * is sent by Supabase and the new user can set their password via magic link.
+ * Uses the Supabase Auth Admin API (service-role key) to provision the user
+ * and obtain an invite action link, then sends a CUSTOM-styled invite email
+ * via Resend (NOT Supabase's built-in email).
  *
  * Request body (JSON):
- *   { email: string, role: 'user' | 'admin' }
+ *   { email: string, role: 'user' | 'admin', redirectTo?: string }
  *
  * Authorization: Bearer <caller's JWT>
  *
@@ -16,14 +17,21 @@
  *   - Rejects with 403 if count >= max_users AND caller is NOT root
  *   - Root always bypasses the seat limit
  *
- * On success the invited user receives a Supabase invite email.
- * When they accept, handle_new_user trigger creates their profile with
- * the role and company_id passed in raw_user_meta_data.
+ * Invite delivery:
+ *   - adminClient.auth.admin.generateLink({ type: 'invite', ... }) provisions
+ *     the user and returns the action link WITHOUT sending an email.
+ *   - The action link is embedded in a custom Resend email (CTA button).
+ *   - When the user accepts, the handle_new_user trigger creates their profile
+ *     with the role and company_id passed in raw_user_meta_data.
  *
  * Required secrets (auto-injected by Supabase):
  *   SUPABASE_URL
  *   SUPABASE_SERVICE_ROLE_KEY
  *   SUPABASE_ANON_KEY
+ *
+ * Required Edge Function secrets (set in Supabase dashboard):
+ *   RESEND_API_KEY      — your Resend API key
+ *   MAIL_FROM_ADDRESS   — verified sender address (e.g. noreply@send.gemm-apps.com)
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -45,6 +53,19 @@ interface InviteBody {
   role: 'user' | 'admin';
   /** App origin to redirect the invite link to (e.g. http://localhost:8081). */
   redirectTo?: string;
+}
+
+interface AuthUser {
+  id: string;
+  email?: string;
+  email_confirmed_at?: string | null;
+  last_sign_in_at?: string | null;
+}
+
+interface InviteMeta {
+  role: 'user' | 'admin';
+  company_id: string;
+  needs_password: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -69,13 +90,6 @@ function corsHeaders(): Record<string, string> {
   };
 }
 
-interface AuthUser {
-  id: string;
-  email?: string;
-  email_confirmed_at?: string | null;
-  last_sign_in_at?: string | null;
-}
-
 /** Look up an auth user by email (case-insensitive). Null if none. */
 async function findUserByEmail(
   // deno-lint-ignore no-explicit-any
@@ -94,6 +108,182 @@ async function findUserByEmail(
   );
 }
 
+/**
+ * Escape HTML special characters to prevent injection in the email body.
+ */
+function escapeHtml(text: string | null | undefined): string {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Provision the user (if needed) and obtain the invite action link WITHOUT
+ * sending Supabase's built-in email. Returns the action link to embed in the
+ * custom Resend email.
+ */
+async function generateInviteLink(
+  // deno-lint-ignore no-explicit-any
+  adminClient: any,
+  email: string,
+  inviteMeta: InviteMeta,
+  redirectTo?: string
+): Promise<{ actionLink: string | null; userId?: string; error?: string }> {
+  const { data, error } = await adminClient.auth.admin.generateLink({
+    type: 'invite',
+    email,
+    options: {
+      data: inviteMeta,
+      redirectTo,
+    },
+  });
+
+  if (error) {
+    return { actionLink: null, error: error.message };
+  }
+
+  const actionLink: string | undefined = data?.properties?.action_link;
+  const userId: string | undefined = data?.user?.id;
+  if (!actionLink) {
+    return {
+      actionLink: null,
+      error: 'No action link returned by generateLink',
+    };
+  }
+  return { actionLink, userId };
+}
+
+// ---------------------------------------------------------------------------
+// Custom invite email (Resend)
+// ---------------------------------------------------------------------------
+
+const ACCENT = '#0F766E';
+
+function buildInviteHtml(actionLink: string): string {
+  const safeLink = escapeHtml(actionLink);
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Invitación a Sensei CRM</title>
+</head>
+<body style="margin:0;padding:0;background:#F9FAFB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F9FAFB;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:${ACCENT};padding:24px 32px;border-radius:12px 12px 0 0;">
+              <p style="margin:0;font-size:13px;color:#CCFBF1;letter-spacing:0.5px;text-transform:uppercase;">Sensei CRM</p>
+              <h1 style="margin:4px 0 0;font-size:22px;font-weight:700;color:#FFFFFF;">Te invitaron a Sensei CRM</h1>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="background:#FFFFFF;padding:28px 32px 8px;">
+              <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.5;">
+                Hola, recibiste una invitación para unirte a Sensei CRM.
+                Para activar tu cuenta y definir tu contraseña, hacé clic en el botón:
+              </p>
+            </td>
+          </tr>
+
+          <!-- CTA -->
+          <tr>
+            <td style="background:#FFFFFF;padding:8px 32px 28px;" align="center">
+              <a href="${safeLink}" target="_blank" style="
+                display:inline-block;
+                background:${ACCENT};
+                color:#FFFFFF;
+                font-size:16px;
+                font-weight:600;
+                text-decoration:none;
+                padding:14px 32px;
+                border-radius:8px;
+              ">Aceptar invitación</a>
+            </td>
+          </tr>
+
+          <!-- Fallback link -->
+          <tr>
+            <td style="background:#FFFFFF;padding:0 32px 24px;">
+              <p style="margin:0;font-size:12px;color:#9CA3AF;line-height:1.5;">
+                Si el botón no funciona, copiá y pegá este enlace en tu navegador:<br>
+                <a href="${safeLink}" target="_blank" style="color:${ACCENT};word-break:break-all;">${safeLink}</a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#FFFFFF;padding:20px 32px;border-top:1px solid #E5E7EB;border-radius:0 0 12px 12px;">
+              <p style="margin:0;font-size:12px;color:#9CA3AF;text-align:center;">
+                Si no esperabas esta invitación, podés ignorar este correo.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+function buildInviteText(actionLink: string): string {
+  return [
+    'Te invitaron a Sensei CRM.',
+    '',
+    'Para activar tu cuenta y definir tu contraseña, abrí este enlace:',
+    actionLink,
+    '',
+    'Si no esperabas esta invitación, podés ignorar este correo.',
+  ].join('\n');
+}
+
+/**
+ * Send the custom invite email via Resend. Throws if the Resend API returns an
+ * error. Caller is responsible for verifying RESEND_API_KEY / MAIL_FROM_ADDRESS
+ * are present before invoking.
+ */
+async function sendInviteEmail(
+  email: string,
+  actionLink: string,
+  apiKey: string,
+  fromAddress: string
+): Promise<void> {
+  const body = {
+    from: `Sensei CRM <${fromAddress}>`,
+    to: [email],
+    subject: 'Te invitaron a Sensei CRM',
+    html: buildInviteHtml(actionLink),
+    text: buildInviteText(actionLink),
+  };
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text();
+    throw new Error(`Resend error ${res.status}: ${errBody}`);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Handler
 // ---------------------------------------------------------------------------
@@ -108,6 +298,19 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+    // Resend secrets must be present before we attempt to send a custom email.
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    const mailFromAddress = Deno.env.get('MAIL_FROM_ADDRESS');
+    if (!resendApiKey || !mailFromAddress) {
+      return jsonResponse(
+        {
+          error:
+            'Email is not configured: set RESEND_API_KEY and MAIL_FROM_ADDRESS secrets',
+        },
+        500
+      );
+    }
 
     // ── 1. Authenticate caller ──────────────────────────────────────────────
 
@@ -224,24 +427,25 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── 6. Send invite ──────────────────────────────────────────────────────
+    // ── 6. Generate invite link (no built-in email) ────────────────────────
 
     // needs_password lets the app force the password-setup screen on first
     // sign-in regardless of the auth flow (token / PKCE code / callback).
-    const inviteMeta = {
+    const inviteMeta: InviteMeta = {
       role,
       company_id: callerProfile.company_id,
       needs_password: true,
     };
 
-    let { data: inviteData, error: inviteErr } =
-      await adminClient.auth.admin.inviteUserByEmail(email, {
-        data: inviteMeta,
-        redirectTo: safeRedirectTo,
-      });
+    let { actionLink, userId, error: linkErr } = await generateInviteLink(
+      adminClient,
+      email,
+      inviteMeta,
+      safeRedirectTo
+    );
 
-    if (inviteErr) {
-      const lower = inviteErr.message.toLowerCase();
+    if (linkErr) {
+      const lower = linkErr.toLowerCase();
       const alreadyExists =
         lower.includes('already') ||
         lower.includes('registered') ||
@@ -249,21 +453,28 @@ Deno.serve(async (req) => {
 
       if (alreadyExists) {
         // The email exists. If it's a pending invite that was never accepted
-        // (unconfirmed + never signed in), it's safe to delete and re-invite,
-        // which resends the email. An active (confirmed) user is rejected.
+        // (unconfirmed + never signed in), it's safe to delete and regenerate
+        // the link. An active (confirmed) user is rejected.
         const existing = await findUserByEmail(adminClient, email);
         const isPending =
-          !!existing && !existing.email_confirmed_at && !existing.last_sign_in_at;
+          !!existing &&
+          !existing.email_confirmed_at &&
+          !existing.last_sign_in_at;
 
         if (existing && isPending) {
           await adminClient.auth.admin.deleteUser(existing.id);
-          ({ data: inviteData, error: inviteErr } =
-            await adminClient.auth.admin.inviteUserByEmail(email, {
-              data: inviteMeta,
-              redirectTo: safeRedirectTo,
-            }));
-          if (inviteErr) {
-            return jsonResponse({ error: inviteErr.message }, 422);
+          ({
+            actionLink,
+            userId,
+            error: linkErr,
+          } = await generateInviteLink(
+            adminClient,
+            email,
+            inviteMeta,
+            safeRedirectTo
+          ));
+          if (linkErr) {
+            return jsonResponse({ error: linkErr }, 422);
           }
         } else {
           return jsonResponse(
@@ -272,13 +483,31 @@ Deno.serve(async (req) => {
           );
         }
       } else {
-        return jsonResponse({ error: inviteErr.message }, 422);
+        return jsonResponse({ error: linkErr }, 422);
       }
+    }
+
+    if (!actionLink) {
+      return jsonResponse({ error: 'Failed to generate invite link' }, 422);
+    }
+
+    // ── 7. Send custom invite email via Resend ─────────────────────────────
+
+    try {
+      await sendInviteEmail(email, actionLink, resendApiKey, mailFromAddress);
+    } catch (sendErr: unknown) {
+      const sendMsg =
+        sendErr instanceof Error ? sendErr.message : String(sendErr);
+      console.error('invite-user email send error:', sendMsg);
+      return jsonResponse(
+        { error: `Failed to send invite email: ${sendMsg}` },
+        502
+      );
     }
 
     return jsonResponse({
       ok: true,
-      invited_user_id: inviteData.user?.id,
+      invited_user_id: userId,
       email,
       role,
       company_id: callerProfile.company_id,
