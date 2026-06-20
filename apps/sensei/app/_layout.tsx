@@ -10,8 +10,13 @@ import {
 } from '@expo-google-fonts/dm-sans';
 import * as Linking from 'expo-linking';
 
-import { colors } from '@/constants/theme';
-import { supabase, useAuthStore, useLookupsStore } from '@crm/core';
+import { colors, coreTheme } from '@/constants/theme';
+import {
+  CoreThemeProvider,
+  supabase,
+  useAuthStore,
+  useLookupsStore,
+} from '@crm/core';
 
 function useDeepLinkHandler(): void {
   useEffect(() => {
@@ -164,10 +169,12 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(tabs)" />
-    </Stack>
+    <CoreThemeProvider theme={coreTheme}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+    </CoreThemeProvider>
   );
 }
 

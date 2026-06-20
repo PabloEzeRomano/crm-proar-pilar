@@ -1,3 +1,5 @@
+import type { Theme } from '@crm/core';
+
 import { brand } from './brand';
 
 export const MIN_TOUCH_TARGET = 48;
@@ -106,6 +108,15 @@ export const borderRadius = {
   xl2: 18,
   full: 9999,
 } as const;
+
+/** Tokens passed to <CoreThemeProvider> for shared @crm/core components. */
+export const coreTheme: Theme = {
+  colors,
+  spacing,
+  fontSize,
+  fontWeight,
+  borderRadius,
+};
 
 export const shadows = {
   subtle: {
