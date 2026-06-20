@@ -47,6 +47,9 @@ interface ClientFormProps {
   submitting: boolean;
   error?: string | null;
   onSubmit: (values: ClientFormValues) => void;
+  /** When false, identity fields (name, DNI, branch) are read-only.
+   *  Salespeople can update contact-derived fields but not these. */
+  canEditIdentity?: boolean;
 }
 
 export default function ClientForm({
@@ -55,6 +58,7 @@ export default function ClientForm({
   submitting,
   error,
   onSubmit,
+  canEditIdentity = true,
 }: ClientFormProps) {
   const branches = useBranchesStore((s) => s.branches);
   const fetchBranches = useBranchesStore((s) => s.fetchBranches);
@@ -105,26 +109,32 @@ export default function ClientForm({
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.field}>
-          <Text style={styles.label}>Nombre *</Text>
+          <Text style={styles.label}>
+            Nombre *{!canEditIdentity && ' (solo admin)'}
+          </Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, !canEditIdentity && styles.inputLocked]}
             value={name}
             onChangeText={setName}
             placeholder="Nombre del cliente"
             placeholderTextColor={colors.textDisabled}
             autoFocus={!initial}
+            editable={canEditIdentity}
           />
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>DNI</Text>
+          <Text style={styles.label}>
+            DNI{!canEditIdentity && ' (solo admin)'}
+          </Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, !canEditIdentity && styles.inputLocked]}
             value={dni}
             onChangeText={setDni}
             placeholder="DNI"
             placeholderTextColor={colors.textDisabled}
             keyboardType="number-pad"
+            editable={canEditIdentity}
           />
         </View>
 
@@ -152,17 +162,25 @@ export default function ClientForm({
 
         {branches.length > 0 && (
           <View style={styles.field}>
-            <Text style={styles.label}>Sucursal</Text>
-            <SearchableSelect
-              label="Sucursal"
-              placeholder="Seleccionar sucursal"
-              options={branches.map((b) => b.name)}
-              selected={branchName ? [branchName] : []}
-              onChange={(names) => {
-                const id = branches.find((b) => b.name === names[0])?.id;
-                setBranchId(id ?? '');
-              }}
-            />
+            <Text style={styles.label}>
+              Sucursal{!canEditIdentity && ' (solo admin)'}
+            </Text>
+            {canEditIdentity ? (
+              <SearchableSelect
+                label="Sucursal"
+                placeholder="Seleccionar sucursal"
+                options={branches.map((b) => b.name)}
+                selected={branchName ? [branchName] : []}
+                onChange={(names) => {
+                  const id = branches.find((b) => b.name === names[0])?.id;
+                  setBranchId(id ?? '');
+                }}
+              />
+            ) : (
+              <View style={[styles.input, styles.inputLocked, styles.readonly]}>
+                <Text style={styles.readonlyText}>{branchName ?? '—'}</Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -252,6 +270,9 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
+  inputLocked: { backgroundColor: colors.background, opacity: 0.6 },
+  readonly: { justifyContent: 'center' },
+  readonlyText: { fontSize: fontSize.base, color: colors.textSecondary },
   error: { color: colors.error, fontSize: fontSize.sm },
   button: {
     backgroundColor: colors.primary,

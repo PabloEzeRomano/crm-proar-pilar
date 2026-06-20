@@ -4,12 +4,16 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import ClientForm, { type ClientFormValues } from '@/components/ClientForm';
 import { colors, fontSize, spacing } from '@/constants/theme';
+import { useAuthStore } from '@/stores/authStore';
 import { useClientsStore } from '@/stores/clientsStore';
 import { clientSchema } from '@/validators/client';
 
 export default function EditClientScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+
+  const profile = useAuthStore((s) => s.profile);
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'root';
 
   const clients = useClientsStore((s) => s.clients);
   const client = clients.find((c) => c.id === id);
@@ -78,6 +82,7 @@ export default function EditClientScreen() {
       submitLabel="Guardar cambios"
       submitting={saving}
       error={validationError || storeError}
+      canEditIdentity={isAdmin}
       onSubmit={handleSubmit}
     />
   );
