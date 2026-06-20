@@ -18,7 +18,7 @@ export default function TeamLayout() {
       <Stack.Screen name="index" options={{ title: 'Equipo' }} />
       <Stack.Screen name="branches" options={{ title: 'Sucursales' }} />
       <Stack.Screen name="branch-form" options={{ title: 'Sucursal' }} />
-      <Stack.Screen name="users" options={{ title: 'Usuarios' }} />
+      <Stack.Screen name="users" options={{ title: 'Vendedores' }} />
       <Stack.Screen
         name="rejection-reasons"
         options={{ title: 'Motivos de rechazo' }}

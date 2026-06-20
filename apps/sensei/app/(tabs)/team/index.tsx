@@ -50,8 +50,8 @@ export default function TeamScreen() {
       />
       <MenuItem
         icon="account-group"
-        label="Usuarios"
-        subtitle="Gestionar usuarios y permisos"
+        label="Vendedores"
+        subtitle="Gestionar vendedores y permisos"
         onPress={() => router.push('/team/users')}
       />
       <MenuItem

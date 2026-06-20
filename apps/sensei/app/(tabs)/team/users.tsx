@@ -42,7 +42,7 @@ const inviteSchema = z.object({
 type InviteErrors = { email?: string };
 
 const ROLE_LABEL: Record<UserRole, string> = {
-  user: 'Usuario',
+  user: 'Vendedor',
   product_manager: 'Productos',
   admin: 'Admin',
   root: 'Root',
@@ -285,7 +285,7 @@ export default function UsersScreen() {
           <Text style={styles.counterLabel}>
             {maxUsers !== null
               ? `${maxUsers - currentCount} disponible${maxUsers - currentCount !== 1 ? 's' : ''}`
-              : 'usuarios'}
+              : 'vendedores'}
           </Text>
         </View>
         <Pressable
@@ -333,7 +333,7 @@ export default function UsersScreen() {
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={
             <View style={styles.centered}>
-              <Text style={styles.emptyText}>No hay usuarios</Text>
+              <Text style={styles.emptyText}>No hay vendedores</Text>
             </View>
           }
         />
@@ -356,7 +356,7 @@ export default function UsersScreen() {
           />
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Invitar usuario</Text>
+              <Text style={styles.modalTitle}>Invitar vendedor</Text>
               <Pressable
                 onPress={() => setModalVisible(false)}
                 style={styles.modalClose}
