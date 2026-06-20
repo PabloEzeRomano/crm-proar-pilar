@@ -21,8 +21,12 @@ import {
   shadows,
   spacing,
 } from '@/constants/theme';
+import { SearchableSelect } from '@crm/core';
+
 import { useAuthStore } from '@/stores/authStore';
 import { useCampaignsStore } from '@/stores/campaignsStore';
+import { useFinanciersStore } from '@/stores/financiersStore';
+import { usePaymentMethodsStore } from '@/stores/paymentMethodsStore';
 import type { CampaignOffer, CampaignStatus } from '@/types';
 
 const statusLabel: Record<CampaignStatus, string> = {
@@ -55,8 +59,13 @@ function OfferRow({
             {offer.description}
           </Text>
         )}
+        {offer.payment_methods && offer.payment_methods.length > 0 && (
+          <Text style={styles.offerMeta}>
+            Medios: {offer.payment_methods.join(', ')}
+          </Text>
+        )}
         {offer.financing && (
-          <Text style={styles.offerMeta}>Financiación: {offer.financing}</Text>
+          <Text style={styles.offerMeta}>Financiera: {offer.financing}</Text>
         )}
       </View>
       <Pressable onPress={onDelete} hitSlop={8} style={styles.iconBtn}>
@@ -86,6 +95,11 @@ export default function CampaignDetailScreen() {
   const createOffer = useCampaignsStore((s) => s.createOffer);
   const deleteOffer = useCampaignsStore((s) => s.deleteOffer);
 
+  const paymentMethods = usePaymentMethodsStore((s) => s.items);
+  const fetchPaymentMethods = usePaymentMethodsStore((s) => s.fetchItems);
+  const financiers = useFinanciersStore((s) => s.items);
+  const fetchFinanciers = useFinanciersStore((s) => s.fetchItems);
+
   const campaign = campaigns.find((c) => c.id === id);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -98,9 +112,12 @@ export default function CampaignDetailScreen() {
   const [offerName, setOfferName] = useState('');
   const [offerDesc, setOfferDesc] = useState('');
   const [offerFinancing, setOfferFinancing] = useState('');
+  const [offerPaymentMethods, setOfferPaymentMethods] = useState<string[]>([]);
 
   useEffect(() => {
     if (id) fetchOffers(id);
+    fetchPaymentMethods();
+    fetchFinanciers();
   }, [id]);
 
   if (!campaign) {
@@ -164,11 +181,14 @@ export default function CampaignDetailScreen() {
     await createOffer(id, {
       name: offerName.trim(),
       description: offerDesc.trim() || undefined,
-      financing: offerFinancing.trim() || undefined,
+      financing: offerFinancing || undefined,
+      payment_methods:
+        offerPaymentMethods.length > 0 ? offerPaymentMethods : undefined,
     });
     setOfferName('');
     setOfferDesc('');
     setOfferFinancing('');
+    setOfferPaymentMethods([]);
     setShowOfferForm(false);
   };
 
@@ -344,12 +364,22 @@ export default function CampaignDetailScreen() {
                 placeholder="Descripción"
                 placeholderTextColor={colors.textDisabled}
               />
-              <TextInput
-                style={styles.input}
-                value={offerFinancing}
-                onChangeText={setOfferFinancing}
-                placeholder="Financiación"
-                placeholderTextColor={colors.textDisabled}
+              <SearchableSelect
+                label="Medios de pago"
+                placeholder="Medios de pago"
+                multiple
+                options={paymentMethods
+                  .filter((p) => p.active)
+                  .map((p) => p.name)}
+                selected={offerPaymentMethods}
+                onChange={setOfferPaymentMethods}
+              />
+              <SearchableSelect
+                label="Financiera"
+                placeholder="Financiera"
+                options={financiers.filter((f) => f.active).map((f) => f.name)}
+                selected={offerFinancing ? [offerFinancing] : []}
+                onChange={(names) => setOfferFinancing(names[0] ?? '')}
               />
               <Pressable style={styles.btnPrimary} onPress={handleAddOffer}>
                 <Text style={styles.btnPrimaryText}>Agregar oferta</Text>
