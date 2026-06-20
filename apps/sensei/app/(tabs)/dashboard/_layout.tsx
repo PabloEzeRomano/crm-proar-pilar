@@ -16,6 +16,7 @@ export default function DashboardLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: 'Dashboard' }} />
+      <Stack.Screen name="reports" options={{ title: 'Reportes' }} />
     </Stack>
   );
 }

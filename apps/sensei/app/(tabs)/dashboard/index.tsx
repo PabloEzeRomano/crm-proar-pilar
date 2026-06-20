@@ -233,6 +233,33 @@ export default function DashboardScreen() {
             )}
           </View>
 
+          {/* Reports entry (admin/root only) */}
+          {isAdmin && (
+            <Pressable
+              style={styles.reportsLink}
+              onPress={() => router.push('/dashboard/reports')}
+            >
+              <View style={styles.reportsIcon}>
+                <MaterialCommunityIcons
+                  name="chart-bar"
+                  size={22}
+                  color={colors.primary}
+                />
+              </View>
+              <View style={styles.reportsContent}>
+                <Text style={styles.reportsTitle}>Reportes</Text>
+                <Text style={styles.reportsSub}>
+                  Desempeño por vendedor, sucursal y financiera
+                </Text>
+              </View>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={24}
+                color={colors.textSecondary}
+              />
+            </Pressable>
+          )}
+
           {/* Active campaigns */}
           {activeCampaigns.length > 0 && (
             <View style={styles.section}>
@@ -304,6 +331,32 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   statLabel: { fontSize: fontSize.xs, color: colors.textSecondary },
+  reportsLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing[3],
+    marginBottom: spacing[5],
+    minHeight: 48,
+    ...shadows.subtle,
+  },
+  reportsIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportsContent: { flex: 1 },
+  reportsTitle: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+  },
+  reportsSub: { fontSize: fontSize.xs, color: colors.textSecondary },
   section: { gap: spacing[3] },
   sectionTitle: {
     fontSize: fontSize.base,
