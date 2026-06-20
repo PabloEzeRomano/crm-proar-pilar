@@ -1,14 +1,20 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useEffect } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
+import {
+  channelIcon,
+  contactResultLabel,
+  interestResultLabel,
+} from '@/constants/labels';
 import {
   borderRadius,
   colors,
@@ -18,27 +24,10 @@ import {
   shadows,
   spacing,
 } from '@/constants/theme';
+import { useBranchesStore } from '@/stores/branchesStore';
 import { useClientsStore } from '@/stores/clientsStore';
 import { useInteractionsStore } from '@/stores/interactionsStore';
-import type {
-  InteractionWithClient,
-  ContactResult,
-  ContactInfo,
-} from '@/types';
-
-const contactResultLabel: Record<ContactResult, string> = {
-  contacted: 'Contactado',
-  not_contacted: 'No contactado',
-  no_answer: 'No atiende',
-  wrong_number: 'Número equivocado',
-};
-
-const channelIcon: Record<string, string> = {
-  phone: 'phone',
-  whatsapp: 'whatsapp',
-  in_person: 'account',
-  email: 'email-outline',
-};
+import type { InteractionWithClient, ContactInfo } from '@/types';
 
 function InteractionRow({
   interaction,
@@ -67,7 +56,7 @@ function InteractionRow({
         </View>
         {interaction.interest_result && (
           <Text style={styles.interactionInterest}>
-            {interaction.interest_result}
+            {interestResultLabel[interaction.interest_result]}
           </Text>
         )}
         {interaction.notes && (
@@ -90,6 +79,7 @@ function InteractionRow({
 
 export default function ClientDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
 
   const clients = useClientsStore((s) => s.clients);
   const client = clients.find((c) => c.id === id);
@@ -98,8 +88,13 @@ export default function ClientDetailScreen() {
   const interactionsLoading = useInteractionsStore((s) => s.loading);
   const fetchInteractions = useInteractionsStore((s) => s.fetchInteractions);
 
+  const branches = useBranchesStore((s) => s.branches);
+  const fetchBranches = useBranchesStore((s) => s.fetchBranches);
+  const branchName = branches.find((b) => b.id === client?.branch_id)?.name;
+
   useEffect(() => {
     if (id) fetchInteractions({ clientId: id });
+    fetchBranches();
   }, [id]);
 
   if (!client) {
@@ -110,21 +105,58 @@ export default function ClientDetailScreen() {
     );
   }
 
+  function goBack() {
+    if (router.canGoBack()) router.back();
+    else router.replace('/clients');
+  }
+
   return (
     <>
-      <Stack.Screen options={{ title: client.name }} />
+      <Stack.Screen
+        options={{
+          title: client.name,
+          headerLeft: () => (
+            <Pressable
+              onPress={goBack}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Volver"
+            >
+              <MaterialCommunityIcons
+                name="chevron-left"
+                size={28}
+                color={colors.primary}
+              />
+            </Pressable>
+          ),
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push(`/clients/edit?id=${client.id}`)}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Editar cliente"
+            >
+              <MaterialCommunityIcons
+                name="pencil-outline"
+                size={22}
+                color={colors.primary}
+              />
+            </Pressable>
+          ),
+        }}
+      />
       <View style={styles.container}>
         {/* Client info card */}
         <View style={styles.card}>
           <Text style={styles.clientName}>{client.name}</Text>
-          {client.industry && (
+          {client.cuit && (
             <View style={styles.infoRow}>
               <MaterialCommunityIcons
-                name="tag-outline"
+                name="card-account-details-outline"
                 size={16}
                 color={colors.textSecondary}
               />
-              <Text style={styles.infoText}>{client.industry}</Text>
+              <Text style={styles.infoText}>DNI {client.cuit}</Text>
             </View>
           )}
           {client.address && (
@@ -139,6 +171,38 @@ export default function ClientDetailScreen() {
               </Text>
             </View>
           )}
+          {branchName ? (
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons
+                name="office-building-outline"
+                size={16}
+                color={colors.textSecondary}
+              />
+              <Text style={styles.infoText}>{branchName}</Text>
+            </View>
+          ) : null}
+          {client.commercial_classification ? (
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons
+                name="star-outline"
+                size={16}
+                color={colors.textSecondary}
+              />
+              <Text style={styles.infoText}>
+                {client.commercial_classification}
+              </Text>
+            </View>
+          ) : null}
+          {client.last_payment_method ? (
+            <View style={styles.infoRow}>
+              <MaterialCommunityIcons
+                name="credit-card-outline"
+                size={16}
+                color={colors.textSecondary}
+              />
+              <Text style={styles.infoText}>{client.last_payment_method}</Text>
+            </View>
+          ) : null}
           {client.contacts && client.contacts.length > 0 && (
             <View style={styles.contactsSection}>
               {client.contacts.map((contact: ContactInfo, i: number) => (
@@ -158,6 +222,21 @@ export default function ClientDetailScreen() {
             </View>
           )}
         </View>
+
+        {/* New interaction button */}
+        <Pressable
+          style={styles.newInteractionButton}
+          onPress={() => router.push(`/interactions/new?clientId=${client.id}`)}
+          accessibilityRole="button"
+          accessibilityLabel="Nueva gestión"
+        >
+          <MaterialCommunityIcons
+            name="plus"
+            size={20}
+            color={colors.textOnPrimary}
+          />
+          <Text style={styles.newInteractionLabel}>Nueva gestión</Text>
+        </Pressable>
 
         {/* Interactions history */}
         <View style={styles.sectionHeader}>
@@ -207,6 +286,22 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
   infoText: { fontSize: fontSize.sm, color: colors.textSecondary, flex: 1 },
   contactsSection: { marginTop: spacing[1], gap: spacing[1] },
+  newInteractionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
+    backgroundColor: colors.primary,
+    marginHorizontal: spacing[4],
+    marginBottom: spacing[4],
+    borderRadius: borderRadius.md,
+    minHeight: 48,
+  },
+  newInteractionLabel: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.textOnPrimary,
+  },
   sectionHeader: { paddingHorizontal: spacing[4], marginBottom: spacing[2] },
   sectionTitle: {
     fontSize: fontSize.base,

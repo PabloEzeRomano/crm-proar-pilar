@@ -43,9 +43,11 @@ function ClientRow({
         <Text style={styles.rowName} numberOfLines={1}>
           {client.name}
         </Text>
-        {(client.city || client.industry) && (
+        {(client.city || client.cuit) && (
           <Text style={styles.rowSub} numberOfLines={1}>
-            {[client.industry, client.city].filter(Boolean).join(' · ')}
+            {[client.cuit ? `DNI ${client.cuit}` : null, client.city]
+              .filter(Boolean)
+              .join(' · ')}
           </Text>
         )}
       </View>
@@ -80,7 +82,7 @@ export default function ClientsScreen() {
       (c) =>
         c.name.toLowerCase().includes(q) ||
         (c.city ?? '').toLowerCase().includes(q) ||
-        (c.industry ?? '').toLowerCase().includes(q)
+        (c.cuit ?? '').toLowerCase().includes(q)
     );
   }, [clients, search]);
 
