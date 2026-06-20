@@ -28,9 +28,12 @@ import {
   shadows,
   spacing,
 } from '@/constants/theme';
+import { SearchableSelect } from '@crm/core';
+
 import { useAuthStore } from '@/stores/authStore';
+import { useBranchesStore } from '@/stores/branchesStore';
 import { useUsersStore } from '@/stores/usersStore';
-import type { UserListItem, UserRole } from '@/types';
+import type { Branch, UserListItem, UserRole } from '@/types';
 
 const inviteSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -81,49 +84,74 @@ function PendingBadge() {
 
 function UserRow({
   user,
+  branches,
   onDeactivate,
+  onSetBranch,
 }: {
   user: UserListItem;
+  branches: Branch[];
   onDeactivate: (u: UserListItem) => void;
+  onSetBranch: (userId: string, branchId: string | null) => void;
 }) {
   const isPending = user.status === 'pending';
   const displayName = isPending ? user.email : (user.full_name ?? '—');
   const initial = displayName.charAt(0).toUpperCase();
   const canDeactivate =
     user.status === 'active' && user.role !== 'admin' && user.role !== 'root';
+  // Branch only applies to active salespeople
+  const showBranch =
+    user.status === 'active' && user.role === 'user' && branches.length > 0;
+  const branchName = branches.find((b) => b.id === user.branch_id)?.name;
 
   return (
-    <View style={styles.row}>
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{initial}</Text>
-      </View>
-      <View style={styles.rowContent}>
-        <Text style={styles.rowName} numberOfLines={1}>
-          {displayName}
-        </Text>
-        {!isPending && (
-          <Text style={styles.rowSub} numberOfLines={1}>
-            {user.email}
+    <View style={styles.rowWrapper}>
+      <View style={styles.row}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{initial}</Text>
+        </View>
+        <View style={styles.rowContent}>
+          <Text style={styles.rowName} numberOfLines={1}>
+            {displayName}
           </Text>
+          {!isPending && (
+            <Text style={styles.rowSub} numberOfLines={1}>
+              {user.email}
+            </Text>
+          )}
+        </View>
+        {isPending ? (
+          <PendingBadge />
+        ) : user.role ? (
+          <RoleBadge role={user.role} />
+        ) : null}
+        {canDeactivate && (
+          <Pressable
+            onPress={() => onDeactivate(user)}
+            style={styles.deactivateBtn}
+            hitSlop={8}
+          >
+            <MaterialCommunityIcons
+              name="trash-can-outline"
+              size={20}
+              color={colors.error}
+            />
+          </Pressable>
         )}
       </View>
-      {isPending ? (
-        <PendingBadge />
-      ) : user.role ? (
-        <RoleBadge role={user.role} />
-      ) : null}
-      {canDeactivate && (
-        <Pressable
-          onPress={() => onDeactivate(user)}
-          style={styles.deactivateBtn}
-          hitSlop={8}
-        >
-          <MaterialCommunityIcons
-            name="trash-can-outline"
-            size={20}
-            color={colors.error}
+      {showBranch && (
+        <View style={styles.branchPicker}>
+          <Text style={styles.branchLabel}>Sucursal</Text>
+          <SearchableSelect
+            label="Sucursal"
+            placeholder="Sin sucursal"
+            options={branches.map((b) => b.name)}
+            selected={branchName ? [branchName] : []}
+            onChange={(names) => {
+              const id = branches.find((b) => b.name === names[0])?.id ?? null;
+              onSetBranch(user.id, id);
+            }}
           />
-        </Pressable>
+        </View>
       )}
     </View>
   );
@@ -144,7 +172,11 @@ export default function UsersScreen() {
   const fetchCompanyConfig = useUsersStore((s) => s.fetchCompanyConfig);
   const inviteUser = useUsersStore((s) => s.inviteUser);
   const deactivateUser = useUsersStore((s) => s.deactivateUser);
+  const setUserBranch = useUsersStore((s) => s.setUserBranch);
   const clearInviteError = useUsersStore((s) => s.clearInviteError);
+
+  const branches = useBranchesStore((s) => s.branches);
+  const fetchBranches = useBranchesStore((s) => s.fetchBranches);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [email, setEmail] = useState('');
@@ -161,6 +193,7 @@ export default function UsersScreen() {
     if (!isAdminOrRoot) return;
     fetchUsers();
     fetchCompanyConfig();
+    fetchBranches();
   }, []);
 
   const handleDeactivate = useCallback(
@@ -289,7 +322,12 @@ export default function UsersScreen() {
           data={users}
           keyExtractor={(u) => u.id}
           renderItem={({ item }) => (
-            <UserRow user={item} onDeactivate={handleDeactivate} />
+            <UserRow
+              user={item}
+              branches={branches}
+              onDeactivate={handleDeactivate}
+              onSetBranch={setUserBranch}
+            />
           )}
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -458,15 +496,26 @@ const styles = StyleSheet.create({
   },
   listContent: { paddingHorizontal: spacing[4], paddingVertical: spacing[3] },
   separator: { height: spacing[2] },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  rowWrapper: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.md,
     padding: spacing[3],
-    gap: spacing[3],
     ...shadows.subtle,
-    minHeight: 64,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+    minHeight: 48,
+  },
+  branchPicker: {
+    marginTop: spacing[3],
+    gap: spacing[1],
+  },
+  branchLabel: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
   },
   avatar: {
     width: 40,
