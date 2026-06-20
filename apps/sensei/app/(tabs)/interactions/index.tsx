@@ -19,28 +19,19 @@ import {
   shadows,
   spacing,
 } from '@/constants/theme';
+import {
+  channelIcon,
+  contactResultLabel,
+  interestResultLabel,
+} from '@/constants/labels';
 import { useInteractionsStore } from '@/stores/interactionsStore';
 import type { ContactResult, InteractionWithClient } from '@/types';
-
-const contactResultLabel: Record<ContactResult, string> = {
-  contacted: 'Contactado',
-  not_contacted: 'No contactado',
-  no_answer: 'No atiende',
-  wrong_number: 'Número equivocado',
-};
 
 const FILTER_TABS: { key: 'all' | ContactResult; label: string }[] = [
   { key: 'all', label: 'Todas' },
   { key: 'contacted', label: 'Contactados' },
   { key: 'not_contacted', label: 'No contactados' },
 ];
-
-const channelIcon: Record<string, string> = {
-  phone: 'phone',
-  whatsapp: 'whatsapp',
-  in_person: 'account',
-  email: 'email-outline',
-};
 
 function InteractionRow({
   interaction,
@@ -67,8 +58,8 @@ function InteractionRow({
           </Text>
           {interaction.interest_result && (
             <Text style={styles.rowInterest}>
-              {' '}
-              · {interaction.interest_result}
+              {' · '}
+              {interestResultLabel[interaction.interest_result]}
             </Text>
           )}
         </View>

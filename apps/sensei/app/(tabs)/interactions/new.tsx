@@ -20,9 +20,18 @@ import {
   fontWeight,
   spacing,
 } from '@/constants/theme';
+import {
+  channelIcon,
+  channelLabel,
+  contactResultLabel,
+  interestResultLabel,
+} from '@/constants/labels';
+import { SearchableSelect } from '@crm/core';
 import { useCampaignsStore } from '@/stores/campaignsStore';
 import { useClientsStore } from '@/stores/clientsStore';
+import { useFinanciersStore } from '@/stores/financiersStore';
 import { useInteractionsStore } from '@/stores/interactionsStore';
+import { usePaymentMethodsStore } from '@/stores/paymentMethodsStore';
 import { useRejectionReasonsStore } from '@/stores/rejectionReasonsStore';
 import type {
   ContactResult,
@@ -34,27 +43,23 @@ import type {
 // Option configs
 // ---------------------------------------------------------------------------
 
-const CHANNELS: { key: InteractionChannel; label: string; icon: string }[] = [
-  { key: 'phone', label: 'Teléfono', icon: 'phone' },
-  { key: 'whatsapp', label: 'WhatsApp', icon: 'whatsapp' },
-  { key: 'in_person', label: 'Presencial', icon: 'account' },
-  { key: 'email', label: 'Email', icon: 'email-outline' },
-];
+const CHANNELS: { key: InteractionChannel; label: string; icon: string }[] = (
+  ['phone', 'whatsapp', 'in_person', 'email'] as InteractionChannel[]
+).map((key) => ({ key, label: channelLabel[key], icon: channelIcon[key] }));
 
-const CONTACT_RESULTS: { key: ContactResult; label: string }[] = [
-  { key: 'contacted', label: 'Contactado' },
-  { key: 'not_contacted', label: 'No contactado' },
-  { key: 'no_answer', label: 'No atiende' },
-  { key: 'wrong_number', label: 'Número equivocado' },
-];
+const CONTACT_RESULTS: { key: ContactResult; label: string }[] = (
+  ['contacted', 'not_contacted', 'no_answer', 'wrong_number'] as ContactResult[]
+).map((key) => ({ key, label: contactResultLabel[key] }));
 
-const INTEREST_RESULTS: { key: InterestResult; label: string }[] = [
-  { key: 'interested', label: 'Interesado' },
-  { key: 'not_interested', label: 'No interesado' },
-  { key: 'not_qualified', label: 'No califica' },
-  { key: 'follow_up', label: 'Seguimiento' },
-  { key: 'sale', label: 'Venta' },
-];
+const INTEREST_RESULTS: { key: InterestResult; label: string }[] = (
+  [
+    'interested',
+    'not_interested',
+    'not_qualified',
+    'follow_up',
+    'sale',
+  ] as InterestResult[]
+).map((key) => ({ key, label: interestResultLabel[key] }));
 
 // ---------------------------------------------------------------------------
 // Chip selector component
@@ -124,6 +129,11 @@ export default function NewInteractionScreen() {
   const reasons = useRejectionReasonsStore((s) => s.reasons);
   const fetchReasons = useRejectionReasonsStore((s) => s.fetchReasons);
 
+  const paymentMethods = usePaymentMethodsStore((s) => s.items);
+  const fetchPaymentMethods = usePaymentMethodsStore((s) => s.fetchItems);
+  const financiers = useFinanciersStore((s) => s.items);
+  const fetchFinanciers = useFinanciersStore((s) => s.fetchItems);
+
   const createInteraction = useInteractionsStore((s) => s.createInteraction);
   const storeError = useInteractionsStore((s) => s.error);
 
@@ -151,6 +161,8 @@ export default function NewInteractionScreen() {
     fetchCampaigns();
     fetchClients();
     fetchReasons();
+    fetchPaymentMethods();
+    fetchFinanciers();
   }, []);
 
   useEffect(() => {
@@ -359,23 +371,25 @@ export default function NewInteractionScreen() {
 
             <View style={styles.field}>
               <Text style={styles.label}>Medio de pago</Text>
-              <TextInput
-                style={styles.input}
-                value={paymentMethod}
-                onChangeText={setPaymentMethod}
-                placeholder="Efectivo, tarjeta, transferencia..."
-                placeholderTextColor={colors.textDisabled}
+              <SearchableSelect
+                label="Medio de pago"
+                placeholder="Seleccionar medio de pago"
+                options={paymentMethods
+                  .filter((p) => p.active)
+                  .map((p) => p.name)}
+                selected={paymentMethod ? [paymentMethod] : []}
+                onChange={(names) => setPaymentMethod(names[0] ?? '')}
               />
             </View>
 
             <View style={styles.field}>
-              <Text style={styles.label}>Financiación</Text>
-              <TextInput
-                style={styles.input}
-                value={financing}
-                onChangeText={setFinancing}
-                placeholder="Plan de cuotas..."
-                placeholderTextColor={colors.textDisabled}
+              <Text style={styles.label}>Financiera</Text>
+              <SearchableSelect
+                label="Financiera"
+                placeholder="Seleccionar financiera"
+                options={financiers.filter((f) => f.active).map((f) => f.name)}
+                selected={financing ? [financing] : []}
+                onChange={(names) => setFinancing(names[0] ?? '')}
               />
             </View>
 
