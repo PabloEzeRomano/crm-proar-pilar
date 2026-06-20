@@ -31,6 +31,10 @@ export interface UsersState {
     userId: string,
     role: 'user' | 'product_manager' | 'admin'
   ) => Promise<{ error: string | null }>;
+  setUserBranch: (
+    userId: string,
+    branchId: string | null
+  ) => Promise<{ error: string | null }>;
   clearInviteError: () => void;
 }
 
@@ -75,8 +79,14 @@ export const useUsersStore = create<UsersState>()((set) => ({
   inviteUser: async ({ email, role }) => {
     set({ inviteLoading: true, inviteError: null });
 
+    // On web, send the current origin so the invite email links back to the
+    // app that issued the invite (e.g. localhost during dev) instead of the
+    // project's default Site URL (prod). Native has no origin → undefined.
+    const redirectTo =
+      typeof window !== 'undefined' ? window.location.origin : undefined;
+
     const { error } = await supabase.functions.invoke('invite-user', {
-      body: { email, role },
+      body: { email, role, redirectTo },
     });
 
     if (error) {
@@ -161,6 +171,23 @@ export const useUsersStore = create<UsersState>()((set) => ({
     if (error) {
       return { error: error.message };
     }
+    return { error: null };
+  },
+
+  setUserBranch: async (userId, branchId) => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ branch_id: branchId })
+      .eq('id', userId);
+
+    if (error) {
+      return { error: error.message };
+    }
+    set((state) => ({
+      users: state.users.map((u) =>
+        u.id === userId ? { ...u, branch_id: branchId } : u
+      ),
+    }));
     return { error: null };
   },
 

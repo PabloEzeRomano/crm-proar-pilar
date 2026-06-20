@@ -17,3 +17,11 @@ export * from './types';
 // Validators
 export * from './validators/auth';
 export * from './validators/client';
+
+// Theme
+export { CoreThemeProvider, useTheme } from './theme';
+export type { Theme } from './theme';
+
+// Components
+export { default as SearchableSelect } from './components/SearchableSelect';
+export type { SearchableSelectProps } from './components/SearchableSelect';

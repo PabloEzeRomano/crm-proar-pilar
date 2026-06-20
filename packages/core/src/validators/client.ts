@@ -15,6 +15,8 @@ export const createClientSchema = z.object({
   site: z.string().optional(),
   zone: z.string().optional(),
   commercial_classification: z.string().optional(),
+  branch_id: z.string().uuid().nullable().optional(),
+  last_payment_method: z.string().optional(),
   contacts: z.array(contactInfoSchema).optional(),
   notes: z.string().optional(),
 });

@@ -25,6 +25,7 @@ export interface Profile {
   email_config: EmailConfig;
   role: UserRole;
   company_id: string;
+  branch_id: string | null;
   show_tour: boolean;
   created_at: string;
   updated_at: string;
@@ -42,6 +43,7 @@ export interface UserListItem {
   status: 'active' | 'pending' | 'banned';
   invited_at: string | null;
   company_id: string | null;
+  branch_id: string | null;
 }
 
 export interface ContactInfo {
@@ -62,6 +64,8 @@ export interface Client {
   site: string | null;
   zone: string | null;
   commercial_classification: string | null;
+  branch_id: string | null;
+  last_payment_method: string | null;
   contacts: ContactInfo[];
   notes: string | null;
   last_visited_at?: string | null;
