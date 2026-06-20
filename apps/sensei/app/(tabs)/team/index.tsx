@@ -60,6 +60,18 @@ export default function TeamScreen() {
         subtitle="Configurar motivos de rechazo"
         onPress={() => router.push('/team/rejection-reasons')}
       />
+      <MenuItem
+        icon="credit-card-outline"
+        label="Medios de pago"
+        subtitle="Configurar medios de pago"
+        onPress={() => router.push('/team/payment-methods')}
+      />
+      <MenuItem
+        icon="bank-outline"
+        label="Financieras"
+        subtitle="Configurar financieras"
+        onPress={() => router.push('/team/financiers')}
+      />
     </View>
   );
 }

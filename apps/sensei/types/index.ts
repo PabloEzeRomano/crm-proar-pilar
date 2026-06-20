@@ -37,10 +37,27 @@ export interface Branch {
   id: string;
   company_id: string;
   name: string;
+  code: string | null;
   address: string | null;
   city: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface PaymentMethod {
+  id: string;
+  company_id: string;
+  name: string;
+  active: boolean;
+  created_at: string;
+}
+
+export interface Financier {
+  id: string;
+  company_id: string;
+  name: string;
+  active: boolean;
+  created_at: string;
 }
 
 export interface Campaign {

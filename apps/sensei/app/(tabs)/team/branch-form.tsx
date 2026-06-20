@@ -35,6 +35,7 @@ export default function BranchFormScreen() {
   const existing = isEditing ? branches.find((b) => b.id === id) : null;
 
   const [name, setName] = useState(existing?.name ?? '');
+  const [code, setCode] = useState(existing?.code ?? '');
   const [address, setAddress] = useState(existing?.address ?? '');
   const [city, setCity] = useState(existing?.city ?? '');
   const [saving, setSaving] = useState(false);
@@ -43,6 +44,7 @@ export default function BranchFormScreen() {
   useEffect(() => {
     if (existing) {
       setName(existing.name);
+      setCode(existing.code ?? '');
       setAddress(existing.address ?? '');
       setCity(existing.city ?? '');
     }
@@ -51,6 +53,7 @@ export default function BranchFormScreen() {
   const handleSave = async () => {
     const result = branchSchema.safeParse({
       name: name.trim(),
+      code: code.trim() || undefined,
       address: address.trim() || undefined,
       city: city.trim() || undefined,
     });
@@ -92,6 +95,18 @@ export default function BranchFormScreen() {
             placeholder="Nombre de la sucursal"
             placeholderTextColor={colors.textDisabled}
             autoFocus={!isEditing}
+          />
+        </View>
+
+        <View style={styles.field}>
+          <Text style={styles.label}>Código (sigla)</Text>
+          <TextInput
+            style={styles.input}
+            value={code}
+            onChangeText={setCode}
+            placeholder="Ej: PL"
+            placeholderTextColor={colors.textDisabled}
+            autoCapitalize="characters"
           />
         </View>
 

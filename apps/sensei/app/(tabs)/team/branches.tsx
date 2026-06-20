@@ -43,7 +43,7 @@ function BranchRow({
       </View>
       <View style={styles.rowContent}>
         <Text style={styles.rowName} numberOfLines={1}>
-          {branch.name}
+          {branch.code ? `${branch.code} · ${branch.name}` : branch.name}
         </Text>
         {(branch.address || branch.city) && (
           <Text style={styles.rowSub} numberOfLines={1}>

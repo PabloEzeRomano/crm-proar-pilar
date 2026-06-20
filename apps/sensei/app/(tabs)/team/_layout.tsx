@@ -23,6 +23,11 @@ export default function TeamLayout() {
         name="rejection-reasons"
         options={{ title: 'Motivos de rechazo' }}
       />
+      <Stack.Screen
+        name="payment-methods"
+        options={{ title: 'Medios de pago' }}
+      />
+      <Stack.Screen name="financiers" options={{ title: 'Financieras' }} />
     </Stack>
   );
 }
