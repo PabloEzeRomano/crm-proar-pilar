@@ -151,6 +151,22 @@ export default function TabsLayout() {
           ),
         }}
       />
+
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Ajustes',
+          headerShown: false,
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon
+              activeIcon="cog"
+              inactiveIcon="cog-outline"
+              focused={focused}
+              color={color}
+            />
+          ),
+        }}
+      />
     </Tabs>
   );
 }
