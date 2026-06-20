@@ -23,6 +23,7 @@ interface Profile {
   full_name: string | null;
   role: UserRole;
   company_id: string | null;
+  branch_id: string | null;
 }
 
 interface CallerProfile extends Profile {
@@ -37,6 +38,7 @@ export interface UserListItem {
   status: 'active' | 'pending' | 'banned';
   invited_at: string | null;
   company_id: string | null;
+  branch_id: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -138,7 +140,7 @@ Deno.serve(async (req) => {
     // Always filter by caller's company — even root only sees own company
     const { data: profiles } = await adminClient
       .from('profiles')
-      .select('id, full_name, role, company_id')
+      .select('id, full_name, role, company_id, branch_id')
       .eq('company_id', callerProfile.company_id);
     const profileMap = new Map<string, Profile>();
     for (const p of profiles ?? []) {
@@ -196,6 +198,7 @@ Deno.serve(async (req) => {
           ((authUser.raw_user_meta_data as Record<string, unknown> | null)
             ?.company_id as string | null) ??
           null,
+        branch_id: profile?.branch_id ?? null,
       });
     }
 

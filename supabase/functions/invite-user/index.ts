@@ -43,6 +43,8 @@ interface Profile {
 interface InviteBody {
   email: string;
   role: 'user' | 'admin';
+  /** App origin to redirect the invite link to (e.g. http://localhost:8081). */
+  redirectTo?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -167,7 +169,13 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'Invalid JSON body' }, 400);
     }
 
-    const { email, role } = body;
+    const { email, role, redirectTo } = body;
+
+    // Only honor http(s) redirect targets; otherwise fall back to Site URL.
+    const safeRedirectTo =
+      typeof redirectTo === 'string' && /^https?:\/\//.test(redirectTo)
+        ? redirectTo
+        : undefined;
 
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return jsonResponse({ error: 'Invalid email address' }, 400);
@@ -229,6 +237,7 @@ Deno.serve(async (req) => {
     let { data: inviteData, error: inviteErr } =
       await adminClient.auth.admin.inviteUserByEmail(email, {
         data: inviteMeta,
+        redirectTo: safeRedirectTo,
       });
 
     if (inviteErr) {
@@ -251,6 +260,7 @@ Deno.serve(async (req) => {
           ({ data: inviteData, error: inviteErr } =
             await adminClient.auth.admin.inviteUserByEmail(email, {
               data: inviteMeta,
+              redirectTo: safeRedirectTo,
             }));
           if (inviteErr) {
             return jsonResponse({ error: inviteErr.message }, 422);
