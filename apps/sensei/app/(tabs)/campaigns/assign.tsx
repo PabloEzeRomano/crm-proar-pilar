@@ -19,6 +19,9 @@ import {
   shadows,
   spacing,
 } from '@/constants/theme';
+import { SearchableSelect } from '@crm/core';
+
+import { showAlert, showConfirm } from '@/lib/dialog';
 import { useAssignmentsStore } from '@/stores/assignmentsStore';
 import { useBranchesStore } from '@/stores/branchesStore';
 import { useClientsStore } from '@/stores/clientsStore';
@@ -40,6 +43,7 @@ export default function AssignScreen() {
   const assignments = useAssignmentsStore((s) => s.assignments);
   const fetchAssignments = useAssignmentsStore((s) => s.fetchAssignments);
   const createAssignments = useAssignmentsStore((s) => s.createAssignments);
+  const autoAssignByBranch = useAssignmentsStore((s) => s.autoAssignByBranch);
   const error = useAssignmentsStore((s) => s.error);
 
   const [search, setSearch] = useState('');
@@ -47,8 +51,11 @@ export default function AssignScreen() {
     new Set()
   );
   const [selectedUserId, setSelectedUserId] = useState('');
-  const [selectedBranchId, setSelectedBranchId] = useState('');
+  const [selectedBranchIds, setSelectedBranchIds] = useState<Set<string>>(
+    new Set()
+  );
   const [saving, setSaving] = useState(false);
+  const [autoAssigning, setAutoAssigning] = useState(false);
 
   useEffect(() => {
     fetchClients();
@@ -65,6 +72,11 @@ export default function AssignScreen() {
 
   const filtered = useMemo(() => {
     let list = clients;
+    if (selectedBranchIds.size > 0) {
+      list = list.filter(
+        (c) => c.branch_id && selectedBranchIds.has(c.branch_id)
+      );
+    }
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       list = list.filter(
@@ -74,7 +86,25 @@ export default function AssignScreen() {
       );
     }
     return list;
-  }, [clients, search]);
+  }, [clients, search, selectedBranchIds]);
+
+  const branchNameById = useMemo(
+    () => new Map(branches.map((b) => [b.id, b.name])),
+    [branches]
+  );
+  const branchIdByName = useMemo(
+    () => new Map(branches.map((b) => [b.name, b.id])),
+    [branches]
+  );
+
+  const handleBranchChange = (names: string[]) => {
+    const ids = names
+      .map((n) => branchIdByName.get(n))
+      .filter((id): id is string => !!id);
+    setSelectedBranchIds(new Set(ids));
+    // Drop selected clients no longer visible under the new filter
+    setSelectedClientIds(new Set());
+  };
 
   const toggleClient = (id: string) => {
     setSelectedClientIds((prev) => {
@@ -93,12 +123,18 @@ export default function AssignScreen() {
   const handleAssign = async () => {
     if (!selectedUserId || selectedClientIds.size === 0 || !campaignId) return;
 
+    // Stamp each assignment with its own client's branch.
+    const branchByClientId: Record<string, string | null> = {};
+    for (const c of clients) {
+      if (selectedClientIds.has(c.id)) branchByClientId[c.id] = c.branch_id;
+    }
+
     setSaving(true);
     const count = await createAssignments(
       campaignId,
       Array.from(selectedClientIds),
       selectedUserId,
-      selectedBranchId || undefined
+      branchByClientId
     );
     setSaving(false);
 
@@ -109,6 +145,45 @@ export default function AssignScreen() {
   };
 
   const vendedores = users.filter((u) => u.role === 'user');
+
+  const handleAutoAssign = async () => {
+    if (!campaignId) return;
+    const activeVendedores = users.filter(
+      (u) => u.role === 'user' && u.status === 'active'
+    );
+    if (activeVendedores.every((u) => !u.branch_id)) {
+      showAlert(
+        'Sin vendedores con sucursal',
+        'Asigná una sucursal a los vendedores en Equipo › Usuarios primero.'
+      );
+      return;
+    }
+    const ok = await showConfirm({
+      title: 'Asignar por sucursal',
+      message:
+        'Cada cliente sin asignar se reparte entre los vendedores de su misma sucursal. ¿Continuar?',
+      confirmText: 'Asignar',
+    });
+    if (!ok) return;
+
+    setAutoAssigning(true);
+    const res = await autoAssignByBranch(
+      campaignId,
+      clients,
+      activeVendedores.map((u) => ({ id: u.id, branch_id: u.branch_id }))
+    );
+    setAutoAssigning(false);
+
+    if (res) {
+      fetchAssignments(campaignId);
+      const parts = [`${res.assigned} asignados`];
+      if (res.skippedNoBranch)
+        parts.push(`${res.skippedNoBranch} sin sucursal`);
+      if (res.skippedNoVendor)
+        parts.push(`${res.skippedNoVendor} sin vendedor en su sucursal`);
+      showAlert('Asignación automática', parts.join(' · '));
+    }
+  };
 
   function ClientRow({ client }: { client: Client }) {
     const isSelected = selectedClientIds.has(client.id);
@@ -143,7 +218,9 @@ export default function AssignScreen() {
           >
             {client.name}
           </Text>
-          {client.city && <Text style={styles.clientCity}>{client.city}</Text>}
+          {client.city ? (
+            <Text style={styles.clientCity}>{client.city}</Text>
+          ) : null}
         </View>
       </Pressable>
     );
@@ -180,35 +257,47 @@ export default function AssignScreen() {
         </View>
       </View>
 
-      {/* Branch selector */}
+      {/* Branch filter (multiselect) */}
       {branches.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Sucursal (opcional)</Text>
-          <View style={styles.chipRow}>
-            {branches.map((b) => (
-              <Pressable
-                key={b.id}
-                style={[
-                  styles.chip,
-                  selectedBranchId === b.id && styles.chipActive,
-                ]}
-                onPress={() =>
-                  setSelectedBranchId(selectedBranchId === b.id ? '' : b.id)
-                }
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    selectedBranchId === b.id && styles.chipTextActive,
-                  ]}
-                >
-                  {b.name}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          <Text style={styles.sectionTitle}>Filtrar por sucursal</Text>
+          <SearchableSelect
+            label="Sucursales"
+            placeholder="Todas las sucursales"
+            multiple
+            options={branches.map((b) => b.name)}
+            selected={Array.from(selectedBranchIds)
+              .map((id) => branchNameById.get(id))
+              .filter((n): n is string => !!n)}
+            onChange={handleBranchChange}
+          />
         </View>
       )}
+
+      {/* Auto-assign by branch */}
+      <View style={styles.autoAssignSection}>
+        <Pressable
+          style={[styles.autoAssignBtn, autoAssigning && styles.buttonDisabled]}
+          onPress={handleAutoAssign}
+          disabled={autoAssigning}
+          accessibilityRole="button"
+        >
+          {autoAssigning ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : (
+            <>
+              <MaterialCommunityIcons
+                name="account-switch"
+                size={18}
+                color={colors.primary}
+              />
+              <Text style={styles.autoAssignText}>
+                Asignar automáticamente por sucursal
+              </Text>
+            </>
+          )}
+        </Pressable>
+      </View>
 
       {/* Client list */}
       <View style={styles.clientsHeader}>
@@ -294,6 +383,26 @@ const styles = StyleSheet.create({
   chipTextActive: {
     color: colors.textOnPrimary,
     fontWeight: fontWeight.semibold,
+  },
+  autoAssignSection: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+  },
+  autoAssignBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
+    minHeight: 48,
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  autoAssignText: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.primary,
   },
   clientsHeader: {
     flexDirection: 'row',

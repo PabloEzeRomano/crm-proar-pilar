@@ -1,7 +1,17 @@
 import { create } from 'zustand';
 
 import { supabase } from '../lib/supabase';
-import type { ClientAssignment, ClientAssignmentWithClient } from '../types';
+import type {
+  Client,
+  ClientAssignment,
+  ClientAssignmentWithClient,
+} from '../types';
+
+export interface AutoAssignResult {
+  assigned: number;
+  skippedNoBranch: number;
+  skippedNoVendor: number;
+}
 
 interface AssignmentsState {
   assignments: ClientAssignmentWithClient[];
@@ -14,8 +24,13 @@ interface AssignmentsState {
     campaignId: string,
     clientIds: string[],
     assignedTo: string,
-    branchId?: string
+    branchByClientId?: Record<string, string | null>
   ) => Promise<number>;
+  autoAssignByBranch: (
+    campaignId: string,
+    clients: Client[],
+    vendedores: { id: string; branch_id: string | null }[]
+  ) => Promise<AutoAssignResult | null>;
   updateAssignmentStatus: (
     id: string,
     status: ClientAssignment['status']
@@ -23,7 +38,7 @@ interface AssignmentsState {
   deleteAssignment: (id: string) => Promise<void>;
 }
 
-export const useAssignmentsStore = create<AssignmentsState>()((set) => ({
+export const useAssignmentsStore = create<AssignmentsState>()((set, get) => ({
   assignments: [],
   loading: false,
   error: null,
@@ -80,7 +95,7 @@ export const useAssignmentsStore = create<AssignmentsState>()((set) => ({
     campaignId: string,
     clientIds: string[],
     assignedTo: string,
-    branchId?: string
+    branchByClientId?: Record<string, string | null>
   ) => {
     set({ error: null });
 
@@ -97,7 +112,7 @@ export const useAssignmentsStore = create<AssignmentsState>()((set) => ({
       client_id: clientId,
       assigned_to: assignedTo,
       assigned_by: user.id,
-      branch_id: branchId ?? null,
+      branch_id: branchByClientId?.[clientId] ?? null,
     }));
 
     const { data, error } = await supabase
@@ -119,6 +134,92 @@ export const useAssignmentsStore = create<AssignmentsState>()((set) => ({
     }));
 
     return created.length;
+  },
+
+  // Admin: auto-assign each unassigned client to a vendedor of its own branch.
+  // Distributes round-robin when a branch has several vendedores.
+  autoAssignByBranch: async (campaignId, clients, vendedores) => {
+    set({ error: null });
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      set({ error: 'No autenticado' });
+      return null;
+    }
+
+    // Vendedores grouped by branch
+    const vendedoresByBranch = new Map<string, string[]>();
+    for (const v of vendedores) {
+      if (!v.branch_id) continue;
+      const list = vendedoresByBranch.get(v.branch_id) ?? [];
+      list.push(v.id);
+      vendedoresByBranch.set(v.branch_id, list);
+    }
+
+    const alreadyAssigned = new Set(
+      get().assignments.map((a) => a.client_id)
+    );
+
+    const rows: {
+      campaign_id: string;
+      client_id: string;
+      assigned_to: string;
+      assigned_by: string;
+      branch_id: string;
+    }[] = [];
+    const rrIndex = new Map<string, number>();
+    let skippedNoBranch = 0;
+    let skippedNoVendor = 0;
+
+    for (const client of clients) {
+      if (alreadyAssigned.has(client.id)) continue;
+      if (!client.branch_id) {
+        skippedNoBranch++;
+        continue;
+      }
+      const branchVendedores = vendedoresByBranch.get(client.branch_id);
+      if (!branchVendedores || branchVendedores.length === 0) {
+        skippedNoVendor++;
+        continue;
+      }
+      const i = rrIndex.get(client.branch_id) ?? 0;
+      const assignedTo = branchVendedores[i % branchVendedores.length];
+      rrIndex.set(client.branch_id, i + 1);
+
+      rows.push({
+        campaign_id: campaignId,
+        client_id: client.id,
+        assigned_to: assignedTo,
+        assigned_by: user.id,
+        branch_id: client.branch_id,
+      });
+    }
+
+    if (rows.length === 0) {
+      return { assigned: 0, skippedNoBranch, skippedNoVendor };
+    }
+
+    const { data, error } = await supabase
+      .from('client_assignments')
+      .upsert(rows, { onConflict: 'campaign_id,client_id,assigned_to' })
+      .select('*, client:clients(*)');
+
+    if (error) {
+      set({ error: error.message });
+      return null;
+    }
+
+    const created = (data as ClientAssignmentWithClient[]) ?? [];
+    set((state) => ({
+      assignments: [
+        ...created,
+        ...state.assignments.filter((a) => !created.some((c) => c.id === a.id)),
+      ],
+    }));
+
+    return { assigned: created.length, skippedNoBranch, skippedNoVendor };
   },
 
   updateAssignmentStatus: async (
