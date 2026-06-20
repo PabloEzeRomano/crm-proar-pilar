@@ -15,6 +15,17 @@ Token Efficient Rules
 7. Keep solutions simple and direct.
 8. User instructions always override this file.
 
+## Database / Migrations & Seeds
+
+- Every seed/migration must be **idempotent** and safe to re-run.
+- Before handing over any seed/`INSERT ... WHERE NOT EXISTS`/upsert, account for **real existing data**: pre-existing rows may have NULL or differently-cased values in the column you key on. Match on a normalized key (e.g. `lower(trim(name))`) when the natural key (like `code`) can be NULL on legacy rows — otherwise you create duplicates.
+- State the dedup/idempotency key explicitly and verify it against the current table contents before declaring the script done.
+
+## Editing Discipline
+
+- Remove or rewrite only what was explicitly requested. When trimming files (READMEs, configs), preserve unrelated sections unless told otherwise.
+- Stage only files explicitly intended for a commit — never blanket `git add -A`/`git add .`.
+
 # CRM Proar Pilar — Claude Code Instructions
 
 ## Project Overview

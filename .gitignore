@@ -3,6 +3,10 @@
 # dependencies
 node_modules/
 
+# secrets / local-only
+**/credentials.json
+/supabase/seeds/
+
 # Expo
 .expo/
 dist/
