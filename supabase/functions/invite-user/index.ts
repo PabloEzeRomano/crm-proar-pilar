@@ -299,18 +299,9 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
-    // Resend secrets must be present before we attempt to send a custom email.
+    // Resend secrets — only required for the Sensei (custom email) path.
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
     const mailFromAddress = Deno.env.get('MAIL_FROM_ADDRESS');
-    if (!resendApiKey || !mailFromAddress) {
-      return jsonResponse(
-        {
-          error:
-            'Email is not configured: set RESEND_API_KEY and MAIL_FROM_ADDRESS secrets',
-        },
-        500
-      );
-    }
 
     // ── 1. Authenticate caller ──────────────────────────────────────────────
 
@@ -362,6 +353,15 @@ Deno.serve(async (req) => {
     if (!callerProfile.company_id) {
       return jsonResponse({ error: 'Caller has no company assigned' }, 403);
     }
+
+    // App variant: Sensei (campaign-management) sends a custom Resend email;
+    // other apps (Proar / field-sales) keep Supabase's built-in invite email.
+    const { data: companyCfg } = await adminClient
+      .from('company_config')
+      .select('crm_type')
+      .eq('company_id', callerProfile.company_id)
+      .single<{ crm_type: string }>();
+    const isSensei = companyCfg?.crm_type === 'campaign-management';
 
     // ── 4. Parse and validate request body ─────────────────────────────────
 
@@ -427,7 +427,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── 6. Generate invite link (no built-in email) ────────────────────────
+    // ── 6. Send the invite ─────────────────────────────────────────────────
 
     // needs_password lets the app force the password-setup screen on first
     // sign-in regardless of the auth flow (token / PKCE code / callback).
@@ -437,24 +437,99 @@ Deno.serve(async (req) => {
       needs_password: true,
     };
 
-    let { actionLink, userId, error: linkErr } = await generateInviteLink(
-      adminClient,
-      email,
-      inviteMeta,
-      safeRedirectTo
-    );
+    // ── 6a. Sensei: custom-styled email via Resend (no built-in email) ─────
+    if (isSensei) {
+      if (!resendApiKey || !mailFromAddress) {
+        return jsonResponse(
+          {
+            error:
+              'Email is not configured: set RESEND_API_KEY and MAIL_FROM_ADDRESS secrets',
+          },
+          500
+        );
+      }
 
-    if (linkErr) {
-      const lower = linkErr.toLowerCase();
+      let { actionLink, userId, error: linkErr } = await generateInviteLink(
+        adminClient,
+        email,
+        inviteMeta,
+        safeRedirectTo
+      );
+
+      if (linkErr) {
+        const lower = linkErr.toLowerCase();
+        const alreadyExists =
+          lower.includes('already') ||
+          lower.includes('registered') ||
+          lower.includes('exists');
+
+        if (alreadyExists) {
+          const existing = await findUserByEmail(adminClient, email);
+          const isPending =
+            !!existing &&
+            !existing.email_confirmed_at &&
+            !existing.last_sign_in_at;
+
+          if (existing && isPending) {
+            await adminClient.auth.admin.deleteUser(existing.id);
+            ({ actionLink, userId, error: linkErr } = await generateInviteLink(
+              adminClient,
+              email,
+              inviteMeta,
+              safeRedirectTo
+            ));
+            if (linkErr) return jsonResponse({ error: linkErr }, 422);
+          } else {
+            return jsonResponse(
+              { error: 'A user with this email already exists' },
+              422
+            );
+          }
+        } else {
+          return jsonResponse({ error: linkErr }, 422);
+        }
+      }
+
+      if (!actionLink) {
+        return jsonResponse({ error: 'Failed to generate invite link' }, 422);
+      }
+
+      try {
+        await sendInviteEmail(email, actionLink, resendApiKey, mailFromAddress);
+      } catch (sendErr: unknown) {
+        const sendMsg =
+          sendErr instanceof Error ? sendErr.message : String(sendErr);
+        console.error('invite-user email send error:', sendMsg);
+        return jsonResponse(
+          { error: `Failed to send invite email: ${sendMsg}` },
+          502
+        );
+      }
+
+      return jsonResponse({
+        ok: true,
+        invited_user_id: userId,
+        email,
+        role,
+        company_id: callerProfile.company_id,
+      });
+    }
+
+    // ── 6b. Other apps (Proar / field-sales): Supabase built-in invite email ─
+    let { data: inviteData, error: inviteErr } =
+      await adminClient.auth.admin.inviteUserByEmail(email, {
+        data: inviteMeta,
+        redirectTo: safeRedirectTo,
+      });
+
+    if (inviteErr) {
+      const lower = inviteErr.message.toLowerCase();
       const alreadyExists =
         lower.includes('already') ||
         lower.includes('registered') ||
         lower.includes('exists');
 
       if (alreadyExists) {
-        // The email exists. If it's a pending invite that was never accepted
-        // (unconfirmed + never signed in), it's safe to delete and regenerate
-        // the link. An active (confirmed) user is rejected.
         const existing = await findUserByEmail(adminClient, email);
         const isPending =
           !!existing &&
@@ -463,51 +538,25 @@ Deno.serve(async (req) => {
 
         if (existing && isPending) {
           await adminClient.auth.admin.deleteUser(existing.id);
-          ({
-            actionLink,
-            userId,
-            error: linkErr,
-          } = await generateInviteLink(
-            adminClient,
-            email,
-            inviteMeta,
-            safeRedirectTo
-          ));
-          if (linkErr) {
-            return jsonResponse({ error: linkErr }, 422);
+          ({ data: inviteData, error: inviteErr } =
+            await adminClient.auth.admin.inviteUserByEmail(email, {
+              data: inviteMeta,
+              redirectTo: safeRedirectTo,
+            }));
+          if (inviteErr) {
+            return jsonResponse({ error: inviteErr.message }, 422);
           }
         } else {
-          return jsonResponse(
-            { error: 'A user with this email already exists' },
-            422
-          );
+          return jsonResponse({ error: inviteErr.message }, 422);
         }
       } else {
-        return jsonResponse({ error: linkErr }, 422);
+        return jsonResponse({ error: inviteErr.message }, 422);
       }
-    }
-
-    if (!actionLink) {
-      return jsonResponse({ error: 'Failed to generate invite link' }, 422);
-    }
-
-    // ── 7. Send custom invite email via Resend ─────────────────────────────
-
-    try {
-      await sendInviteEmail(email, actionLink, resendApiKey, mailFromAddress);
-    } catch (sendErr: unknown) {
-      const sendMsg =
-        sendErr instanceof Error ? sendErr.message : String(sendErr);
-      console.error('invite-user email send error:', sendMsg);
-      return jsonResponse(
-        { error: `Failed to send invite email: ${sendMsg}` },
-        502
-      );
     }
 
     return jsonResponse({
       ok: true,
-      invited_user_id: userId,
+      invited_user_id: inviteData?.user?.id,
       email,
       role,
       company_id: callerProfile.company_id,
