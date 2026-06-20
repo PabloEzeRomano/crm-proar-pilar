@@ -28,7 +28,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
 import * as Linking from 'expo-linking';
 
-import { colors } from '@/constants/theme';
+import { CoreThemeProvider } from '@crm/core';
+
+import { colors, coreTheme } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { useClientsStore } from '@/stores/clientsStore';
@@ -430,13 +432,13 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <CoreThemeProvider theme={coreTheme}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
       </Stack>
       <TourOverlay />
-    </>
+    </CoreThemeProvider>
   );
 }
 

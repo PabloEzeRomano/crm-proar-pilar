@@ -6,6 +6,8 @@
  * Components must consume values from this file; never use magic numbers.
  */
 
+import type { Theme } from '@crm/core';
+
 import { brand } from './brand';
 
 // ---------------------------------------------------------------------------
@@ -164,6 +166,15 @@ export const borderRadius = {
   xl2: 18,
   full: 9999,
 } as const;
+
+/** Tokens passed to <CoreThemeProvider> for shared @crm/core components. */
+export const coreTheme: Theme = {
+  colors,
+  spacing,
+  fontSize,
+  fontWeight,
+  borderRadius,
+};
 
 // ---------------------------------------------------------------------------
 // Shadows

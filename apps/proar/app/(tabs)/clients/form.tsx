@@ -35,7 +35,7 @@ import { useClients } from '@/hooks/useClients';
 import { useClientsStore } from '@/stores/clientsStore';
 import { useLookupsStore } from '@/stores/lookupsStore';
 import { useProductsStore } from '@/stores/productsStore';
-import SearchableSelect from '@/components/ui/SearchableSelect';
+import { SearchableSelect } from '@crm/core';
 import {
   createClientSchema,
   updateClientSchema,

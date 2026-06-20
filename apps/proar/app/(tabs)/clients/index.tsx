@@ -24,7 +24,7 @@ import TourStep from '@/components/tour/TourStep';
 import { useClients, ClientSortOrder } from '@/hooks/useClients';
 import { useClientsStore } from '@/stores/clientsStore';
 import { useLookupsStore } from '@/stores/lookupsStore';
-import SearchableSelect from '@/components/ui/SearchableSelect';
+import { SearchableSelect } from '@crm/core';
 import dayjs from '@/lib/dayjs';
 import {
   borderRadius,
