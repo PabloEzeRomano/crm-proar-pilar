@@ -16,6 +16,7 @@ export default function SettingsLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: 'Ajustes' }} />
+      <Stack.Screen name="import" options={{ title: 'Importar datos' }} />
     </Stack>
   );
 }

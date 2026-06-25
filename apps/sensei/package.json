@@ -12,10 +12,15 @@
     "web": "expo start --web",
     "build:web": "expo export --platform web",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "import:clientes": "npx tsx scripts/import-clientes.ts",
+    "import:clientes:dry": "npx tsx scripts/import-clientes.ts --dry-run",
+    "import:empleados": "npx tsx scripts/import-empleados.ts",
+    "import:empleados:dry": "npx tsx scripts/import-empleados.ts --dry-run"
   },
   "dependencies": {
     "@crm/core": "*",
+    "xlsx": "^0.18.5",
     "expo-linking": "~55.0.7",
     "react-native-safe-area-context": "5.6.2",
     "react-native-screens": "4.23.0",
@@ -24,6 +29,10 @@
     "react": "19.2.0",
     "react-native": "0.83.2"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.49.8",
+    "dotenv": "^17.3.1",
+    "tsx": "^4.21.0"
+  },
   "private": true
 }

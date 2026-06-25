@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { brand } from '@/constants/brand';
 import {
@@ -13,9 +14,12 @@ import { showConfirm } from '@/lib/dialog';
 import { useAuthStore } from '@/stores/authStore';
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
   const signOut = useAuthStore((s) => s.signOut);
+
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'root';
 
   async function handleSignOut() {
     const ok = await showConfirm({
@@ -45,6 +49,24 @@ export default function SettingsScreen() {
           </Text>
         </View>
       </View>
+
+      {isAdmin && Platform.OS === 'web' && (
+        <>
+          <Text style={[styles.sectionHeader, { marginTop: spacing[6] }]}>
+            ADMINISTRACIÓN
+          </Text>
+          <View style={styles.section}>
+            <Pressable
+              style={styles.row}
+              onPress={() => router.push('/(tabs)/settings/import')}
+              accessibilityRole="button"
+            >
+              <Text style={styles.rowLabel}>Importar datos</Text>
+              <Text style={styles.rowValue}>Excel →</Text>
+            </Pressable>
+          </View>
+        </>
+      )}
 
       <View style={styles.signOutWrapper}>
         <Pressable
