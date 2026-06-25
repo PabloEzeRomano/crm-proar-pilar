@@ -240,7 +240,7 @@ export default function SearchableSelect({
           {/* Options list */}
           <FlatList
             data={filteredOptions}
-            keyExtractor={(item) => item}
+            keyExtractor={(item, index) => `${item}-${index}`}
             style={styles.optionList}
             keyboardShouldPersistTaps="handled"
             renderItem={({ item }) => (
