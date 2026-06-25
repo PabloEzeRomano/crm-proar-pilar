@@ -259,27 +259,22 @@ export default function NewInteractionScreen() {
         {/* Client picker */}
         <View style={styles.field}>
           <Text style={styles.label}>Cliente *</Text>
-          <View style={styles.pickerRow}>
-            {clients.slice(0, 20).map((c) => (
-              <Pressable
-                key={c.id}
-                style={[styles.chip, clientId === c.id && styles.chipActive]}
-                onPress={() => setClientId(c.id)}
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    clientId === c.id && styles.chipTextActive,
-                  ]}
-                >
-                  {c.name}
-                </Text>
-              </Pressable>
-            ))}
-            {clients.length > 20 && (
-              <Text style={styles.moreText}>+{clients.length - 20} más</Text>
-            )}
-          </View>
+          <SearchableSelect
+            label="Cliente"
+            placeholder="Buscar cliente..."
+            options={clients.map((c) => c.name)}
+            selected={
+              clientId
+                ? [clients.find((c) => c.id === clientId)?.name ?? ''].filter(
+                    Boolean
+                  )
+                : []
+            }
+            onChange={(names) => {
+              const found = clients.find((c) => c.name === names[0]);
+              setClientId(found?.id ?? '');
+            }}
+          />
         </View>
 
         {/* Channel */}
@@ -499,11 +494,6 @@ const styles = StyleSheet.create({
   chipTextActive: {
     color: colors.textOnPrimary,
     fontWeight: fontWeight.semibold,
-  },
-  moreText: {
-    fontSize: fontSize.sm,
-    color: colors.textDisabled,
-    alignSelf: 'center',
   },
   errorText: { color: colors.error, fontSize: fontSize.sm },
   button: {
