@@ -83,7 +83,7 @@ export const useUsersStore = create<UsersState>()((set) => ({
     // app that issued the invite (e.g. localhost during dev) instead of the
     // project's default Site URL (prod). Native has no origin → undefined.
     const redirectTo =
-      typeof window !== 'undefined' ? window.location.origin : undefined;
+      typeof window !== 'undefined' ? window.location.origin + '/' : undefined;
 
     const { error } = await supabase.functions.invoke('invite-user', {
       body: { email, role, redirectTo },

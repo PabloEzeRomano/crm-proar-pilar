@@ -391,6 +391,14 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Admin can only invite users (not other admins); only root can invite admins.
+    if (callerProfile.role === 'admin' && role === 'admin') {
+      return jsonResponse(
+        { error: 'Forbidden: only root can invite admins' },
+        403
+      );
+    }
+
     // ── 5. Seat limit check (skip for root) ────────────────────────────────
 
     if (callerProfile.role !== 'root') {
