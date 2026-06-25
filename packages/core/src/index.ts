@@ -2,7 +2,7 @@
 
 // Lib
 export { supabase } from './lib/supabase';
-export { default as dayjs } from './lib/dayjs';
+export { default as dayjs, fromUTC } from './lib/dayjs';
 
 // Stores
 export { useAuthStore } from './stores/authStore';

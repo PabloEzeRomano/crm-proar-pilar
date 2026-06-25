@@ -147,9 +147,12 @@ export const useVisitsStore = create<VisitsState>()(
 
         const incoming = data as VisitWithClient[];
         set((state) => {
-          // Merge: replace any existing visits for this client, keep the rest
-          const others = state.visits.filter((v) => v.client_id !== clientId);
-          return { visits: [...others, ...incoming] };
+          const othersVisits = state.visits.filter((v) => v.client_id !== clientId);
+          const othersAll = state.allVisits.filter((v) => v.client_id !== clientId);
+          return {
+            visits: [...othersVisits, ...incoming],
+            allVisits: [...othersAll, ...incoming],
+          };
         });
       },
 
@@ -320,7 +323,10 @@ export const useVisitsStore = create<VisitsState>()(
           }
         }
 
-        set((state) => ({ visits: [newVisit, ...state.visits] }));
+        set((state) => ({
+          visits: [newVisit, ...state.visits],
+          allVisits: [newVisit, ...state.allVisits],
+        }));
 
         // Refresh client so last_visited_at updates (DB trigger fired)
         useClientsStore.getState().fetchClient((data.client_id as string) ?? '');
@@ -419,6 +425,7 @@ export const useVisitsStore = create<VisitsState>()(
 
         set((state) => ({
           visits: state.visits.map((v) => (v.id === id ? updatedVisit : v)),
+          allVisits: state.allVisits.map((v) => (v.id === id ? updatedVisit : v)),
         }));
 
         // Refresh client so last_visited_at updates (DB trigger fired)
@@ -465,6 +472,7 @@ export const useVisitsStore = create<VisitsState>()(
 
         set((state) => ({
           visits: state.visits.map((v) => (v.id === id ? updatedVisit : v)),
+          allVisits: state.allVisits.map((v) => (v.id === id ? updatedVisit : v)),
         }));
 
         // Refresh client so last_visited_at updates (DB trigger fired)
@@ -499,6 +507,7 @@ export const useVisitsStore = create<VisitsState>()(
           deleting: false,
           deleteError: null,
           visits: state.visits.filter((v) => v.id !== id),
+          allVisits: state.allVisits.filter((v) => v.id !== id),
         }));
 
         // Refresh client so last_visited_at updates (DB trigger fired)

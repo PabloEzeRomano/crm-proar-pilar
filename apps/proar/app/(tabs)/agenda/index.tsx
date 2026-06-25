@@ -22,6 +22,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -42,7 +44,7 @@ import {
   visitTypeColors,
 } from '@/constants/theme';
 import { useToday } from '@/hooks/useToday';
-import dayjs from '@/lib/dayjs';
+import dayjs, { fromUTC } from '@/lib/dayjs';
 import { useAuthStore } from '@/stores/authStore';
 import { TodaySpan } from '@/stores/todayStore';
 import { VisitWithClient } from '@/types';
@@ -78,15 +80,25 @@ function GroupVisitRow({
   onPress: () => void;
   showOwner: boolean;
 }) {
-  const scheduledDayjs = dayjs(visit.scheduled_at);
+  const scheduledDayjs = fromUTC(visit.scheduled_at);
   const isCompleted = visit.status === 'completed';
   const isCanceled = visit.status === 'canceled';
   const isPendingOverdue =
     visit.status === 'pending' && scheduledDayjs.isBefore(dayjs());
   const rowOpacity = isCompleted ? 0.5 : isCanceled ? 0.4 : 1;
   const timeColor = isPendingOverdue ? colors.warning : colors.textPrimary;
+  const isWeb = Platform.OS === 'web';
+  const [minutaVisible, setMinutaVisible] = useState(false);
+
+  const notesSnippet =
+    isWeb && visit.notes
+      ? visit.notes.length > 180
+        ? visit.notes.slice(0, 200) + '...'
+        : visit.notes
+      : null;
 
   return (
+    <>
     <Pressable
       style={({ pressed }) => [
         groupStyles.row,
@@ -94,10 +106,14 @@ function GroupVisitRow({
         { opacity: rowOpacity, borderLeftColor: visitTypeColors[visit.type] },
       ]}
       onPress={onPress}
+      onLongPress={visit.notes ? () => setMinutaVisible(true) : undefined}
       accessibilityRole="button"
       accessibilityLabel={`Ver gestión de ${clientName}`}
     >
       <View style={groupStyles.timeCol}>
+        <Text style={groupStyles.dayText}>
+          {scheduledDayjs.format('ddd').toUpperCase()}
+        </Text>
         <Text style={groupStyles.dateText}>
           {scheduledDayjs.format('DD/MM')}
         </Text>
@@ -105,7 +121,7 @@ function GroupVisitRow({
           {scheduledDayjs.format('HH:mm')}
         </Text>
       </View>
-      <View style={groupStyles.infoCol}>
+      <View style={[groupStyles.infoCol, isWeb && groupStyles.infoColWeb]}>
         {visit.title ? (
           <Text style={groupStyles.titleText} numberOfLines={1}>
             {visit.title}
@@ -121,12 +137,47 @@ function GroupVisitRow({
             {visit.owner.full_name}
           </Text>
         ) : null}
+        {notesSnippet ? (
+          <Text style={groupStyles.notesText} numberOfLines={3}>
+            {notesSnippet}
+          </Text>
+        ) : null}
       </View>
       <View style={groupStyles.badgeCol}>
         <StatusTypeBadge type={visit.type} />
         <StatusTypeBadge status={visit.status} type={visit.type} />
       </View>
     </Pressable>
+
+    {!isWeb && (
+      <Modal
+        visible={minutaVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMinutaVisible(false)}
+      >
+        <Pressable
+          style={groupStyles.minutaOverlay}
+          onPress={() => setMinutaVisible(false)}
+        >
+          <View style={groupStyles.minutaSheet}>
+            <Text style={groupStyles.minutaHeader}>
+              {clientName} · {scheduledDayjs.format('DD/MM HH:mm')}
+            </Text>
+            <ScrollView style={groupStyles.minutaScroll}>
+              <Text style={groupStyles.minutaBody}>{visit.notes}</Text>
+            </ScrollView>
+            <Pressable
+              style={groupStyles.minutaClose}
+              onPress={() => setMinutaVisible(false)}
+            >
+              <Text style={groupStyles.minutaCloseText}>Cerrar</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
+    )}
+    </>
   );
 }
 
@@ -140,6 +191,8 @@ function ClientGroupCard({
   showOwner: boolean;
 }) {
   const client = visits[0].client;
+  const isThread = Boolean(visits[0].thread_id);
+  const threadTitle = isThread ? visits[0].title : null;
   const pending = visits.filter((v) => v.status === 'pending');
   const completed = visits.filter((v) => v.status !== 'pending');
   const [expanded, setExpanded] = useState(false);
@@ -148,13 +201,20 @@ function ClientGroupCard({
     <View style={groupStyles.card}>
       <View style={groupStyles.header}>
         <MaterialCommunityIcons
-          name="domain"
+          name={isThread ? 'label-outline' : 'domain'}
           size={16}
           color={colors.textSecondary}
         />
-        <Text style={groupStyles.clientName} numberOfLines={1}>
-          {client.name}
-        </Text>
+        <View style={groupStyles.headerTextCol}>
+          <Text style={groupStyles.clientName} numberOfLines={1}>
+            {client.name}
+          </Text>
+          {threadTitle ? (
+            <Text style={groupStyles.threadTitle} numberOfLines={1}>
+              {threadTitle}
+            </Text>
+          ) : null}
+        </View>
         <View style={groupStyles.countPill}>
           <Text style={groupStyles.countPillText}>
             {visits.length} gest.
@@ -230,11 +290,19 @@ const groupStyles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  clientName: {
+  headerTextCol: {
     flex: 1,
+    gap: 2,
+  },
+  clientName: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.bold,
     color: colors.textPrimary,
+  },
+  threadTitle: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
   },
   countPill: {
     backgroundColor: colors.primary,
@@ -265,6 +333,11 @@ const groupStyles = StyleSheet.create({
     flexShrink: 0,
     gap: 2,
   },
+  dayText: {
+    fontSize: 10,
+    fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
+  },
   dateText: {
     fontSize: fontSize.xs,
     fontWeight: fontWeight.medium,
@@ -277,6 +350,15 @@ const groupStyles = StyleSheet.create({
   infoCol: {
     flex: 1,
     gap: 2,
+  },
+  infoColWeb: {
+    flex: 2,
+  },
+  notesText: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    lineHeight: fontSize.xs * 1.5,
+    marginTop: 2,
   },
   titleText: {
     fontSize: fontSize.sm,
@@ -311,6 +393,44 @@ const groupStyles = StyleSheet.create({
     fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
+  minutaOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  minutaSheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: spacing[5],
+    maxHeight: '70%',
+    gap: spacing[3],
+  },
+  minutaHeader: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    color: colors.textSecondary,
+  },
+  minutaScroll: {
+    flexGrow: 0,
+  },
+  minutaBody: {
+    fontSize: fontSize.base,
+    color: colors.textPrimary,
+    lineHeight: fontSize.base * 1.6,
+  },
+  minutaClose: {
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+  },
+  minutaCloseText: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.primary,
+  },
 });
 
 // ---------------------------------------------------------------------------
@@ -336,12 +456,17 @@ function TodayScreenContent() {
   } = useToday(isAdminOrRoot);
 
   const PROGRESS_KEY = 'agenda-progress-visible';
+  const HERO_KEY = 'agenda-hero-visible';
   const [progressVisible, setProgressVisible] = useState(true);
+  const [heroVisible, setHeroVisible] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
       AsyncStorage.getItem(PROGRESS_KEY).then((val) => {
         setProgressVisible(val !== 'false');
+      });
+      AsyncStorage.getItem(HERO_KEY).then((val) => {
+        setHeroVisible(val !== 'false');
       });
     }, [])
   );
@@ -349,6 +474,11 @@ function TodayScreenContent() {
   function handleDismissProgress() {
     setProgressVisible(false);
     AsyncStorage.setItem(PROGRESS_KEY, 'false');
+  }
+
+  function handleDismissHero() {
+    setHeroVisible(false);
+    AsyncStorage.setItem(HERO_KEY, 'false');
   }
 
   // ── Auto-refresh while screen is focused ────────────────────────────────
@@ -437,7 +567,7 @@ function TodayScreenContent() {
   // (so the countdown stays accurate within the 60s refresh cycle)
   const liveMinutesUntilNext = useMemo<number | null>(() => {
     if (!nextVisit) return null;
-    return dayjs(nextVisit.scheduled_at).diff(dayjs(), 'minute');
+    return fromUTC(nextVisit.scheduled_at).diff(dayjs(), 'minute');
   }, [nextVisit]);
   // Note: this is intentionally recalculated on each render, not only when
   // nextVisit changes. The dependency on nextVisit is still correct —
@@ -446,7 +576,7 @@ function TodayScreenContent() {
   // ── Derived strings for next-visit card ─────────────────────────────────
   const nextVisitTimeLabel = useMemo<string>(() => {
     if (!nextVisit) return '';
-    return dayjs(nextVisit.scheduled_at).format('HH:mm');
+    return fromUTC(nextVisit.scheduled_at).format('HH:mm');
   }, [nextVisit]);
 
   const nextVisitCountdownLabel = useMemo<string>(() => {
@@ -472,13 +602,20 @@ function TodayScreenContent() {
   const progressPct =
     totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  // ── Group visits by client ────────────────────────────────────────────
+  // ── Group visits by thread (when set) or by client ───────────────────
   const groupedVisits = useMemo(() => {
     const groups = new Map<string, VisitWithClient[]>();
     for (const visit of visits) {
-      const key = visit.client_id;
+      // Threaded visits group under their thread_id; solo visits group by client
+      const key = visit.thread_id ?? visit.client_id;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(visit);
+    }
+    // Sort visits within each group chronologically
+    for (const group of groups.values()) {
+      group.sort((a, b) =>
+        dayjs(a.scheduled_at).diff(dayjs(b.scheduled_at))
+      );
     }
     return Array.from(groups.values()).sort((a, b) => {
       const aFirst = a[0];
@@ -823,14 +960,33 @@ function TodayScreenContent() {
         )}
 
         {/* ── Tour step 2: Next appointment card ── */}
-        <TourStep
-          order={2}
-          text="Tu próxima gestión pendiente aparece acá. Muestra el cliente, la hora y el tiempo restante. Tocá para ver los detalles y agregar notas."
-          borderRadius={borderRadius.lg}
-          routePath="/(tabs)/agenda"
-        >
-          <View style={styles.section}>{renderNextCard()}</View>
-        </TourStep>
+        {heroVisible && (
+          <TourStep
+            order={2}
+            text="Tu próxima gestión pendiente aparece acá. Muestra el cliente, la hora y el tiempo restante. Tocá para ver los detalles y agregar notas."
+            borderRadius={borderRadius.lg}
+            routePath="/(tabs)/agenda"
+          >
+            <View style={styles.section}>
+              <View style={styles.heroDismissWrapper}>
+                {renderNextCard()}
+                <Pressable
+                  onPress={handleDismissHero}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={styles.heroDismiss}
+                  accessibilityRole="button"
+                  accessibilityLabel="Ocultar próxima gestión"
+                >
+                  <MaterialCommunityIcons
+                    name="close"
+                    size={16}
+                    color={colors.textSecondary}
+                  />
+                </Pressable>
+              </View>
+            </View>
+          </TourStep>
+        )}
 
         {/* Visit list */}
         <View style={styles.section}>
@@ -864,7 +1020,7 @@ function TodayScreenContent() {
                   renderVisitRow(group[0])
                 ) : (
                   <ClientGroupCard
-                    key={group[0].client_id}
+                    key={group[0].thread_id ?? group[0].client_id}
                     visits={group}
                     onVisitPress={handleVisitPress}
                     showOwner={isAdminOrRoot}
@@ -1079,6 +1235,19 @@ const styles = StyleSheet.create({
     height: 24,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  heroDismissWrapper: {
+    position: 'relative',
+  },
+  heroDismiss: {
+    position: 'absolute',
+    top: spacing[2],
+    right: spacing[2],
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
   },
 
   // ── Next appointment card — stories 6.5 + 6.6 ────────────────────────────

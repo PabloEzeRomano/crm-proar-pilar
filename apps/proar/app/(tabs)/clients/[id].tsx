@@ -13,8 +13,8 @@
  *   - Visits history: up to 10 most recent visits with StatusBadge and notes preview
  */
 
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -26,7 +26,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { VisitRow } from '@/components/visits/VisitRow';
@@ -40,11 +39,9 @@ import {
 } from '@/constants/theme';
 import { useVisits } from '@/hooks/useVisits';
 import dayjs from '@/lib/dayjs';
-import { showActionSheet, showAlert, showConfirm } from '@/lib/dialog';
+import { showActionSheet, showConfirm } from '@/lib/dialog';
 import { useAuthStore } from '@/stores/authStore';
 import { useClientsStore } from '@/stores/clientsStore';
-import { useVisitsStore } from '@/stores/visitsStore';
-import { useTodayStore } from '@/stores/todayStore';
 import { useProductsStore } from '@/stores/productsStore';
 import { ClientProduct, Product, VisitWithClient } from '@/types';
 
@@ -150,12 +147,14 @@ export default function ClientDetailScreen() {
         (p.code && p.code.toLowerCase().includes(productSearch.toLowerCase()))
     );
 
-  useEffect(() => {
-    if (id) {
-      fetchVisitsByClient(id);
-      fetchClientProducts(id);
-    }
-  }, [id]);
+  useFocusEffect(
+    useCallback(() => {
+      if (id) {
+        fetchVisitsByClient(id);
+        fetchClientProducts(id);
+      }
+    }, [id])
+  );
 
   // Fetch client if not in store
   useEffect(() => {
@@ -187,16 +186,6 @@ export default function ClientDetailScreen() {
     });
   }, [client, id, isOwner, navigation, router]);
 
-  // "Visitar hoy" button state
-  const [visitarHoyLoading, setVisitarHoyLoading] = useState(false);
-  const createVisit = useVisitsStore((state) => state.createVisit);
-  const todayVisits = useTodayStore((state) => state.visits);
-  const fetchTodayVisits = useTodayStore((state) => state.fetchTodayVisits);
-
-  // Find today's visit for this client (if it exists)
-  const todayVisit = todayVisits.find(
-    (v) => v.client_id === id && dayjs(v.scheduled_at).isSame(dayjs(), 'day')
-  );
 
   async function handleArchiveClient() {
     const ok = await showConfirm({
@@ -211,48 +200,6 @@ export default function ClientDetailScreen() {
     router.back();
   }
 
-  const handleVisitarHoy = async () => {
-    if (!id) return;
-
-    setVisitarHoyLoading(true);
-    try {
-      // Read gap preference from AsyncStorage
-      const gapStr = await AsyncStorage.getItem('visit-gap-minutes');
-      const gap = gapStr ? Number(gapStr) : 60;
-
-      // Compute smart time: latest visit in today's list + gap, fallback to 10:00
-      let smartTime = dayjs().hour(10).minute(0).second(0);
-      const todayList = todayVisits.filter((v) =>
-        dayjs(v.scheduled_at).isSame(dayjs(), 'day')
-      );
-      if (todayList.length > 0) {
-        const latest = todayList.reduce((a, b) =>
-          a.scheduled_at > b.scheduled_at ? a : b
-        );
-        smartTime = dayjs(latest.scheduled_at).add(gap, 'minute');
-      }
-
-      // Create visit
-      const newVisit = await createVisit({
-        client_id: id,
-        scheduled_at: smartTime.toISOString(),
-        status: 'pending',
-        notes: undefined,
-      });
-
-      if (newVisit) {
-        // Refresh today's visits and navigate
-        await fetchTodayVisits();
-        router.push(`/clients/visits/${newVisit.id}`);
-      } else {
-        showAlert('Error', 'No se pudo crear la gestión');
-      }
-    } catch {
-      showAlert('Error', 'Ocurrió un error al crear la gestión');
-    } finally {
-      setVisitarHoyLoading(false);
-    }
-  };
 
   // -------------------------------------------------------------------------
   // Not found
@@ -424,25 +371,6 @@ export default function ClientDetailScreen() {
               <Text style={styles.quickActionLabel}>Navegar</Text>
             </Pressable>
           ) : null}
-          {isOwner ? (
-            <Pressable
-              style={styles.quickActionBtn}
-              onPress={() => router.push(`/clients/visits/form?clientId=${id}`)}
-              accessibilityRole="button"
-              accessibilityLabel="Agendar gestión"
-            >
-              <View
-                style={[styles.quickActionIcon, { backgroundColor: '#EDE9FE' }]}
-              >
-                <MaterialCommunityIcons
-                  name="calendar-plus"
-                  size={18}
-                  color="#7C3AED"
-                />
-              </View>
-              <Text style={styles.quickActionLabel}>Agendar</Text>
-            </Pressable>
-          ) : null}
         </View>
 
         {/* ── Sección: Contacto ────────────────────────────────────────── */}
@@ -592,50 +520,6 @@ export default function ClientDetailScreen() {
         <View style={styles.section}>
           <SectionHeader title="Historial de gestiones" />
 
-          {/* Visitar hoy / Ver gestión de hoy + Nueva gestión — owner only */}
-          {isOwner && (
-            <>
-              <Pressable
-                style={({ pressed }) => [
-                  styles.newVisitButton,
-                  pressed && styles.newVisitButtonPressed,
-                ]}
-                onPress={
-                  todayVisit
-                    ? () => router.push(`/clients/visits/${todayVisit.id}`)
-                    : handleVisitarHoy
-                }
-                disabled={visitarHoyLoading}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  todayVisit ? 'Ver gestión de hoy' : 'Visitar hoy'
-                }
-              >
-                {visitarHoyLoading ? (
-                  <ActivityIndicator size="small" color={colors.primary} />
-                ) : (
-                  <Text style={styles.newVisitButtonText}>
-                    {todayVisit ? 'Ver gestión de hoy' : 'Visitar hoy'}
-                  </Text>
-                )}
-              </Pressable>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.newVisitButton,
-                  pressed && styles.newVisitButtonPressed,
-                ]}
-                onPress={() =>
-                  router.push(`/clients/visits/form?clientId=${id}`)
-                }
-                accessibilityRole="button"
-                accessibilityLabel="Agregar nueva gestión"
-              >
-                <Text style={styles.newVisitButtonText}>Nueva gestión</Text>
-              </Pressable>
-            </>
-          )}
-
           {/* Visit list — up to 10 most recent (already sorted DESC by store) */}
           {visits.length === 0 ? (
             <Text style={styles.emptyField}>No hay gestiones registradas</Text>
@@ -669,6 +553,18 @@ export default function ClientDetailScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* ── FAB: Nueva gestión — owner only ─────────────────────────── */}
+      {isOwner && (
+        <Pressable
+          style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+          onPress={() => router.push(`/clients/visits/form?clientId=${id}`)}
+          accessibilityRole="button"
+          accessibilityLabel="Nueva gestión"
+        >
+          <MaterialCommunityIcons name="plus" size={28} color="#fff" />
+        </Pressable>
+      )}
 
       {/* ── Product picker modal ─────────────────────────────────────── */}
       <Modal
@@ -1325,5 +1221,26 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
+  },
+
+  // FAB
+  fab: {
+    position: 'absolute',
+    bottom: spacing[6],
+    right: spacing[4],
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  fabPressed: {
+    opacity: 0.85,
   },
 });

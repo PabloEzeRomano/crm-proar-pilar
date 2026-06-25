@@ -8,8 +8,16 @@
  *   Col 4 (fixed)      — type chip + status badge
  */
 
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import dayjs from '@/lib/dayjs';
+import {
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import dayjs, { fromUTC } from '@/lib/dayjs';
 import {
   colors,
   fontSize,
@@ -19,6 +27,7 @@ import {
 } from '@/constants/theme';
 import { StatusTypeBadge } from '@/components/ui/StatusTypeBadge';
 import { VisitWithClient } from '@/types';
+import { useState } from 'react';
 
 export interface VisitRowProps {
   visit: VisitWithClient;
@@ -38,7 +47,8 @@ export function VisitRow({
   showType = true,
   showNotes = true,
 }: VisitRowProps) {
-  const scheduledDayjs = dayjs(visit.scheduled_at);
+  const scheduledDayjs = fromUTC(visit.scheduled_at);
+  const [minutaVisible, setMinutaVisible] = useState(false);
 
   const isCompleted = visit.status === 'completed';
   const isCanceled = visit.status === 'canceled';
@@ -56,12 +66,13 @@ export function VisitRow({
 
   const notesSnippet =
     showNotes && isWeb && visit.notes
-      ? visit.notes.length > 80
-        ? visit.notes.slice(0, 100) + '...'
+      ? visit.notes.length > 180
+        ? visit.notes.slice(0, 200) + '...'
         : visit.notes
       : null;
 
   return (
+    <>
     <Pressable
       style={({ pressed }) => [
         styles.card,
@@ -70,10 +81,14 @@ export function VisitRow({
         isWeb && (webStyle as object),
       ]}
       onPress={onPress}
+      onLongPress={visit.notes ? () => setMinutaVisible(true) : undefined}
       accessibilityRole="button"
       accessibilityLabel={`Ver gestión de ${clientName}`}
     >
       <View style={styles.timeColumn}>
+        <Text style={styles.dayText}>
+          {scheduledDayjs.format('ddd').toUpperCase()}
+        </Text>
         <Text style={styles.dateText}>{scheduledDayjs.format('DD/MM')}</Text>
         <Text style={[styles.timeText, { color: timeColor }]}>
           {scheduledDayjs.format('HH:mm')}
@@ -116,7 +131,7 @@ export function VisitRow({
       {isWeb && (
         <View style={styles.notesColumn}>
           {notesSnippet ? (
-            <Text style={styles.notesText} numberOfLines={2}>
+            <Text style={styles.notesText} numberOfLines={4}>
               {notesSnippet}
             </Text>
           ) : null}
@@ -139,6 +154,37 @@ export function VisitRow({
         <StatusTypeBadge status={visit.status} type={visit.type} />
       </View>
     </Pressable>
+
+    {/* Long-press minuta modal — mobile only */}
+    {!isWeb && (
+      <Modal
+        visible={minutaVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMinutaVisible(false)}
+      >
+        <Pressable
+          style={styles.minutaOverlay}
+          onPress={() => setMinutaVisible(false)}
+        >
+          <View style={styles.minutaSheet}>
+            <Text style={styles.minutaHeader}>
+              {clientName} · {scheduledDayjs.format('DD/MM HH:mm')}
+            </Text>
+            <ScrollView style={styles.minutaScroll}>
+              <Text style={styles.minutaBody}>{visit.notes}</Text>
+            </ScrollView>
+            <Pressable
+              style={styles.minutaClose}
+              onPress={() => setMinutaVisible(false)}
+            >
+              <Text style={styles.minutaCloseText}>Cerrar</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
+    )}
+  </>
   );
 }
 
@@ -170,6 +216,11 @@ const styles = StyleSheet.create({
     width: 48,
     flexShrink: 0,
     gap: spacing[1],
+  },
+  dayText: {
+    fontSize: 10,
+    fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
   },
   dateText: {
     fontSize: fontSize.xs,
@@ -225,5 +276,44 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
+  },
+
+  minutaOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  minutaSheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: spacing[5],
+    maxHeight: '70%',
+    gap: spacing[3],
+  },
+  minutaHeader: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    color: colors.textSecondary,
+  },
+  minutaScroll: {
+    flexGrow: 0,
+  },
+  minutaBody: {
+    fontSize: fontSize.base,
+    color: colors.textPrimary,
+    lineHeight: fontSize.base * 1.6,
+  },
+  minutaClose: {
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+  },
+  minutaCloseText: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.primary,
   },
 });

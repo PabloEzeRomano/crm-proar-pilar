@@ -134,12 +134,17 @@ function SettingsScreenContent() {
 
   // Progress bar visibility
   const PROGRESS_KEY = 'agenda-progress-visible';
+  const HERO_KEY = 'agenda-hero-visible';
   const [progressVisible, setProgressVisible] = useState(true);
+  const [heroVisible, setHeroVisible] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
       AsyncStorage.getItem(PROGRESS_KEY).then((val) => {
         setProgressVisible(val !== 'false');
+      });
+      AsyncStorage.getItem(HERO_KEY).then((val) => {
+        setHeroVisible(val !== 'false');
       });
     }, [])
   );
@@ -147,6 +152,11 @@ function SettingsScreenContent() {
   function handleProgressToggle(val: boolean) {
     setProgressVisible(val);
     AsyncStorage.setItem(PROGRESS_KEY, val ? 'true' : 'false');
+  }
+
+  function handleHeroToggle(val: boolean) {
+    setHeroVisible(val);
+    AsyncStorage.setItem(HERO_KEY, val ? 'true' : 'false');
   }
 
   // Gap between visits (used by visit form to auto-calculate next time)
@@ -519,6 +529,21 @@ function SettingsScreenContent() {
               thumbColor={
                 progressVisible ? colors.primary : colors.textDisabled
               }
+            />
+          </View>
+
+          <View style={[styles.row, styles.rowBorderTop]}>
+            <View style={styles.rowContent}>
+              <Text style={styles.rowLabel}>Próxima gestión</Text>
+              <Text style={styles.rowSubtitle}>
+                Mostrar la tarjeta de próxima gestión en la agenda
+              </Text>
+            </View>
+            <Switch
+              value={heroVisible}
+              onValueChange={handleHeroToggle}
+              trackColor={{ false: colors.border, true: colors.primaryLight }}
+              thumbColor={heroVisible ? colors.primary : colors.textDisabled}
             />
           </View>
         </View>

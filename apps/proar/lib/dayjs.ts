@@ -1,1 +1,1 @@
-export { dayjs as default } from '@crm/core';
+export { dayjs as default, fromUTC } from '@crm/core';

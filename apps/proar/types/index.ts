@@ -38,6 +38,7 @@ export interface Visit {
   title: string | null;
   contact_snapshot: ContactInfo | null;
   notes: string | null;
+  thread_id: string | null;
   notification_id?: string | null;
   amount?: number | null;
   quote_id?: string | null;

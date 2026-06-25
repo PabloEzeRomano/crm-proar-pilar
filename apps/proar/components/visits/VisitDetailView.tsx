@@ -10,7 +10,7 @@
  * Back button behavior is naturally correct in each stack.
  */
 
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -40,7 +40,7 @@ import {
   fontWeight,
   spacing,
 } from '@/constants/theme';
-import dayjs from '@/lib/dayjs';
+import dayjs, { fromUTC } from '@/lib/dayjs';
 
 // ---------------------------------------------------------------------------
 // Save indicator type
@@ -64,6 +64,12 @@ export default function VisitDetailView() {
     : pathname.startsWith('/clients')
       ? `/clients/visits/form?visitId=${id}`
       : `/visits/form?visitId=${id}`;
+
+  const seguimientoFormBase = pathname.startsWith('/agenda')
+    ? '/agenda/visits/form'
+    : pathname.startsWith('/clients')
+      ? '/clients/visits/form'
+      : '/visits/form';
 
   const visit = useVisitsStore((state) =>
     state.visits.find((v) => v.id === id)
@@ -93,10 +99,12 @@ export default function VisitDetailView() {
   const [notesText, setNotesText] = useState<string>(visit?.notes ?? '');
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [statusLoading, setStatusLoading] = useState(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingNotesRef = useRef<string | null>(null);
 
-  // Sync local notes when the store visit changes (e.g. after remote update)
+  // Sync local notes when the store visit changes (only if no pending edit)
   useEffect(() => {
-    if (visit) {
+    if (visit && pendingNotesRef.current === null) {
       setNotesText(visit.notes ?? '');
     }
   }, [visit]);
@@ -140,23 +148,33 @@ export default function VisitDetailView() {
   // Handlers
   // -------------------------------------------------------------------------
 
-  async function handleNotesBlur() {
-    const originalNotes = visit?.notes ?? '';
-    if (notesText === originalNotes) return;
+  function handleNotesChange(text: string) {
+    setNotesText(text);
+    pendingNotesRef.current = text;
 
-    setSaveState('saving');
-    await updateVisit(id, { notes: notesText });
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
 
-    // Check if save was successful
-    if (error) {
-      setSaveState('idle');
-      return;
-    }
+    saveTimerRef.current = setTimeout(async () => {
+      const latest = pendingNotesRef.current ?? text;
+      const originalNotes = useVisitsStore.getState().visits.find((v) => v.id === id)?.notes ?? '';
+      if (latest === originalNotes) {
+        pendingNotesRef.current = null;
+        return;
+      }
 
-    setSaveState('saved');
+      setSaveState('saving');
+      await updateVisit(id, { notes: latest });
 
-    // Reset indicator after 2 seconds
-    setTimeout(() => setSaveState('idle'), 2000);
+      const freshError = useVisitsStore.getState().error;
+      pendingNotesRef.current = null;
+
+      if (freshError) {
+        setSaveState('idle');
+        return;
+      }
+      setSaveState('saved');
+      setTimeout(() => setSaveState('idle'), 2000);
+    }, 1500);
   }
 
   async function handleDelete() {
@@ -185,7 +203,7 @@ export default function VisitDetailView() {
   const clientIndustry = visit.client?.industry ?? null;
   const clientId = visit.client?.id ?? visit.client_id;
 
-  const rawDate = dayjs(visit.scheduled_at).format('dddd D [de] MMMM · HH:mm');
+  const rawDate = fromUTC(visit.scheduled_at).format('dddd D [de] MMMM · HH:mm');
   const formattedDate = rawDate.charAt(0).toUpperCase() + rawDate.slice(1);
 
   // -------------------------------------------------------------------------
@@ -458,8 +476,7 @@ export default function VisitDetailView() {
         <TextInput
           style={styles.notesInput}
           value={notesText}
-          onChangeText={setNotesText}
-          onBlur={handleNotesBlur}
+          onChangeText={handleNotesChange}
           placeholder="Añadir notas de la gestión..."
           placeholderTextColor={colors.textDisabled}
           multiline
@@ -468,6 +485,70 @@ export default function VisitDetailView() {
           accessibilityLabel="Notas de la visita"
         />
       </View>
+
+      {/* ── Seguimiento (solo propietario) ─────────────────────────────── */}
+      {isOwner && visit ? (
+        <View style={styles.section}>
+          {/* Iniciar tema — only when visit has no thread yet */}
+          {!visit.thread_id ? (
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionButton,
+                styles.actionButtonIniciarTema,
+                pressed && styles.actionButtonIniciarTemaPressed,
+              ]}
+              onPress={async () => {
+                await updateVisit(visit.id, { thread_id: visit.id } as any);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Iniciar tema con esta gestión"
+            >
+              <MaterialCommunityIcons
+                name="label-outline"
+                size={18}
+                color={colors.textSecondary}
+              />
+              <Text style={styles.actionButtonIniciarTemaText}>
+                Iniciar tema
+              </Text>
+            </Pressable>
+          ) : null}
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionButton,
+              styles.actionButtonSeguimiento,
+              pressed && styles.actionButtonSeguimientoPressed,
+            ]}
+            onPress={async () => {
+              // Auto-promote if this visit hasn't been added to a thread yet
+              if (!visit.thread_id) {
+                await updateVisit(visit.id, { thread_id: visit.id } as any);
+              }
+              const threadId = visit.thread_id ?? visit.id;
+              const params = new URLSearchParams({
+                clientId: clientId,
+                threadId,
+                prefillTitle: visit.title ?? '',
+                prefillNotes: visit.notes ?? '',
+              });
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              router.push(`${seguimientoFormBase}?${params.toString()}` as any);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Dar seguimiento a esta gestión"
+          >
+            <MaterialCommunityIcons
+              name="arrow-right-circle-outline"
+              size={18}
+              color={colors.primary}
+            />
+            <Text style={styles.actionButtonSeguimientoText}>
+              Dar seguimiento
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {/* ── Eliminar gestión (solo propietario) ────────────────────────── */}
       {isOwner ? (
@@ -819,5 +900,35 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     fontWeight: fontWeight.semibold,
     color: colors.error,
+  },
+  actionButtonIniciarTema: {
+    flexDirection: 'row',
+    gap: 8,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  actionButtonIniciarTemaPressed: {
+    opacity: 0.75,
+  },
+  actionButtonIniciarTemaText: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
+  },
+  actionButtonSeguimiento: {
+    flexDirection: 'row',
+    gap: 8,
+    backgroundColor: colors.primaryLight,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+  },
+  actionButtonSeguimientoPressed: {
+    opacity: 0.75,
+  },
+  actionButtonSeguimientoText: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.primary,
   },
 });

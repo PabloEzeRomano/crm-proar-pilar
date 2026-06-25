@@ -84,7 +84,7 @@ export default function DateTimeInput({
 
           let parsed: Date;
           if (mode === 'date') {
-            parsed = dayjs(raw).toDate();
+            parsed = dayjs(`${raw}T00:00:00`).toDate();
           } else {
             // Parse time as HH:mm → create a date with that time
             parsed = dayjs(`1970-01-01T${raw}`).toDate();

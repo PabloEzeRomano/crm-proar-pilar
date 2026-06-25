@@ -127,9 +127,18 @@ function combineDateAndTime(date: Date, time: Date): string {
 // ---------------------------------------------------------------------------
 
 export default function VisitFormScreen() {
-  const { visitId, clientId: paramClientId } = useLocalSearchParams<{
+  const {
+    visitId,
+    clientId: paramClientId,
+    threadId: paramThreadId,
+    prefillTitle: paramPrefillTitle,
+    prefillNotes: paramPrefillNotes,
+  } = useLocalSearchParams<{
     visitId?: string;
     clientId?: string;
+    threadId?: string;
+    prefillTitle?: string;
+    prefillNotes?: string;
   }>();
   const router = useRouter();
   const navigation = useNavigation();
@@ -153,6 +162,7 @@ export default function VisitFormScreen() {
   const error = useVisitsStore((state) => state.error);
   const clients = useClientsStore((state) => state.clients);
   const fetchClients = useClientsStore((state) => state.fetchClients);
+  const fetchVisitsByClient = useVisitsStore((state) => state.fetchVisitsByClient);
 
   // Resolve existing visit in edit mode
   const existingVisit = visitId
@@ -208,6 +218,9 @@ export default function VisitFormScreen() {
   // Client picker search
   const [showClientPicker, setShowClientPicker] = useState(false);
   const [clientSearch, setClientSearch] = useState('');
+
+  // Thread
+  const [createAsThread, setCreateAsThread] = useState(false);
 
   // Submission
   const [saving, setSaving] = useState(false);
@@ -270,6 +283,9 @@ export default function VisitFormScreen() {
           preFilledClient.contacts?.find((c) => c.email)?.email ?? '';
         setRecipientEmail(firstEmail);
       }
+      // Pre-fill from seguimiento (thread continuation)
+      if (paramPrefillTitle) setTitle(decodeURIComponent(paramPrefillTitle));
+      if (paramPrefillNotes) setNotes(decodeURIComponent(paramPrefillNotes));
     }
   }, [isEditMode, existingVisit?.id, paramClientId, clients]);
 
@@ -463,6 +479,8 @@ export default function VisitFormScreen() {
         ? items.map((i) => ({ ...i, total_usd: i.total_usd ?? 0 }))
         : [];
 
+    let saveOk = false;
+
     if (isEditMode && visitId) {
       await updateVisit(visitId, {
         scheduled_at: isoString,
@@ -475,6 +493,12 @@ export default function VisitFormScreen() {
         quote_id: quoteId,
         items: itemsPayload,
       });
+      const freshError = useVisitsStore.getState().error;
+      if (freshError) {
+        showAlert('Error al guardar', freshError);
+      } else {
+        saveOk = true;
+      }
     } else {
       if (!selectedClient) {
         setSaving(false);
@@ -491,36 +515,49 @@ export default function VisitFormScreen() {
         amount: computedAmount,
         quote_id: quoteId,
         items: itemsPayload,
+        thread_id: paramThreadId || undefined,
       });
 
-      // Sync client products after successful sales_orders save
-      if (newVisit && visitType === 'sales_orders' && items.length > 0) {
-        await syncClientProducts(selectedClient.id, items);
-      }
+      if (!newVisit) {
+        const freshError = useVisitsStore.getState().error;
+        showAlert('Error al guardar', freshError ?? 'No se pudo crear la gestión');
+      } else {
+        // Promote to thread head if user opted in
+        if (createAsThread && !paramThreadId) {
+          await updateVisit(newVisit.id, { thread_id: newVisit.id } as any);
+        }
+        // Refresh client visit list so it's up-to-date when navigating back
+        await fetchVisitsByClient(selectedClient.id);
+        saveOk = true;
 
-      // Send quote email (non-blocking — don't prevent navigation on failure)
-      if (newVisit && visitType === 'sales_orders' && recipientEmail.trim()) {
-        const recipientName = selectedClient.contacts?.find(
-          (c) => c.email === recipientEmail.trim()
-        )?.name;
-        const { error: emailErr } = await sendQuote(
-          newVisit.id,
-          recipientEmail.trim(),
-          recipientName
-        );
-        if (emailErr) {
-          showAlert(
-            'Email no enviado',
-            `La cotización se guardó pero el email falló: ${emailErr}`
+        // Sync client products after successful sales_orders save
+        if (visitType === 'sales_orders' && items.length > 0) {
+          await syncClientProducts(selectedClient.id, items);
+        }
+
+        // Send quote email (non-blocking — don't prevent navigation on failure)
+        if (visitType === 'sales_orders' && recipientEmail.trim()) {
+          const recipientName = selectedClient.contacts?.find(
+            (c) => c.email === recipientEmail.trim()
+          )?.name;
+          const { error: emailErr } = await sendQuote(
+            newVisit.id,
+            recipientEmail.trim(),
+            recipientName
           );
+          if (emailErr) {
+            showAlert(
+              'Email no enviado',
+              `La cotización se guardó pero el email falló: ${emailErr}`
+            );
+          }
         }
       }
     }
 
     setSaving(false);
 
-    // Only dismiss if save was successful
-    if (!error) {
+    if (saveOk) {
       closeForm();
     }
   }
@@ -625,7 +662,7 @@ export default function VisitFormScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         enableOnAndroid
-        extraScrollHeight={200}
+        extraScrollHeight={320}
       >
         {/* ── Tipo de gestión ─────────────────────────────────────────────── */}
         <View style={styles.fieldGroup}>
@@ -1081,16 +1118,6 @@ export default function VisitFormScreen() {
                   }
                 />
               )}
-              {Platform.OS === 'android' && showDatePicker ? (
-                <AppDatePicker
-                  value={selectedDate}
-                  mode="date"
-                  display="calendar"
-                  onChange={handleDateChange}
-                  isAndroidModal={true}
-                  onDismiss={handleDatePickerDismissAndroid}
-                />
-              ) : null}
             </View>
 
             {/* HORA column */}
@@ -1130,16 +1157,6 @@ export default function VisitFormScreen() {
                   }
                 />
               )}
-              {Platform.OS === 'android' && showTimePicker ? (
-                <AppDatePicker
-                  value={selectedTime}
-                  mode="time"
-                  display="clock"
-                  onChange={handleTimeChange}
-                  isAndroidModal={true}
-                  onDismiss={handleTimePickerDismissAndroid}
-                />
-              ) : null}
             </View>
           </View>
         </View>
@@ -1213,6 +1230,35 @@ export default function VisitFormScreen() {
             accessibilityLabel="Notas de la gestión"
           />
         </View>
+
+        {/* ── Crear como tema (create mode, not a seguimiento) ─────────────── */}
+        {!isEditMode && !paramThreadId && (
+          <View style={styles.fieldGroup}>
+            <Pressable
+              style={styles.threadToggleRow}
+              onPress={() => setCreateAsThread((v) => !v)}
+              accessibilityRole="checkbox"
+              accessibilityLabel="Crear como tema"
+              accessibilityState={{ checked: createAsThread }}
+            >
+              <View
+                style={[
+                  styles.threadToggleBox,
+                  createAsThread && styles.threadToggleBoxActive,
+                ]}
+              >
+                {createAsThread ? (
+                  <MaterialCommunityIcons
+                    name="check"
+                    size={14}
+                    color={colors.textOnPrimary}
+                  />
+                ) : null}
+              </View>
+              <Text style={styles.threadToggleLabel}>Crear como tema</Text>
+            </Pressable>
+          </View>
+        )}
 
         {/* ── Guardar gestión button (create mode) ─────────────────────────── */}
         {!isEditMode && (
@@ -1617,6 +1663,30 @@ const styles = StyleSheet.create({
   },
 
   // Save gestión button (create mode bottom button)
+  threadToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+    paddingVertical: spacing[2],
+  },
+  threadToggleBox: {
+    width: 20,
+    height: 20,
+    borderRadius: borderRadius.sm,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  threadToggleBoxActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  threadToggleLabel: {
+    fontSize: fontSize.base,
+    color: colors.textSecondary,
+  },
   saveGestionButton: {
     height: 50,
     backgroundColor: colors.primary,

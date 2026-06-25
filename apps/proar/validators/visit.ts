@@ -48,6 +48,7 @@ export const createVisitSchema = z.object({
     .optional(),
   quote_id: z.uuid().nullable().optional(),
   items: z.array(quoteItemSchema).nullable().optional(),
+  thread_id: z.string().uuid().optional(),
 });
 
 export const updateVisitSchema = z.object({
