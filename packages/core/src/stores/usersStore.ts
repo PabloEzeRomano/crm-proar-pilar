@@ -9,6 +9,7 @@ import type { CompanyConfig, UserListItem } from '../types';
 export interface InviteUserInput {
   email: string;
   role: 'user' | 'product_manager' | 'admin';
+  redirectTo?: string;
 }
 
 export interface UsersState {
@@ -76,14 +77,14 @@ export const useUsersStore = create<UsersState>()((set) => ({
     set({ companyConfig: { max_users: data.max_users } });
   },
 
-  inviteUser: async ({ email, role }) => {
+  inviteUser: async ({ email, role, redirectTo: callerRedirectTo }) => {
     set({ inviteLoading: true, inviteError: null });
 
-    // On web, send the current origin so the invite email links back to the
-    // app that issued the invite (e.g. localhost during dev) instead of the
-    // project's default Site URL (prod). Native has no origin → undefined.
+    // Callers should pass redirectTo for their app's scheme (native) or origin
+    // (web). Falls back to window.location.origin on web if not provided.
     const redirectTo =
-      typeof window !== 'undefined' ? window.location.origin + '/' : undefined;
+      callerRedirectTo ??
+      (typeof window !== 'undefined' ? window.location.origin + '/' : undefined);
 
     const { error } = await supabase.functions.invoke('invite-user', {
       body: { email, role, redirectTo },

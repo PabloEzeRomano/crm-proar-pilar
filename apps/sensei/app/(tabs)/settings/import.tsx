@@ -18,6 +18,7 @@ import {
   View,
 } from 'react-native';
 import * as XLSX from 'xlsx';
+import * as Linking from 'expo-linking';
 
 import {
   borderRadius,
@@ -618,7 +619,7 @@ export default function ImportWizardScreen() {
       // Step 3: invite each colaborador
       let invited = 0;
       const redirectTo =
-        typeof window !== 'undefined' ? window.location.origin + '/' : undefined;
+        typeof window !== 'undefined' ? window.location.origin + '/' : Linking.createURL('/');
 
       for (const c of collaboratorsToInvite) {
         const { error } = await supabase.functions.invoke('invite-user', {

@@ -15,6 +15,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
 import { z } from 'zod';
+import * as Linking from 'expo-linking';
 import {
   ActivityIndicator,
   FlatList,
@@ -428,7 +429,9 @@ export default function UsersScreen() {
       return;
     }
     setFieldErrors({});
-    const { error: err } = await inviteUser({ email: result.data.email, role: selectedRole });
+    const redirectTo =
+      typeof window !== 'undefined' ? window.location.origin + '/' : Linking.createURL('/');
+    const { error: err } = await inviteUser({ email: result.data.email, role: selectedRole, redirectTo });
     if (err) {
       showAlert('Error', `No se pudo enviar la invitación: ${err}`);
       return;
