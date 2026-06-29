@@ -5,8 +5,8 @@ import { Pressable } from 'react-native';
 import { colors } from '@/constants/theme';
 import ClientDetailView from '@/components/ClientDetailView';
 
-export default function ClientDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+export default function InteractionClientDetailScreen() {
+  const { clientId } = useLocalSearchParams<{ clientId: string }>();
   const router = useRouter();
 
   return (
@@ -14,19 +14,9 @@ export default function ClientDetailScreen() {
       <Stack.Screen
         options={{
           title: 'Cliente',
-          headerLeft: () => (
-            <Pressable
-              onPress={() => router.back()}
-              hitSlop={12}
-              accessibilityRole="button"
-              accessibilityLabel="Volver"
-            >
-              <MaterialCommunityIcons name="chevron-left" size={28} color={colors.primary} />
-            </Pressable>
-          ),
           headerRight: () => (
             <Pressable
-              onPress={() => router.push(`/clients/edit?id=${id}`)}
+              onPress={() => router.push(`/clients/edit?id=${clientId}`)}
               hitSlop={12}
               accessibilityRole="button"
               accessibilityLabel="Editar cliente"
@@ -36,7 +26,7 @@ export default function ClientDetailScreen() {
           ),
         }}
       />
-      <ClientDetailView clientId={id ?? ''} />
+      <ClientDetailView clientId={clientId ?? ''} />
     </>
   );
 }

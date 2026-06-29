@@ -154,9 +154,9 @@ export default function ReportsScreen() {
       contentContainerStyle={styles.scrollContent}
     >
       {/* Per vendedor */}
-      <SectionTitle icon="account-tie" title="Por vendedor" />
+      <SectionTitle icon="account-tie" title="Por colaborador" />
       <View style={styles.tableCard}>
-        <HeaderRow firstLabel="Vendedor" cols={VENDOR_COLS} />
+        <HeaderRow firstLabel="Colaborador" cols={VENDOR_COLS} />
         {vendors.length === 0 ? (
           <Text style={styles.emptyText}>Sin gestiones registradas</Text>
         ) : (
@@ -282,7 +282,7 @@ export default function ReportsScreen() {
       </View>
 
       <Text style={styles.footnote}>
-        Sucursal atribuida según la sucursal actual del vendedor.
+        Sucursal atribuida según la sucursal actual del colaborador.
       </Text>
     </ScrollView>
   );

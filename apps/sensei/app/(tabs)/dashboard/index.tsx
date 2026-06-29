@@ -249,7 +249,7 @@ export default function DashboardScreen() {
               <View style={styles.reportsContent}>
                 <Text style={styles.reportsTitle}>Reportes</Text>
                 <Text style={styles.reportsSub}>
-                  Desempeño por vendedor, sucursal y financiera
+                  Desempeño por colaborador, sucursal y financiera
                 </Text>
               </View>
               <MaterialCommunityIcons

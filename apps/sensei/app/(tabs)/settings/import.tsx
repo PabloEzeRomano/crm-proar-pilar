@@ -47,6 +47,7 @@ interface ClientMapping {
   phone: string | null;
   email: string | null;
   commercial_classification: string | null;
+  branch: string | null;
 }
 
 interface EmployeeMapping {
@@ -76,6 +77,7 @@ const CLIENT_FIELDS: {
     label: 'Calificación',
     hint: 'ej. Bueno, Regular…',
   },
+  { key: 'branch', label: 'Unidad de Negocio' },
 ];
 
 const EMPLOYEE_FIELDS: {
@@ -85,7 +87,7 @@ const EMPLOYEE_FIELDS: {
   hint?: string;
 }[] = [
   { key: 'branch', label: 'Sucursal / Unidad de Negocio', required: true },
-  { key: 'employee_name', label: 'Nombre del empleado' },
+  { key: 'employee_name', label: 'Nombre del colaborador' },
   {
     key: 'username',
     label: 'Usuario (sin @dominio)',
@@ -134,6 +136,7 @@ function autoDetectMapping(
       email: h('mail') ?? h('e-mail') ?? h('email') ?? null,
       commercial_classification:
         h('calificac') ?? h('clasificac') ?? null,
+      branch: h('unidad') ?? h('sucursal') ?? h('branch') ?? null,
     };
   }
 
@@ -349,6 +352,9 @@ export default function ImportWizardScreen() {
   const [toImport, setToImport] = useState(0);
   const [toSkip, setToSkip] = useState(0);
   const [branchesToCreate, setBranchesToCreate] = useState<string[]>([]);
+  const [collaboratorsToInvite, setCollaboratorsToInvite] = useState<
+    { branch: string | null; employee_name: string | null; email: string }[]
+  >([]);
 
   // Import progress
   const [progress, setProgress] = useState(0);
@@ -358,6 +364,7 @@ export default function ImportWizardScreen() {
   const [resultImported, setResultImported] = useState(0);
   const [resultSkipped, setResultSkipped] = useState(0);
   const [resultErrors, setResultErrors] = useState(0);
+  const [resultInvited, setResultInvited] = useState(0);
 
   const isAdmin =
     profile?.role === 'admin' || profile?.role === 'root';
@@ -420,6 +427,7 @@ export default function ImportWizardScreen() {
         commercial_classification: m.commercial_classification
           ? str(r[m.commercial_classification])
           : null,
+        branch: m.branch ? str(r[m.branch]) : null,
       }));
 
       const valid = mapped.filter((r) => r.name);
@@ -446,11 +454,11 @@ export default function ImportWizardScreen() {
           CUIT: r.cuit,
           Localidad: r.city,
           Teléfono: r.phone,
-          Email: r.email,
+          UN: r.branch,
         }))
       );
     } else {
-      // Empleados
+      // Colaboradores
       const m = mapping as EmployeeMapping;
 
       const mapped = parsed.rows.map((r) => ({
@@ -475,15 +483,24 @@ export default function ImportWizardScreen() {
         (b) => !existingNames.has(b.toLowerCase().trim())
       );
 
+      const toInviteList = mapped
+        .filter((r) => r.username)
+        .map((r) => ({
+          branch: r.branch,
+          employee_name: r.employee_name,
+          email: `${r.username}@${EMAIL_DOMAIN}`,
+        }));
+
       setBranchesToCreate(newBranches);
+      setCollaboratorsToInvite(toInviteList);
       setTotalRows(parsed.rows.length);
-      setToImport(newBranches.length);
+      setToImport(newBranches.length + toInviteList.length);
       setToSkip(uniqueBranches.length - newBranches.length);
 
       setPreviewRows(
         mapped.slice(0, 5).map((r) => ({
           Sucursal: r.branch,
-          Nombre: r.employee_name,
+          Colaborador: r.employee_name,
           Email: r.username ? `${r.username}@${EMAIL_DOMAIN}` : null,
         }))
       );
@@ -507,6 +524,15 @@ export default function ImportWizardScreen() {
     if (importType === 'clientes') {
       const m = mapping as ClientMapping;
 
+      // Fetch branches for name→id resolution
+      const { data: branchRows } = await supabase
+        .from('branches')
+        .select('id, name')
+        .eq('company_id', companyId);
+      const branchMap = new Map<string, string>(
+        (branchRows ?? []).map((b) => [b.name.toLowerCase().trim(), b.id])
+      );
+
       const mapped = parsed.rows
         .map((r) => ({
           owner_user_id: userId,
@@ -520,6 +546,7 @@ export default function ImportWizardScreen() {
           commercial_classification: m.commercial_classification
             ? str(r[m.commercial_classification])
             : null,
+          branch_name: m.branch ? str(r[m.branch]) : null,
         }))
         .filter((r) => r.name);
 
@@ -539,8 +566,11 @@ export default function ImportWizardScreen() {
 
       const toInsert = mapped
         .filter((r) => !r.cuit || !existingCuits.has(r.cuit))
-        .map(({ phone: ph, email: em, ...rest }) => ({
+        .map(({ phone: ph, email: em, branch_name, ...rest }) => ({
           ...rest,
+          branch_id: branch_name
+            ? (branchMap.get(branch_name.toLowerCase().trim()) ?? null)
+            : null,
           contacts:
             ph || em
               ? [{ phone: ph ?? undefined, email: em ?? undefined }]
@@ -563,21 +593,62 @@ export default function ImportWizardScreen() {
 
       skipped = mapped.length - toInsert.length;
     } else {
-      // Empleados — create branches only
-      setProgressTotal(branchesToCreate.length);
+      // Colaboradores — create branches + send invitations
+      setProgressTotal(branchesToCreate.length + collaboratorsToInvite.length);
 
+      // Step 1: create new branches
       for (const name of branchesToCreate) {
         const { error } = await supabase
           .from('branches')
           .insert({ company_id: companyId, name });
-        if (error) {
-          errors++;
-        } else {
-          imported++;
-        }
+        if (error) errors++;
+        else imported++;
         setProgress(imported + errors);
       }
 
+      // Step 2: fetch updated branch list for name→id mapping
+      const { data: allBranches } = await supabase
+        .from('branches')
+        .select('id, name')
+        .eq('company_id', companyId);
+      const branchMap = new Map<string, string>(
+        (allBranches ?? []).map((b) => [b.name.toLowerCase().trim(), b.id])
+      );
+
+      // Step 3: invite each colaborador
+      let invited = 0;
+      const redirectTo =
+        typeof window !== 'undefined' ? window.location.origin + '/' : undefined;
+
+      for (const c of collaboratorsToInvite) {
+        const { error } = await supabase.functions.invoke('invite-user', {
+          body: { email: c.email, role: 'user', redirectTo },
+        });
+        if (error) errors++;
+        else invited++;
+        setProgress(imported + invited + errors);
+      }
+
+      // Step 4: assign branches to invited colaboradores
+      if (invited > 0) {
+        const { data: freshUserData } = await supabase.functions.invoke('list-users');
+        const emailToId = new Map<string, string>(
+          ((freshUserData as { id: string; email: string }[]) ?? []).map(
+            (u) => [u.email, u.id]
+          )
+        );
+        for (const c of collaboratorsToInvite) {
+          const branchId = c.branch
+            ? (branchMap.get(c.branch.toLowerCase().trim()) ?? null)
+            : null;
+          const uid = emailToId.get(c.email);
+          if (uid && branchId) {
+            await supabase.from('profiles').update({ branch_id: branchId }).eq('id', uid);
+          }
+        }
+      }
+
+      setResultInvited(invited);
       skipped = toSkip;
     }
 
@@ -671,9 +742,9 @@ export default function ImportWizardScreen() {
                 },
                 {
                   type: 'empleados',
-                  label: 'Empleados / Sucursales',
+                  label: 'Colaboradores / Sucursales',
                   icon: 'store-outline',
-                  desc: 'Crea sucursales y lista emails',
+                  desc: 'Crea sucursales e invita colaboradores',
                 },
               ] as const
             ).map((opt) => (
@@ -790,22 +861,43 @@ export default function ImportWizardScreen() {
             <Text style={styles.statNumber}>{totalRows}</Text>
             <Text style={styles.statLabel}>Total filas</Text>
           </View>
-          <View style={[styles.statCard, styles.statCardSuccess]}>
-            <Text style={[styles.statNumber, { color: colors.success }]}>
-              {toImport}
-            </Text>
-            <Text style={styles.statLabel}>
-              {importType === 'clientes' ? 'Nuevos' : 'Sucursales nuevas'}
-            </Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statNumber, { color: colors.textSecondary }]}>
-              {toSkip}
-            </Text>
-            <Text style={styles.statLabel}>
-              {importType === 'clientes' ? 'Ya existen' : 'Sucursales exist.'}
-            </Text>
-          </View>
+          {importType === 'clientes' ? (
+            <>
+              <View style={[styles.statCard, styles.statCardSuccess]}>
+                <Text style={[styles.statNumber, { color: colors.success }]}>
+                  {toImport}
+                </Text>
+                <Text style={styles.statLabel}>Nuevos</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={[styles.statNumber, { color: colors.textSecondary }]}>
+                  {toSkip}
+                </Text>
+                <Text style={styles.statLabel}>Ya existen</Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={[styles.statCard, styles.statCardSuccess]}>
+                <Text style={[styles.statNumber, { color: colors.success }]}>
+                  {branchesToCreate.length}
+                </Text>
+                <Text style={styles.statLabel}>Sucursales nuevas</Text>
+              </View>
+              <View style={[styles.statCard, styles.statCardSuccess]}>
+                <Text style={[styles.statNumber, { color: colors.success }]}>
+                  {collaboratorsToInvite.length}
+                </Text>
+                <Text style={styles.statLabel}>Invitaciones</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={[styles.statNumber, { color: colors.textSecondary }]}>
+                  {toSkip}
+                </Text>
+                <Text style={styles.statLabel}>Sucursales exist.</Text>
+              </View>
+            </>
+          )}
         </View>
 
         {/* Branch list for empleados */}
@@ -861,7 +953,7 @@ export default function ImportWizardScreen() {
           </View>
         )}
 
-        {importType === 'empleados' && (
+        {importType === 'empleados' && collaboratorsToInvite.length > 0 && (
           <View style={[styles.card, styles.infoBox]}>
             <MaterialCommunityIcons
               name="information-outline"
@@ -869,13 +961,11 @@ export default function ImportWizardScreen() {
               color={colors.primary}
             />
             <Text style={styles.infoText}>
-              Los empleados no se crean automáticamente (requieren una
-              contraseña). Después de importar, invitá a cada uno desde
-              Ajustes → Equipo con su email{' '}
+              Se enviará una invitación a cada colaborador con usuario mapeado al email{' '}
               <Text style={{ fontWeight: fontWeight.semibold }}>
                 usuario@{EMAIL_DOMAIN}
               </Text>
-              .
+              . El colaborador recibirá el email para crear su contraseña.
             </Text>
           </View>
         )}
@@ -907,8 +997,9 @@ export default function ImportWizardScreen() {
             disabled={toImport === 0}
           >
             <Text style={styles.btnText}>
-              Importar {toImport}{' '}
-              {importType === 'clientes' ? 'clientes' : 'sucursales'} →
+              {importType === 'clientes'
+                ? `Importar ${toImport} clientes →`
+                : `Importar →`}
             </Text>
           </Pressable>
         </View>
@@ -943,16 +1034,35 @@ export default function ImportWizardScreen() {
         <Text style={styles.doneTitle}>¡Importación completa!</Text>
 
         <View style={styles.statsRow}>
-          <View style={[styles.statCard, styles.statCardSuccess]}>
-            <Text style={[styles.statNumber, { color: colors.success }]}>
-              {resultImported}
-            </Text>
-            <Text style={styles.statLabel}>Importados</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{resultSkipped}</Text>
-            <Text style={styles.statLabel}>Omitidos</Text>
-          </View>
+          {importType === 'clientes' ? (
+            <>
+              <View style={[styles.statCard, styles.statCardSuccess]}>
+                <Text style={[styles.statNumber, { color: colors.success }]}>
+                  {resultImported}
+                </Text>
+                <Text style={styles.statLabel}>Importados</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>{resultSkipped}</Text>
+                <Text style={styles.statLabel}>Omitidos</Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <View style={[styles.statCard, styles.statCardSuccess]}>
+                <Text style={[styles.statNumber, { color: colors.success }]}>
+                  {resultImported}
+                </Text>
+                <Text style={styles.statLabel}>Sucursales creadas</Text>
+              </View>
+              <View style={[styles.statCard, styles.statCardSuccess]}>
+                <Text style={[styles.statNumber, { color: colors.success }]}>
+                  {resultInvited}
+                </Text>
+                <Text style={styles.statLabel}>Invitaciones enviadas</Text>
+              </View>
+            </>
+          )}
           {resultErrors > 0 && (
             <View style={[styles.statCard, { borderColor: colors.error }]}>
               <Text style={[styles.statNumber, { color: colors.error }]}>

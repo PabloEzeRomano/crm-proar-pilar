@@ -17,6 +17,7 @@ export default function GestionesLayout() {
     >
       <Stack.Screen name="index" options={{ title: 'Gestiones' }} />
       <Stack.Screen name="new" options={{ title: 'Nueva gestión' }} />
+      <Stack.Screen name="[clientId]" options={{ title: 'Cliente' }} />
     </Stack>
   );
 }

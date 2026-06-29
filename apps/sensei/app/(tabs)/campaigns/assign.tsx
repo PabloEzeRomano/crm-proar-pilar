@@ -153,15 +153,15 @@ export default function AssignScreen() {
     );
     if (activeVendedores.every((u) => !u.branch_id)) {
       showAlert(
-        'Sin vendedores con sucursal',
-        'Asigná una sucursal a los vendedores en Equipo › Usuarios primero.'
+        'Sin colaboradores con sucursal',
+        'Asigná una sucursal a los colaboradores en Equipo › Usuarios primero.'
       );
       return;
     }
     const ok = await showConfirm({
       title: 'Asignar por sucursal',
       message:
-        'Cada cliente sin asignar se reparte entre los vendedores de su misma sucursal. ¿Continuar?',
+        'Cada cliente sin asignar se reparte entre los colaboradores de su misma sucursal. ¿Continuar?',
       confirmText: 'Asignar',
     });
     if (!ok) return;
@@ -180,7 +180,7 @@ export default function AssignScreen() {
       if (res.skippedNoBranch)
         parts.push(`${res.skippedNoBranch} sin sucursal`);
       if (res.skippedNoVendor)
-        parts.push(`${res.skippedNoVendor} sin vendedor en su sucursal`);
+        parts.push(`${res.skippedNoVendor} sin colaborador en su sucursal`);
       showAlert('Asignación automática', parts.join(' · '));
     }
   };
@@ -230,7 +230,7 @@ export default function AssignScreen() {
     <View style={styles.container}>
       {/* Target user selector */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Asignar a vendedor</Text>
+        <Text style={styles.sectionTitle}>Asignar a colaborador</Text>
         <View style={styles.chipRow}>
           {vendedores.map((u) => (
             <Pressable
@@ -252,7 +252,7 @@ export default function AssignScreen() {
             </Pressable>
           ))}
           {vendedores.length === 0 && (
-            <Text style={styles.emptyText}>No hay vendedores registrados</Text>
+            <Text style={styles.emptyText}>No hay colaboradores registrados</Text>
           )}
         </View>
       </View>

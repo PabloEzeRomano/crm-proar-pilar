@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -97,9 +97,11 @@ export default function GestionesScreen() {
 
   const [filterTab, setFilterTab] = useState<'all' | ContactResult>('all');
 
-  useEffect(() => {
-    fetchMyInteractions();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchMyInteractions();
+    }, [fetchMyInteractions])
+  );
 
   const filtered = useMemo(() => {
     if (filterTab === 'all') return interactions;
@@ -146,7 +148,7 @@ export default function GestionesScreen() {
           renderItem={({ item }) => (
             <InteractionRow
               interaction={item}
-              onPress={() => router.push(`/clients/${item.client_id}`)}
+              onPress={() => router.push(`/interactions/${item.client_id}`)}
             />
           )}
         />

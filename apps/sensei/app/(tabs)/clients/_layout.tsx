@@ -15,7 +15,7 @@ export default function ClientsLayout() {
         headerTintColor: colors.primary,
       }}
     >
-      <Stack.Screen name="index" options={{ title: 'Clientes' }} />
+      <Stack.Screen name="index" options={{ title: 'Clientes', headerLeft: () => null }} />
       <Stack.Screen name="[id]" options={{ title: 'Cliente' }} />
       <Stack.Screen name="new" options={{ title: 'Nuevo cliente' }} />
       <Stack.Screen name="edit" options={{ title: 'Editar cliente' }} />

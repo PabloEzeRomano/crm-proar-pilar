@@ -6,7 +6,7 @@
  *  - Pending invites with amber badge
  *  - Banned users with red badge + reactivate / permanent-delete (root only)
  *  - Deactivate active users (trash icon)
- *  - Branch picker for vendedores
+ *  - Branch picker for colaboradores
  *  - Seat counter + limit warning
  *  - Invite modal (email + role)
  *  - Role change modal
@@ -51,7 +51,7 @@ type InviteErrors = { email?: string };
 // ─── Role config ──────────────────────────────────────────────────────────────
 
 const ROLE_LABEL: Record<UserRole, string> = {
-  user: 'Vendedor',
+  user: 'Colaborador',
   product_manager: 'Productos',
   admin: 'Admin',
   root: 'Root',
@@ -81,7 +81,7 @@ const ROLE_LEVEL: Record<UserRole, number> = {
 type AssignableRole = 'user' | 'admin';
 
 const ASSIGNABLE_ROLES: { value: AssignableRole; label: string }[] = [
-  { value: 'user', label: 'Vendedor' },
+  { value: 'user', label: 'Colaborador' },
   { value: 'admin', label: 'Admin' },
 ];
 
@@ -317,6 +317,7 @@ export default function UsersScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [email, setEmail] = useState('');
   const [selectedRole, setSelectedRole] = useState<AssignableRole>('user');
+  const [selectedBranchName, setSelectedBranchName] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<InviteErrors>({});
   const [emailFocused, setEmailFocused] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -413,6 +414,7 @@ export default function UsersScreen() {
   function openInviteModal() {
     setEmail('');
     setSelectedRole('user');
+    setSelectedBranchName(null);
     setFieldErrors({});
     clearInviteError();
     setSuccessMessage(null);
@@ -431,13 +433,24 @@ export default function UsersScreen() {
       showAlert('Error', `No se pudo enviar la invitación: ${err}`);
       return;
     }
+    if (selectedBranchName && selectedRole === 'user') {
+      await fetchUsers();
+      const branchId = branches.find((b) => b.name === selectedBranchName)?.id ?? null;
+      const freshUser = useUsersStore.getState().users.find(
+        (u) => u.email === result.data.email
+      );
+      if (freshUser && branchId) {
+        await setUserBranch(freshUser.id, branchId);
+      }
+    } else {
+      fetchUsers();
+    }
     setSuccessMessage(`Invitación enviada a ${result.data.email}`);
-    fetchUsers();
     setTimeout(() => {
       setModalVisible(false);
       setSuccessMessage(null);
     }, 1500);
-  }, [email, selectedRole, inviteUser, fetchUsers]);
+  }, [email, selectedRole, selectedBranchName, inviteUser, fetchUsers, setUserBranch, branches]);
 
   // ── Guard ──────────────────────────────────────────────────────────────────
 
@@ -628,7 +641,10 @@ export default function UsersScreen() {
                       styles.roleOption,
                       selectedRole === r.value && styles.roleOptionActive,
                     ]}
-                    onPress={() => setSelectedRole(r.value)}
+                    onPress={() => {
+                      setSelectedRole(r.value);
+                      if (r.value !== 'user') setSelectedBranchName(null);
+                    }}
                     accessibilityRole="radio"
                     accessibilityState={{ checked: selectedRole === r.value }}
                   >
@@ -644,6 +660,19 @@ export default function UsersScreen() {
                 ))}
               </View>
             </View>
+
+            {selectedRole === 'user' && branches.length > 0 && (
+              <View style={styles.field}>
+                <Text style={styles.label}>Unidad de Negocio</Text>
+                <SearchableSelect
+                  label="Unidad de Negocio"
+                  placeholder="Sin asignar"
+                  options={branches.map((b) => b.name)}
+                  selected={selectedBranchName ? [selectedBranchName] : []}
+                  onChange={(names) => setSelectedBranchName(names[0] ?? null)}
+                />
+              </View>
+            )}
 
             <Pressable
               style={[styles.submitBtn, inviteLoading && { opacity: 0.6 }]}
