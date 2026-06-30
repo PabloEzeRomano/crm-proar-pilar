@@ -48,6 +48,7 @@ import dayjs, { fromUTC } from '@/lib/dayjs';
 import { useAuthStore } from '@/stores/authStore';
 import { TodaySpan } from '@/stores/todayStore';
 import { VisitWithClient } from '@/types';
+import { AGENDA_GROUP_BY_CLIENT_KEY } from '@/constants/agendaSettings';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -459,6 +460,7 @@ function TodayScreenContent() {
   const HERO_KEY = 'agenda-hero-visible';
   const [progressVisible, setProgressVisible] = useState(true);
   const [heroVisible, setHeroVisible] = useState(true);
+  const [groupByClient, setGroupByClient] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -467,6 +469,9 @@ function TodayScreenContent() {
       });
       AsyncStorage.getItem(HERO_KEY).then((val) => {
         setHeroVisible(val !== 'false');
+      });
+      AsyncStorage.getItem(AGENDA_GROUP_BY_CLIENT_KEY).then((val) => {
+        setGroupByClient(val === 'true');
       });
     }, [])
   );
@@ -602,10 +607,17 @@ function TodayScreenContent() {
   const progressPct =
     totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
+  // Completed/canceled visits belong in the Gestiones history, not the
+  // agenda — only pending ones (including overdue) show here.
+  const pendingVisits = useMemo(
+    () => visits.filter((v) => v.status === 'pending'),
+    [visits]
+  );
+
   // ── Group visits by thread (when set) or by client ───────────────────
   const groupedVisits = useMemo(() => {
     const groups = new Map<string, VisitWithClient[]>();
-    for (const visit of visits) {
+    for (const visit of pendingVisits) {
       // Threaded visits group under their thread_id; solo visits group by client
       const key = visit.thread_id ?? visit.client_id;
       if (!groups.has(key)) groups.set(key, []);
@@ -627,7 +639,16 @@ function TodayScreenContent() {
       if (aCompleted !== bCompleted) return aCompleted ? 1 : -1;
       return dayjs(aFirst.scheduled_at).diff(dayjs(bFirst.scheduled_at));
     });
-  }, [visits]);
+  }, [pendingVisits]);
+
+  // Flat (ungrouped) view — just pending visits sorted chronologically.
+  const flatVisits = useMemo(
+    () =>
+      [...pendingVisits].sort((a, b) =>
+        dayjs(a.scheduled_at).diff(dayjs(b.scheduled_at))
+      ),
+    [pendingVisits]
+  );
 
   // ── Helpers ─────────────────────────────────────────────────────────────
 
@@ -999,11 +1020,11 @@ function TodayScreenContent() {
           >
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>{sectionTitle}</Text>
-              {visits.length > 0 && (
+              {pendingVisits.length > 0 && (
                 <View style={styles.countBadge}>
                   <Text style={styles.countBadgeText}>
-                    {visits.length}{' '}
-                    {visits.length === 1 ? 'gestión' : 'gestiones'}
+                    {pendingVisits.length}{' '}
+                    {pendingVisits.length === 1 ? 'gestión' : 'gestiones'}
                   </Text>
                 </View>
               )}
@@ -1011,8 +1032,12 @@ function TodayScreenContent() {
           </TourStep>
 
           {/* Visit rows or empty state */}
-          {visits.length === 0 ? (
+          {pendingVisits.length === 0 ? (
             renderEmptyState()
+          ) : !groupByClient ? (
+            <View style={styles.visitList}>
+              {flatVisits.map((visit) => renderVisitRow(visit))}
+            </View>
           ) : (
             <View style={styles.visitList}>
               {groupedVisits.map((group) =>

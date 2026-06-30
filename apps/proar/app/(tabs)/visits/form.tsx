@@ -73,7 +73,7 @@ import { getStatusLabel } from '@/lib/visitStatus';
 const GAP_KEY = 'visit-gap-minutes';
 const DEFAULT_GAP = 60;
 
-const MINUTA_TEMPLATE = 'Objetivo:\n\nMinuta:\n\nPróximos pasos:\n';
+const MINUTA_TEMPLATE = '';
 
 const VISIT_TYPE_OPTIONS: { value: VisitType; label: string; icon: string }[] =
   [
@@ -82,10 +82,15 @@ const VISIT_TYPE_OPTIONS: { value: VisitType; label: string; icon: string }[] =
       label: 'Atención al cliente',
       icon: 'headset',
     },
+    {
+      value: 'quote',
+      label: 'Cotizaciones',
+      icon: 'file-document-outline',
+    },
     { value: 'sales_orders', label: 'Ventas y pedidos', icon: 'cart-outline' },
     {
       value: 'new_projects',
-      label: 'Nuevos proyectos',
+      label: 'Prospectos',
       icon: 'lightbulb-outline',
     },
     {
@@ -298,9 +303,10 @@ export default function VisitFormScreen() {
     return () => clearClientQuotes();
   }, [visitType, selectedClient?.id]);
 
-  // Pre-populate items from client habitual products (sales_orders, create mode only)
+  // Pre-populate items from client habitual products (sales_orders/quote, create mode only)
   useEffect(() => {
-    if (visitType === 'sales_orders' && selectedClient && !isEditMode) {
+    const hasItemsType = visitType === 'sales_orders' || visitType === 'quote';
+    if (hasItemsType && selectedClient && !isEditMode) {
       fetchClientProducts(selectedClient.id).then(() => {
         const clientProds = useProductsStore.getState().clientProducts;
         const allProducts = useProductsStore.getState().products;
@@ -325,9 +331,12 @@ export default function VisitFormScreen() {
             custom_quantity_kg: null,
             quantity: 1,
             unit_price_usd: presentation.price_usd,
+            freight_usd: presentation.freight_usd ?? 0,
             margin_pct: 0,
             total_usd:
-              1 * (presentation.quantity ?? 0) * presentation.price_usd,
+              1 *
+              (presentation.quantity ?? 0) *
+              (presentation.price_usd + (presentation.freight_usd ?? 0)),
           });
         }
 
@@ -335,7 +344,7 @@ export default function VisitFormScreen() {
           setItems(prePopulated);
         }
       });
-    } else if (visitType !== 'sales_orders') {
+    } else if (!hasItemsType) {
       setItems([]);
     }
   }, [visitType, selectedClient?.id]);
@@ -417,11 +426,12 @@ export default function VisitFormScreen() {
         const updated = { ...item, ...changes };
         const pkgKg =
           updated.presentation_quantity_kg ?? updated.custom_quantity_kg ?? 0;
-        updated.total_usd =
-          updated.quantity *
-          pkgKg *
-          updated.unit_price_usd *
-          (1 + updated.margin_pct / 100);
+        // Margin marks up the base price; freight is a pass-through cost
+        // added on top, not marked up.
+        const effectivePricePerKg =
+          updated.unit_price_usd * (1 + updated.margin_pct / 100) +
+          (updated.freight_usd ?? 0);
+        updated.total_usd = updated.quantity * pkgKg * effectivePricePerKg;
         return updated;
       })
     );
@@ -457,8 +467,12 @@ export default function VisitFormScreen() {
         custom_quantity_kg: null,
         quantity: 1,
         unit_price_usd: presentation.price_usd,
+        freight_usd: presentation.freight_usd ?? 0,
         margin_pct: 0,
-        total_usd: 1 * (presentation.quantity ?? 0) * presentation.price_usd,
+        total_usd:
+          1 *
+          (presentation.quantity ?? 0) *
+          (presentation.price_usd + (presentation.freight_usd ?? 0)),
       },
     ]);
     setShowProductPicker(false);
@@ -471,11 +485,11 @@ export default function VisitFormScreen() {
 
     setSaving(true);
     const isoString = combineDateAndTime(selectedDate, selectedTime);
-    const isSalesOrders = visitType === 'sales_orders';
+    const hasItems = visitType === 'sales_orders' || visitType === 'quote';
     const computedAmount =
-      isSalesOrders && items.length > 0 ? computeTotal(items) : null;
+      hasItems && items.length > 0 ? computeTotal(items) : null;
     const itemsPayload =
-      isSalesOrders && items.length > 0
+      hasItems && items.length > 0
         ? items.map((i) => ({ ...i, total_usd: i.total_usd ?? 0 }))
         : [];
 
@@ -536,7 +550,10 @@ export default function VisitFormScreen() {
         }
 
         // Send quote email (non-blocking — don't prevent navigation on failure)
-        if (visitType === 'sales_orders' && recipientEmail.trim()) {
+        if (
+          (visitType === 'sales_orders' || visitType === 'quote') &&
+          recipientEmail.trim()
+        ) {
           const recipientName = selectedClient.contacts?.find(
             (c) => c.email === recipientEmail.trim()
           )?.name;
@@ -923,7 +940,7 @@ export default function VisitFormScreen() {
         )}
 
         {/* ── Productos ───────────────────────────────────────────────────── */}
-        {visitType === 'sales_orders' && (
+        {(visitType === 'sales_orders' || visitType === 'quote') && (
           <View style={styles.fieldGroup}>
             <FieldLabel label="Productos" />
 
@@ -976,8 +993,8 @@ export default function VisitFormScreen() {
           </View>
         )}
 
-        {/* ── Destinatario del mail (sales_orders) ─────────────────────────── */}
-        {visitType === 'sales_orders' && (
+        {/* ── Destinatario del mail (sales_orders/quote) ───────────────────── */}
+        {(visitType === 'sales_orders' || visitType === 'quote') && (
           <View style={styles.fieldGroup}>
             <FieldLabel label="Destinatario del mail" />
             <TextInput
@@ -1070,7 +1087,7 @@ export default function VisitFormScreen() {
                         USD
                       </Text>
                     )}
-                    <StatusTypeBadge status={q.status} type="sales_orders" />
+                    <StatusTypeBadge status={q.status} type="quote" />
                   </Pressable>
                 );
               })

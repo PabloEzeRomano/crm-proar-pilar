@@ -5,6 +5,11 @@ export const createPresentationSchema = z.object({
   unit: z.string().min(1, 'La unidad es requerida'),
   quantity: z.number().positive().nullable().optional(),
   price_usd: z.number().nonnegative('El precio debe ser mayor o igual a 0'),
+  freight_usd: z
+    .number()
+    .nonnegative('El flete debe ser mayor o igual a 0')
+    .nullable()
+    .optional(),
 });
 
 export const updatePresentationSchema = createPresentationSchema.partial();

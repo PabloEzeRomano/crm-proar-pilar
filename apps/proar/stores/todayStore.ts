@@ -42,11 +42,15 @@ export const useTodayStore = create<TodayState>()(
           .endOf(span === 'today' ? 'day' : span === 'week' ? 'week' : 'month')
           .toISOString();
 
+        // Bring visits in the selected span, plus overdue pending visits from
+        // any earlier date — those shouldn't disappear just because they're
+        // scheduled in the past.
         const { data, error } = await supabase
           .from('visits')
           .select('*, client:clients(*)')
-          .gte('scheduled_at', start)
-          .lte('scheduled_at', end)
+          .or(
+            `and(scheduled_at.gte.${start},scheduled_at.lte.${end}),and(status.eq.pending,scheduled_at.lt.${start})`
+          )
           .order('scheduled_at', { ascending: true });
 
         if (error) {

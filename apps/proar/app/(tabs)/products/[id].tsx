@@ -25,6 +25,7 @@ import type { Product, ProductPresentation } from '@/types';
 import type {
   UpdateProductInput,
   CreatePresentationInput,
+  UpdatePresentationInput,
 } from '@/validators/product';
 
 // ---------------------------------------------------------------------------
@@ -42,21 +43,134 @@ function formatPrice(price: number) {
 function PresentationRow({
   pres,
   isAdmin,
+  onUpdate,
   onDelete,
 }: {
   pres: ProductPresentation;
   isAdmin: boolean;
+  onUpdate: (data: UpdatePresentationInput) => void;
   onDelete: () => void;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [label, setLabel] = useState(pres.label);
+  const [unit, setUnit] = useState(pres.unit);
+  const [quantity, setQuantity] = useState(
+    pres.quantity != null ? String(pres.quantity) : ''
+  );
+  const [price, setPrice] = useState(String(pres.price_usd));
+  const [freight, setFreight] = useState(
+    pres.freight_usd != null ? String(pres.freight_usd) : ''
+  );
+
+  function startEdit() {
+    setLabel(pres.label);
+    setUnit(pres.unit);
+    setQuantity(pres.quantity != null ? String(pres.quantity) : '');
+    setPrice(String(pres.price_usd));
+    setFreight(pres.freight_usd != null ? String(pres.freight_usd) : '');
+    setEditing(true);
+  }
+
+  function save() {
+    const priceVal = parseFloat(price.replace(',', '.'));
+    if (!label.trim() || !unit.trim() || isNaN(priceVal) || priceVal < 0)
+      return;
+    onUpdate({
+      label: label.trim(),
+      unit: unit.trim(),
+      price_usd: priceVal,
+      quantity: quantity.trim()
+        ? parseFloat(quantity.replace(',', '.')) || null
+        : null,
+      freight_usd: freight.trim()
+        ? parseFloat(freight.replace(',', '.')) || null
+        : null,
+    });
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <View style={styles.addPresForm}>
+        <TextInput
+          style={styles.input}
+          placeholder="Etiqueta"
+          placeholderTextColor={colors.textDisabled}
+          value={label}
+          onChangeText={setLabel}
+        />
+        <View style={styles.row2}>
+          <TextInput
+            style={[styles.input, { flex: 1 }]}
+            placeholder="Unidad"
+            placeholderTextColor={colors.textDisabled}
+            value={unit}
+            onChangeText={setUnit}
+          />
+          <TextInput
+            style={[styles.input, { flex: 1 }]}
+            placeholder="Cantidad"
+            placeholderTextColor={colors.textDisabled}
+            value={quantity}
+            onChangeText={setQuantity}
+            keyboardType="decimal-pad"
+          />
+        </View>
+        <View style={styles.row2}>
+          <TextInput
+            style={[styles.input, { flex: 1 }]}
+            placeholder="Precio USD"
+            placeholderTextColor={colors.textDisabled}
+            value={price}
+            onChangeText={setPrice}
+            keyboardType="decimal-pad"
+          />
+          <TextInput
+            style={[styles.input, { flex: 1 }]}
+            placeholder="Flete USD/kg"
+            placeholderTextColor={colors.textDisabled}
+            value={freight}
+            onChangeText={setFreight}
+            keyboardType="decimal-pad"
+          />
+        </View>
+        <View style={styles.editActions}>
+          <Pressable
+            style={styles.saveBtn}
+            onPress={save}
+            accessibilityRole="button"
+          >
+            <Text style={styles.saveBtnText}>Guardar</Text>
+          </Pressable>
+          <Pressable
+            style={styles.deleteBtn}
+            onPress={() => setEditing(false)}
+            accessibilityRole="button"
+          >
+            <Text style={styles.deleteBtnText}>Cancelar</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.presRow}>
-      <View style={styles.presInfo}>
+      <Pressable
+        style={styles.presInfo}
+        onPress={isAdmin ? startEdit : undefined}
+        accessibilityRole={isAdmin ? 'button' : undefined}
+        accessibilityLabel={isAdmin ? 'Editar presentación' : undefined}
+      >
         <Text style={styles.presLabel}>{pres.label}</Text>
         <Text style={styles.presSub}>
           {pres.unit}
           {pres.quantity != null ? ` · ${pres.quantity}` : ''}
+          {pres.freight_usd != null
+            ? ` · Flete ${formatPrice(pres.freight_usd)}/kg`
+            : ''}
         </Text>
-      </View>
+      </Pressable>
       <Text style={styles.presPrice}>{formatPrice(pres.price_usd)}</Text>
       {isAdmin && (
         <Pressable
@@ -90,21 +204,28 @@ function AddPresentationForm({
   const [unit, setUnit] = useState('');
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('');
+  const [freight, setFreight] = useState('');
 
   function submit() {
-    const priceVal = parseFloat(price);
+    const priceVal = parseFloat(price.replace(',', '.'));
     if (!label.trim() || !unit.trim() || isNaN(priceVal) || priceVal < 0)
       return;
     onAdd({
       label: label.trim(),
       unit: unit.trim(),
       price_usd: priceVal,
-      quantity: quantity.trim() ? parseFloat(quantity) || null : null,
+      quantity: quantity.trim()
+        ? parseFloat(quantity.replace(',', '.')) || null
+        : null,
+      freight_usd: freight.trim()
+        ? parseFloat(freight.replace(',', '.')) || null
+        : null,
     });
     setLabel('');
     setUnit('');
     setPrice('');
     setQuantity('');
+    setFreight('');
   }
 
   return (
@@ -134,14 +255,24 @@ function AddPresentationForm({
           keyboardType="decimal-pad"
         />
       </View>
-      <TextInput
-        style={styles.input}
-        placeholder="Precio USD"
-        placeholderTextColor={colors.textDisabled}
-        value={price}
-        onChangeText={setPrice}
-        keyboardType="decimal-pad"
-      />
+      <View style={styles.row2}>
+        <TextInput
+          style={[styles.input, { flex: 1 }]}
+          placeholder="Precio USD"
+          placeholderTextColor={colors.textDisabled}
+          value={price}
+          onChangeText={setPrice}
+          keyboardType="decimal-pad"
+        />
+        <TextInput
+          style={[styles.input, { flex: 1 }]}
+          placeholder="Flete USD/kg"
+          placeholderTextColor={colors.textDisabled}
+          value={freight}
+          onChangeText={setFreight}
+          keyboardType="decimal-pad"
+        />
+      </View>
       <Pressable
         style={styles.addPresBtn}
         onPress={submit}
@@ -162,12 +293,16 @@ export default function ProductDetailScreen() {
   const navigation = useNavigation();
   const router = useRouter();
   const profile = useAuthStore((s) => s.profile);
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'root';
+  const isAdmin =
+    profile?.role === 'admin' ||
+    profile?.role === 'root' ||
+    profile?.role === 'product_manager';
 
   const products = useProductsStore((s) => s.products);
   const updateProduct = useProductsStore((s) => s.updateProduct);
   const deleteProduct = useProductsStore((s) => s.deleteProduct);
   const addPresentation = useProductsStore((s) => s.addPresentation);
+  const updatePresentation = useProductsStore((s) => s.updatePresentation);
   const deletePresentation = useProductsStore((s) => s.deletePresentation);
 
   const product: Product | undefined = products.find((p) => p.id === id);
@@ -320,6 +455,7 @@ export default function ProductDetailScreen() {
                 key={pres.id}
                 pres={pres}
                 isAdmin={isAdmin}
+                onUpdate={(data) => updatePresentation(pres.id, data)}
                 onDelete={() => handleDeletePresentation(pres.id)}
               />
             ))}

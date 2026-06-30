@@ -16,7 +16,7 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, usePathname } from 'expo-router';
 import { useFonts } from 'expo-font';
 import {
   DMSans_400Regular,
@@ -239,6 +239,7 @@ function useAuthGuard(): void {
   const isInviteSetup = useAuthStore((s) => s.isInviteSetup);
   const isInviteUser = useAuthStore((s) => s.isInviteUser);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (loading) return;
@@ -260,10 +261,13 @@ function useAuthGuard(): void {
 
     if (!userId) {
       router.replace('/(auth)/login');
-    } else {
+    } else if (pathname === '/' || pathname === '/login') {
+      // Only force-navigate to agenda from the root or the login screen.
+      // A refresh on a deep authenticated route (e.g. /clients/123) should
+      // stay there instead of being bounced to agenda on every reload.
       router.replace('/(tabs)/agenda');
     }
-  }, [userId, loading, isPasswordRecovery, isInviteSetup, isInviteUser]);
+  }, [userId, loading, isPasswordRecovery, isInviteSetup, isInviteUser, pathname]);
 }
 
 // ---------------------------------------------------------------------------

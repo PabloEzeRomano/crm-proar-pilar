@@ -35,8 +35,9 @@ import AppDatePicker from '@/components/ui/AppDatePicker';
 
 const VISIT_TYPE_OPTIONS: { value: VisitType; label: string }[] = [
   { value: 'customer_service', label: 'Atención al cliente' },
+  { value: 'quote', label: 'Cotizaciones' },
   { value: 'sales_orders', label: 'Ventas y pedidos' },
-  { value: 'new_projects', label: 'Nuevos proyectos' },
+  { value: 'new_projects', label: 'Prospectos' },
   { value: 'payments', label: 'Pagos y cobranzas' },
   { value: 'technical_service', label: 'Servicio técnico' },
   { value: 'other', label: 'Otros' },
@@ -121,7 +122,14 @@ export default function VisitsIndexScreen() {
   const todayStart = dayjs().startOf('day');
   const visits = hookVisits
     .filter((v) => {
-      if (!showPast && dayjs(v.scheduled_at).isBefore(todayStart)) return false;
+      // Overdue pending visits stay visible even with showPast off — only
+      // completed/canceled visits from the past get hidden by this filter.
+      if (
+        !showPast &&
+        v.status !== 'pending' &&
+        dayjs(v.scheduled_at).isBefore(todayStart)
+      )
+        return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         if (!v.client?.name?.toLowerCase().includes(q)) return false;

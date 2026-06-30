@@ -82,6 +82,7 @@ export default function ProductsIndexScreen() {
   const router = useRouter();
   const profile = useAuthStore((s) => s.profile);
   const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root';
+  const canManageProducts = isAdminOrRoot || profile?.role === 'product_manager';
 
   const products = useProductsStore((s) => s.products);
   const loading = useProductsStore((s) => s.loading);
@@ -176,8 +177,8 @@ export default function ProductsIndexScreen() {
         />
       )}
 
-      {/* FAB — admin/root only */}
-      {isAdminOrRoot && (
+      {/* FAB — admin/root/product_manager */}
+      {canManageProducts && (
         <Pressable
           style={styles.fab}
           onPress={() => router.push('/products/new' as never)}

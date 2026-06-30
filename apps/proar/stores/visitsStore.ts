@@ -217,7 +217,7 @@ export const useVisitsStore = create<VisitsState>()(
           .from('visits')
           .select('*, client:clients(*)')
           .eq('client_id', clientId)
-          .eq('type', 'sales_orders')
+          .eq('type', 'quote')
           .order('scheduled_at', { ascending: false });
         if (!error && data) set({ clientQuotes: data as VisitWithClient[] });
       },

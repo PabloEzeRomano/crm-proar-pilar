@@ -21,6 +21,7 @@ export type VisitStatus = 'pending' | 'completed' | 'canceled';
 
 export type VisitType =
   | 'customer_service'
+  | 'quote'
   | 'sales_orders'
   | 'new_projects'
   | 'payments'
@@ -60,6 +61,7 @@ export interface ProductPresentation {
   unit: string;
   quantity: number | null;
   price_usd: number;
+  freight_usd: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -95,6 +97,7 @@ export interface QuoteItem {
   custom_quantity_kg?: number | null;
   quantity: number;
   unit_price_usd: number;
+  freight_usd: number;
   margin_pct: number;
   total_usd: number | null;
 }

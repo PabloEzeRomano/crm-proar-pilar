@@ -48,6 +48,11 @@ const STATUS_TYPE_CONFIG: BadgeConfig = {
     color: visitTypeColors.customer_service,
     bg: visitTypeColors.customer_serviceLight,
   },
+  quote: {
+    icon: 'file-document-outline' as const,
+    color: visitTypeColors.quote,
+    bg: visitTypeColors.quoteLight,
+  },
   sales_orders: {
     icon: 'cart-outline' as const,
     color: visitTypeColors.sales_orders,

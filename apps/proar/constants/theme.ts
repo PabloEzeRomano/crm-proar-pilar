@@ -80,6 +80,8 @@ export const colors = {
 export const visitTypeColors = {
   customer_service: brand.primaryColor,
   customer_serviceLight: brand.primaryColorLight,
+  quote: '#0891B2',
+  quoteLight: '#CFFAFE',
   sales_orders: '#0D9488',
   sales_ordersLight: '#CCFBF1',
   new_projects: '#2563EB',

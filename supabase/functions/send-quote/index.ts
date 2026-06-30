@@ -413,8 +413,8 @@ Deno.serve(async (req) => {
 
     // ── 5. Validate: must be a quote, caller must own it or be admin/root ───
 
-    if (visit.type !== 'quote' && visit.type !== 'sale') {
-      return jsonResponse({ error: 'Visit is not a quote or sale' }, 400);
+    if (visit.type !== 'sales_orders' && visit.type !== 'quote') {
+      return jsonResponse({ error: 'Visit is not a quote or sales order' }, 400);
     }
 
     const isOwner = visit.owner_user_id === callerUser.id;

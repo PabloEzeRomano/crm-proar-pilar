@@ -21,7 +21,9 @@ interface Props {
 }
 
 function effectivePricePerKg(item: QuoteItem): number {
-  return item.unit_price_usd * (1 + item.margin_pct / 100);
+  // Margin marks up the base price; freight is a pass-through cost added
+  // on top, not marked up.
+  return item.unit_price_usd * (1 + item.margin_pct / 100) + (item.freight_usd ?? 0);
 }
 
 export default function QuoteItemRow({
@@ -43,19 +45,19 @@ export default function QuoteItemRow({
 
   function handleQtyChange(text: string) {
     setQtyText(text);
-    const n = parseFloat(text);
+    const n = parseFloat(text.replace(',', '.'));
     if (!isNaN(n) && n > 0) onChangeQuantity(n);
   }
 
   function handleMarginChange(text: string) {
     setMarginText(text);
-    const n = parseFloat(text);
+    const n = parseFloat(text.replace(',', '.'));
     if (!isNaN(n) && n >= 0) onChangeMargin(n);
   }
 
   function handleCustomQtyChange(text: string) {
     setCustomQtyText(text);
-    const n = parseFloat(text);
+    const n = parseFloat(text.replace(',', '.'));
     if (!isNaN(n) && n > 0) onChangeCustomQty?.(n);
   }
 
@@ -97,7 +99,12 @@ export default function QuoteItemRow({
       </View>
 
       {/* Price per kg — always shown, read-only */}
-      <Text style={styles.pricePerKg}>${priceDisplay} USD/kg</Text>
+      <Text style={styles.pricePerKg}>
+        ${priceDisplay} USD/kg
+        {item.freight_usd > 0
+          ? ` (incl. flete $${item.freight_usd.toFixed(4)}/kg)`
+          : ''}
+      </Text>
 
       {/* Input row */}
       <View style={styles.inputs}>

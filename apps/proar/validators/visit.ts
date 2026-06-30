@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const visitTypeSchema = z.enum([
   'customer_service',
+  'quote',
   'sales_orders',
   'new_projects',
   'payments',
@@ -18,6 +19,7 @@ export const quoteItemSchema = z.object({
   unit: z.string().min(1),
   quantity: z.number().positive(),
   unit_price_usd: z.number().nonnegative(),
+  freight_usd: z.number().nonnegative(),
   margin_pct: z.number().min(0).max(100),
   total_usd: z.number().nonnegative(),
 });

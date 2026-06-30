@@ -49,6 +49,7 @@ export default function NewProductScreen() {
   const [presUnit, setPresUnit] = useState('');
   const [presQty, setPresQty] = useState('');
   const [presPrice, setPresPrice] = useState('');
+  const [presFreight, setPresFreight] = useState('');
 
   async function handleCreate() {
     if (!name.trim()) {
@@ -59,7 +60,7 @@ export default function NewProductScreen() {
       showAlert('Error', 'Completá la presentación (etiqueta y unidad)');
       return;
     }
-    const priceVal = parseFloat(presPrice);
+    const priceVal = parseFloat(presPrice.replace(',', '.'));
     if (isNaN(priceVal) || priceVal < 0) {
       showAlert('Error', 'Ingresá un precio válido');
       return;
@@ -69,7 +70,12 @@ export default function NewProductScreen() {
       label: presLabel.trim(),
       unit: presUnit.trim(),
       price_usd: priceVal,
-      quantity: presQty.trim() ? parseFloat(presQty) || null : null,
+      quantity: presQty.trim()
+        ? parseFloat(presQty.replace(',', '.')) || null
+        : null,
+      freight_usd: presFreight.trim()
+        ? parseFloat(presFreight.replace(',', '.')) || null
+        : null,
     };
 
     setSaving(true);
@@ -165,14 +171,24 @@ export default function NewProductScreen() {
           keyboardType="decimal-pad"
         />
       </View>
-      <TextInput
-        style={styles.input}
-        placeholder="Precio USD *"
-        placeholderTextColor={colors.textDisabled}
-        value={presPrice}
-        onChangeText={setPresPrice}
-        keyboardType="decimal-pad"
-      />
+      <View style={styles.row2}>
+        <TextInput
+          style={[styles.input, { flex: 1 }]}
+          placeholder="Precio USD *"
+          placeholderTextColor={colors.textDisabled}
+          value={presPrice}
+          onChangeText={setPresPrice}
+          keyboardType="decimal-pad"
+        />
+        <TextInput
+          style={[styles.input, { flex: 1 }]}
+          placeholder="Flete USD/kg"
+          placeholderTextColor={colors.textDisabled}
+          value={presFreight}
+          onChangeText={setPresFreight}
+          keyboardType="decimal-pad"
+        />
+      </View>
 
       <Pressable
         style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
