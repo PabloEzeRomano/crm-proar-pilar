@@ -53,6 +53,7 @@ import { useImportStore } from '@/stores/importStore';
 import { useTodayStore } from '@/stores/todayStore';
 import { useVisitsStore } from '@/stores/visitsStore';
 import { useTourStore } from '@/stores/tourStore';
+import { AGENDA_GROUP_BY_CLIENT_KEY } from '@/constants/agendaSettings';
 
 // ---------------------------------------------------------------------------
 // Email validation schema
@@ -137,6 +138,7 @@ function SettingsScreenContent() {
   const HERO_KEY = 'agenda-hero-visible';
   const [progressVisible, setProgressVisible] = useState(true);
   const [heroVisible, setHeroVisible] = useState(true);
+  const [groupByClient, setGroupByClient] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -145,6 +147,9 @@ function SettingsScreenContent() {
       });
       AsyncStorage.getItem(HERO_KEY).then((val) => {
         setHeroVisible(val !== 'false');
+      });
+      AsyncStorage.getItem(AGENDA_GROUP_BY_CLIENT_KEY).then((val) => {
+        setGroupByClient(val === 'true');
       });
     }, [])
   );
@@ -157,6 +162,11 @@ function SettingsScreenContent() {
   function handleHeroToggle(val: boolean) {
     setHeroVisible(val);
     AsyncStorage.setItem(HERO_KEY, val ? 'true' : 'false');
+  }
+
+  function handleGroupByClientToggle(val: boolean) {
+    setGroupByClient(val);
+    AsyncStorage.setItem(AGENDA_GROUP_BY_CLIENT_KEY, val ? 'true' : 'false');
   }
 
   // Gap between visits (used by visit form to auto-calculate next time)
@@ -546,6 +556,23 @@ function SettingsScreenContent() {
               thumbColor={heroVisible ? colors.primary : colors.textDisabled}
             />
           </View>
+
+          <View style={[styles.row, styles.rowBorderTop]}>
+            <View style={styles.rowContent}>
+              <Text style={styles.rowLabel}>Agrupar por cliente</Text>
+              <Text style={styles.rowSubtitle}>
+                Agrupar gestiones del mismo cliente en la agenda
+              </Text>
+            </View>
+            <Switch
+              value={groupByClient}
+              onValueChange={handleGroupByClientToggle}
+              trackColor={{ false: colors.border, true: colors.primaryLight }}
+              thumbColor={
+                groupByClient ? colors.primary : colors.textDisabled
+              }
+            />
+          </View>
         </View>
 
         {/* ================================================================
@@ -909,6 +936,28 @@ function SettingsScreenContent() {
               )}
             </View>
           </TourStep>
+
+          <View style={[styles.row, styles.rowColumn, styles.rowBorderTop]}>
+            <View style={styles.rowContent}>
+              <Text style={styles.rowLabel}>Asistente de importación</Text>
+              <Text style={styles.rowSubtitle}>
+                Mapeá columnas manualmente para clientes, gestiones o productos
+              </Text>
+            </View>
+            <Pressable
+              style={styles.importButton}
+              onPress={() => router.push('/(tabs)/import')}
+              accessibilityRole="button"
+              accessibilityLabel="Abrir asistente de importación"
+            >
+              <MaterialCommunityIcons
+                name="table-arrow-right"
+                size={18}
+                color={colors.textOnPrimary}
+              />
+              <Text style={styles.importButtonLabel}>Abrir asistente</Text>
+            </Pressable>
+          </View>
         </View>
 
         {/* ================================================================

@@ -54,6 +54,7 @@ function TabIcon({ activeIcon, inactiveIcon, focused, color }: TabIconProps) {
 export default function TabsLayout() {
   const profile = useAuthStore((state) => state.profile);
   const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root';
+  const canManageProducts = isAdminOrRoot || profile?.role === 'product_manager';
   const { width } = useWindowDimensions();
 
   // On web screens > 768px wide, constrain content to 480px and center it
@@ -170,13 +171,21 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* Products — navigated to from Settings; hidden from tab bar */}
+      {/* ── Productos — admin/root/product_manager ───────────────────────── */}
       <Tabs.Screen
         name="products"
         options={{
           title: 'Productos',
-          href: null, // hide from tab bar; navigated to from Settings
+          href: canManageProducts ? undefined : null, // hide unless authorized
           headerShown: false, // nested Stack owns the header
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon
+              activeIcon="flask"
+              inactiveIcon="flask-outline"
+              focused={focused}
+              color={color}
+            />
+          ),
         }}
       />
 
@@ -194,6 +203,15 @@ export default function TabsLayout() {
         name="users"
         options={{
           title: 'Usuarios',
+          href: null, // hide from tab bar
+        }}
+      />
+
+      {/* Import wizard — navigated to from Settings */}
+      <Tabs.Screen
+        name="import"
+        options={{
+          title: 'Importar',
           href: null, // hide from tab bar
         }}
       />
