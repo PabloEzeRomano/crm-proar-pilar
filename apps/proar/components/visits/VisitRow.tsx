@@ -15,6 +15,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import dayjs, { fromUTC } from '@/lib/dayjs';
@@ -36,6 +37,9 @@ export interface VisitRowProps {
   showAmount?: boolean;
   showType?: boolean;
   showNotes?: boolean;
+  showClientName?: boolean;
+  /** 'card' (default): standalone card. 'row': flat row for use inside group cards. */
+  variant?: 'card' | 'row';
 }
 
 const webStyle = { cursor: 'pointer' };
@@ -46,6 +50,8 @@ export function VisitRow({
   showOwner,
   showType = true,
   showNotes = true,
+  showClientName = true,
+  variant = 'card',
 }: VisitRowProps) {
   const scheduledDayjs = fromUTC(visit.scheduled_at);
   const [minutaVisible, setMinutaVisible] = useState(false);
@@ -63,9 +69,12 @@ export function VisitRow({
     showOwner && visit.owner?.full_name ? visit.owner.full_name : null;
 
   const isWeb = Platform.OS === 'web';
+  const { width } = useWindowDimensions();
+  const isWebDesktop = isWeb && width >= 768;
+  const isRow = variant === 'row';
 
   const notesSnippet =
-    showNotes && isWeb && visit.notes
+    showNotes && isWebDesktop && visit.notes
       ? visit.notes.length > 180
         ? visit.notes.slice(0, 200) + '...'
         : visit.notes
@@ -75,10 +84,10 @@ export function VisitRow({
     <>
     <Pressable
       style={({ pressed }) => [
-        styles.card,
-        pressed && styles.cardPressed,
+        isRow ? styles.row : styles.card,
+        pressed && (isRow ? styles.rowPressed : styles.cardPressed),
         { opacity: rowOpacity, borderLeftColor: visitTypeColors[visit.type] },
-        isWeb && (webStyle as object),
+        isWeb && !isRow && (webStyle as object),
       ]}
       onPress={onPress}
       onLongPress={visit.notes ? () => setMinutaVisible(true) : undefined}
@@ -95,11 +104,13 @@ export function VisitRow({
         </Text>
       </View>
 
-      {/* Col 2: client name + owner — narrower on web so col 3 has more room */}
-      <View style={[styles.clientColumn, isWeb && styles.clientColumnWeb]}>
-        <Text style={styles.clientName} numberOfLines={1}>
-          {clientName}
-        </Text>
+      {/* Col 2: client name + owner — narrower on web desktop so col 3 has more room */}
+      <View style={[styles.clientColumn, isWebDesktop && !isRow && styles.clientColumnWeb]}>
+        {showClientName ? (
+          <Text style={styles.clientName} numberOfLines={1}>
+            {clientName}
+          </Text>
+        ) : null}
         {visit.title ? (
           <Text style={styles.visitTitleText} numberOfLines={1}>
             {visit.title}
@@ -115,7 +126,7 @@ export function VisitRow({
             {ownerName}
           </Text>
         ) : null}
-        {!isWeb && visit.amount != null ? (
+        {!isWebDesktop && visit.amount != null ? (
           <Text style={styles.amountText}>
             $
             {visit.amount.toLocaleString('en-US', {
@@ -127,8 +138,8 @@ export function VisitRow({
         ) : null}
       </View>
 
-      {/* Col 3: notes + amount — web only */}
-      {isWeb && (
+      {/* Col 3: notes + amount — web desktop only */}
+      {isWebDesktop && (
         <View style={styles.notesColumn}>
           {notesSnippet ? (
             <Text style={styles.notesText} numberOfLines={4}>
@@ -210,6 +221,20 @@ const styles = StyleSheet.create({
   },
   cardPressed: {
     opacity: 0.85,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    gap: spacing[2],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    borderLeftWidth: 3,
+    minHeight: 48,
+  },
+  rowPressed: {
+    backgroundColor: colors.border,
   },
 
   timeColumn: {

@@ -16,14 +16,12 @@
 
 import TourStep from '@/components/tour/TourStep';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation, useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -32,8 +30,12 @@ import {
 } from 'react-native';
 
 import { StatsModal } from '@/components/today/StatsCard';
-import { StatusTypeBadge } from '@/components/ui/StatusTypeBadge';
 import { VisitRow } from '@/components/visits/VisitRow';
+import {
+  AGENDA_GROUP_BY_CLIENT_KEY,
+  HERO_KEY,
+  PROGRESS_KEY,
+} from '@/constants/agendaSettings';
 import {
   borderRadius,
   colors,
@@ -41,146 +43,22 @@ import {
   fontWeight,
   shadows,
   spacing,
-  visitTypeColors,
 } from '@/constants/theme';
 import { useToday } from '@/hooks/useToday';
 import dayjs, { fromUTC } from '@/lib/dayjs';
-import { useAuthStore } from '@/stores/authStore';
 import { TodaySpan } from '@/stores/todayStore';
+import { usePermissions } from '@/hooks/usePermissions';
+import { formatMinutes } from '@/lib/formatting';
 import { VisitWithClient } from '@/types';
-import { AGENDA_GROUP_BY_CLIENT_KEY } from '@/constants/agendaSettings';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Format a minute count into a human-readable string.
- * Uses the absolute value, e.g. -25 → "25 minutos", 90 → "1 h 30 min".
- */
-function formatMinutes(mins: number): string {
-  const abs = Math.abs(mins);
-  if (abs < 60) return `${abs} minuto${abs !== 1 ? 's' : ''}`;
-  const h = Math.floor(abs / 60);
-  const m = abs % 60;
-  return m > 0 ? `${h} h ${m} min` : `${h} h`;
-}
 
 // ---------------------------------------------------------------------------
 // Client group card — multiple visits for same client
 // ---------------------------------------------------------------------------
-
-function GroupVisitRow({
-  visit,
-  clientName,
-  onPress,
-  showOwner,
-}: {
-  visit: VisitWithClient;
-  clientName: string;
-  onPress: () => void;
-  showOwner: boolean;
-}) {
-  const scheduledDayjs = fromUTC(visit.scheduled_at);
-  const isCompleted = visit.status === 'completed';
-  const isCanceled = visit.status === 'canceled';
-  const isPendingOverdue =
-    visit.status === 'pending' && scheduledDayjs.isBefore(dayjs());
-  const rowOpacity = isCompleted ? 0.5 : isCanceled ? 0.4 : 1;
-  const timeColor = isPendingOverdue ? colors.warning : colors.textPrimary;
-  const isWeb = Platform.OS === 'web';
-  const [minutaVisible, setMinutaVisible] = useState(false);
-
-  const notesSnippet =
-    isWeb && visit.notes
-      ? visit.notes.length > 180
-        ? visit.notes.slice(0, 200) + '...'
-        : visit.notes
-      : null;
-
-  return (
-    <>
-    <Pressable
-      style={({ pressed }) => [
-        groupStyles.row,
-        pressed && groupStyles.rowPressed,
-        { opacity: rowOpacity, borderLeftColor: visitTypeColors[visit.type] },
-      ]}
-      onPress={onPress}
-      onLongPress={visit.notes ? () => setMinutaVisible(true) : undefined}
-      accessibilityRole="button"
-      accessibilityLabel={`Ver gestión de ${clientName}`}
-    >
-      <View style={groupStyles.timeCol}>
-        <Text style={groupStyles.dayText}>
-          {scheduledDayjs.format('ddd').toUpperCase()}
-        </Text>
-        <Text style={groupStyles.dateText}>
-          {scheduledDayjs.format('DD/MM')}
-        </Text>
-        <Text style={[groupStyles.timeText, { color: timeColor }]}>
-          {scheduledDayjs.format('HH:mm')}
-        </Text>
-      </View>
-      <View style={[groupStyles.infoCol, isWeb && groupStyles.infoColWeb]}>
-        {visit.title ? (
-          <Text style={groupStyles.titleText} numberOfLines={1}>
-            {visit.title}
-          </Text>
-        ) : null}
-        {visit.contact_snapshot?.name ? (
-          <Text style={groupStyles.contactText} numberOfLines={1}>
-            👤 {visit.contact_snapshot.name}
-          </Text>
-        ) : null}
-        {showOwner && visit.owner?.full_name ? (
-          <Text style={groupStyles.ownerText} numberOfLines={1}>
-            {visit.owner.full_name}
-          </Text>
-        ) : null}
-        {notesSnippet ? (
-          <Text style={groupStyles.notesText} numberOfLines={3}>
-            {notesSnippet}
-          </Text>
-        ) : null}
-      </View>
-      <View style={groupStyles.badgeCol}>
-        <StatusTypeBadge type={visit.type} />
-        <StatusTypeBadge status={visit.status} type={visit.type} />
-      </View>
-    </Pressable>
-
-    {!isWeb && (
-      <Modal
-        visible={minutaVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setMinutaVisible(false)}
-      >
-        <Pressable
-          style={groupStyles.minutaOverlay}
-          onPress={() => setMinutaVisible(false)}
-        >
-          <View style={groupStyles.minutaSheet}>
-            <Text style={groupStyles.minutaHeader}>
-              {clientName} · {scheduledDayjs.format('DD/MM HH:mm')}
-            </Text>
-            <ScrollView style={groupStyles.minutaScroll}>
-              <Text style={groupStyles.minutaBody}>{visit.notes}</Text>
-            </ScrollView>
-            <Pressable
-              style={groupStyles.minutaClose}
-              onPress={() => setMinutaVisible(false)}
-            >
-              <Text style={groupStyles.minutaCloseText}>Cerrar</Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Modal>
-    )}
-    </>
-  );
-}
 
 function ClientGroupCard({
   visits,
@@ -225,12 +103,13 @@ function ClientGroupCard({
       </View>
 
       {pending.map((visit) => (
-        <GroupVisitRow
+        <VisitRow
           key={visit.id}
           visit={visit}
-          clientName={client.name}
           onPress={() => onVisitPress(visit)}
           showOwner={showOwner}
+          showClientName={false}
+          variant="row"
         />
       ))}
 
@@ -256,12 +135,13 @@ function ClientGroupCard({
 
           {expanded &&
             completed.map((visit) => (
-              <GroupVisitRow
+              <VisitRow
                 key={visit.id}
                 visit={visit}
-                clientName={client.name}
                 onPress={() => onVisitPress(visit)}
                 showOwner={showOwner}
+                showClientName={false}
+                variant="row"
               />
             ))}
         </>
@@ -316,69 +196,6 @@ const groupStyles = StyleSheet.create({
     fontWeight: fontWeight.semibold,
     color: colors.textOnPrimary,
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    gap: spacing[2],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    borderLeftWidth: 3,
-  },
-  rowPressed: {
-    backgroundColor: colors.border,
-  },
-  timeCol: {
-    width: 44,
-    flexShrink: 0,
-    gap: 2,
-  },
-  dayText: {
-    fontSize: 10,
-    fontWeight: fontWeight.medium,
-    color: colors.textSecondary,
-  },
-  dateText: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.medium,
-    color: colors.textSecondary,
-  },
-  timeText: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.bold,
-  },
-  infoCol: {
-    flex: 1,
-    gap: 2,
-  },
-  infoColWeb: {
-    flex: 2,
-  },
-  notesText: {
-    fontSize: fontSize.xs,
-    color: colors.textSecondary,
-    lineHeight: fontSize.xs * 1.5,
-    marginTop: 2,
-  },
-  titleText: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
-    color: colors.textPrimary,
-  },
-  contactText: {
-    fontSize: fontSize.xs,
-    color: colors.textSecondary,
-  },
-  ownerText: {
-    fontSize: fontSize.xs,
-    color: colors.textSecondary,
-  },
-  badgeCol: {
-    flexShrink: 0,
-    alignItems: 'flex-end',
-    gap: spacing[1],
-  },
   accordion: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -394,44 +211,6 @@ const groupStyles = StyleSheet.create({
     fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
-  minutaOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  minutaSheet: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: spacing[5],
-    maxHeight: '70%',
-    gap: spacing[3],
-  },
-  minutaHeader: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold,
-    color: colors.textSecondary,
-  },
-  minutaScroll: {
-    flexGrow: 0,
-  },
-  minutaBody: {
-    fontSize: fontSize.base,
-    color: colors.textPrimary,
-    lineHeight: fontSize.base * 1.6,
-  },
-  minutaClose: {
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-  },
-  minutaCloseText: {
-    fontSize: fontSize.base,
-    fontWeight: fontWeight.semibold,
-    color: colors.primary,
-  },
 });
 
 // ---------------------------------------------------------------------------
@@ -442,8 +221,7 @@ function TodayScreenContent() {
   const router = useRouter();
   const navigation = useNavigation();
   const [statsVisible, setStatsVisible] = useState(false);
-  const profile = useAuthStore((state) => state.profile);
-  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root';
+  const { isAdminOrRoot } = usePermissions();
 
   const {
     visits,
@@ -456,8 +234,6 @@ function TodayScreenContent() {
     fetchTodayVisits,
   } = useToday(isAdminOrRoot);
 
-  const PROGRESS_KEY = 'agenda-progress-visible';
-  const HERO_KEY = 'agenda-hero-visible';
   const [progressVisible, setProgressVisible] = useState(true);
   const [heroVisible, setHeroVisible] = useState(true);
   const [groupByClient, setGroupByClient] = useState(false);
@@ -618,16 +394,15 @@ function TodayScreenContent() {
   const groupedVisits = useMemo(() => {
     const groups = new Map<string, VisitWithClient[]>();
     for (const visit of pendingVisits) {
-      // Threaded visits group under their thread_id; solo visits group by client
-      const key = visit.thread_id ?? visit.client_id;
+      // Threaded visits always group by thread; client grouping is optional
+      const key =
+        visit.thread_id ?? (groupByClient ? visit.client_id : visit.id);
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(visit);
     }
     // Sort visits within each group chronologically
     for (const group of groups.values()) {
-      group.sort((a, b) =>
-        dayjs(a.scheduled_at).diff(dayjs(b.scheduled_at))
-      );
+      group.sort((a, b) => dayjs(a.scheduled_at).diff(dayjs(b.scheduled_at)));
     }
     return Array.from(groups.values()).sort((a, b) => {
       const aFirst = a[0];
@@ -640,15 +415,6 @@ function TodayScreenContent() {
       return dayjs(aFirst.scheduled_at).diff(dayjs(bFirst.scheduled_at));
     });
   }, [pendingVisits]);
-
-  // Flat (ungrouped) view — just pending visits sorted chronologically.
-  const flatVisits = useMemo(
-    () =>
-      [...pendingVisits].sort((a, b) =>
-        dayjs(a.scheduled_at).diff(dayjs(b.scheduled_at))
-      ),
-    [pendingVisits]
-  );
 
   // ── Helpers ─────────────────────────────────────────────────────────────
 
@@ -1031,13 +797,9 @@ function TodayScreenContent() {
             </View>
           </TourStep>
 
-          {/* Visit rows or empty state */}
+          {/* Visit rows or empty state — tema always groups, client grouping optional */}
           {pendingVisits.length === 0 ? (
             renderEmptyState()
-          ) : !groupByClient ? (
-            <View style={styles.visitList}>
-              {flatVisits.map((visit) => renderVisitRow(visit))}
-            </View>
           ) : (
             <View style={styles.visitList}>
               {groupedVisits.map((group) =>

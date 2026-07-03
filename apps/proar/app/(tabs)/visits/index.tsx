@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -11,11 +11,17 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useNavigation, useRouter } from 'expo-router';
+import { useFocusEffect, useNavigation, useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import TourStep from '@/components/tour/TourStep';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import dayjs from '@/lib/dayjs';
+import { AGENDA_GROUP_BY_CLIENT_KEY } from '@/constants/agendaSettings';
+import {
+  VISIT_STATUS_OPTIONS,
+  VISIT_TYPE_OPTIONS,
+} from '@/constants/visitOptions';
 import {
   borderRadius,
   colors,
@@ -33,21 +39,6 @@ import AppDatePicker from '@/components/ui/AppDatePicker';
 // Constants
 // ---------------------------------------------------------------------------
 
-const VISIT_TYPE_OPTIONS: { value: VisitType; label: string }[] = [
-  { value: 'customer_service', label: 'Atención al cliente' },
-  { value: 'quote', label: 'Cotizaciones' },
-  { value: 'sales_orders', label: 'Ventas y pedidos' },
-  { value: 'new_projects', label: 'Prospectos' },
-  { value: 'payments', label: 'Pagos y cobranzas' },
-  { value: 'technical_service', label: 'Servicio técnico' },
-  { value: 'other', label: 'Otros' },
-];
-
-const VISIT_STATUS_OPTIONS: { value: VisitStatus; label: string }[] = [
-  { value: 'pending', label: 'Pendiente' },
-  { value: 'completed', label: 'Completada' },
-  { value: 'canceled', label: 'Cancelada' },
-];
 
 // const STATUS_PILLS: { label: string; value: VisitStatus | null; bg: string }[] = [
 //   { label: 'Todas',      value: null,        bg: colors.primary },
@@ -63,6 +54,16 @@ const VISIT_STATUS_OPTIONS: { value: VisitStatus; label: string }[] = [
 export default function VisitsIndexScreen() {
   const router = useRouter();
   const navigation = useNavigation();
+
+  const [groupByClient, setGroupByClient] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      AsyncStorage.getItem(AGENDA_GROUP_BY_CLIENT_KEY).then((val) => {
+        setGroupByClient(val === 'true');
+      });
+    }, [])
+  );
 
   // ── Applied filter state ────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('');
@@ -149,6 +150,18 @@ export default function VisitsIndexScreen() {
       (a, b) =>
         dayjs(a.scheduled_at).valueOf() - dayjs(b.scheduled_at).valueOf()
     );
+
+  // ── Grouped view (by thread always, by client when setting is on) ───────
+  const groupedVisitsData = useMemo(() => {
+    if (!groupByClient) return null;
+    const groups = new Map<string, VisitWithClient[]>();
+    for (const visit of visits) {
+      const key = visit.thread_id ?? visit.client_id;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(visit);
+    }
+    return Array.from(groups.values());
+  }, [visits, groupByClient]);
 
   // ── Filter count ────────────────────────────────────────────────────────
   const activeFilterCount =
@@ -478,6 +491,55 @@ export default function VisitsIndexScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
+      ) : groupedVisitsData ? (
+        <ScrollView
+          contentContainerStyle={[
+            styles.listContent,
+            groupedVisitsData.length === 0 ? styles.listEmptyContent : undefined,
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          {groupedVisitsData.length === 0 ? renderEmpty() : groupedVisitsData.map((group) => {
+            const client = group[0].client;
+            const isThread = Boolean(group[0].thread_id);
+            const key = group[0].thread_id ?? group[0].client_id;
+            if (group.length === 1) {
+              return (
+                <VisitRow
+                  key={group[0].id}
+                  visit={group[0]}
+                  onPress={() => handleRowPress(group[0])}
+                  showType
+                  showOwner={isAdminOrRoot}
+                />
+              );
+            }
+            return (
+              <View key={key} style={styles.groupSection}>
+                <View style={styles.groupHeader}>
+                  <MaterialCommunityIcons
+                    name={isThread ? 'label-outline' : 'domain'}
+                    size={14}
+                    color={colors.textSecondary}
+                  />
+                  <Text style={styles.groupClientName} numberOfLines={1}>
+                    {client.name}
+                  </Text>
+                  <Text style={styles.groupCount}>{group.length} gest.</Text>
+                </View>
+                {group.map((visit) => (
+                  <VisitRow
+                    key={visit.id}
+                    visit={visit}
+                    onPress={() => handleRowPress(visit)}
+                    showType
+                    showOwner={isAdminOrRoot}
+                  />
+                ))}
+              </View>
+            );
+          })}
+        </ScrollView>
       ) : (
         <FlatList
           data={visits}
@@ -1195,6 +1257,33 @@ const styles = StyleSheet.create({
   dateDisplayText: {
     fontSize: fontSize.base,
     color: colors.textPrimary,
+  },
+
+  // ── Grouped section ───────────────────────────────────────────────────────
+
+  groupSection: {
+    marginBottom: spacing[2],
+  },
+  groupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    backgroundColor: colors.primaryLight,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+  },
+  groupClientName: {
+    flex: 1,
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+  },
+  groupCount: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
   },
 
   // ── Modal footer ───────────────────────────────────────────────────────────
