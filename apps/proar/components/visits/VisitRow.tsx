@@ -105,7 +105,7 @@ export function VisitRow({
       </View>
 
       {/* Col 2: client name + owner — narrower on web desktop so col 3 has more room */}
-      <View style={[styles.clientColumn, isWebDesktop && !isRow && styles.clientColumnWeb]}>
+      <View style={[styles.clientColumn, isWebDesktop && styles.clientColumnWeb]}>
         {showClientName ? (
           <Text style={styles.clientName} numberOfLines={1}>
             {clientName}

@@ -33,6 +33,7 @@ import { VisitStatus, VisitType, VisitWithClient } from '@/types';
 import { useVisits } from '@/hooks/useVisits';
 import { useUsersStore } from '@/stores/usersStore';
 import { VisitRow } from '@/components/visits/VisitRow';
+import { ClientGroupCard } from '@/components/visits/ClientGroupCard';
 import AppDatePicker from '@/components/ui/AppDatePicker';
 
 // ---------------------------------------------------------------------------
@@ -500,8 +501,6 @@ export default function VisitsIndexScreen() {
           showsVerticalScrollIndicator={false}
         >
           {groupedVisitsData.length === 0 ? renderEmpty() : groupedVisitsData.map((group) => {
-            const client = group[0].client;
-            const isThread = Boolean(group[0].thread_id);
             const key = group[0].thread_id ?? group[0].client_id;
             if (group.length === 1) {
               return (
@@ -515,28 +514,12 @@ export default function VisitsIndexScreen() {
               );
             }
             return (
-              <View key={key} style={styles.groupSection}>
-                <View style={styles.groupHeader}>
-                  <MaterialCommunityIcons
-                    name={isThread ? 'label-outline' : 'domain'}
-                    size={14}
-                    color={colors.textSecondary}
-                  />
-                  <Text style={styles.groupClientName} numberOfLines={1}>
-                    {client.name}
-                  </Text>
-                  <Text style={styles.groupCount}>{group.length} gest.</Text>
-                </View>
-                {group.map((visit) => (
-                  <VisitRow
-                    key={visit.id}
-                    visit={visit}
-                    onPress={() => handleRowPress(visit)}
-                    showType
-                    showOwner={isAdminOrRoot}
-                  />
-                ))}
-              </View>
+              <ClientGroupCard
+                key={key}
+                visits={group}
+                onVisitPress={handleRowPress}
+                showOwner={isAdminOrRoot}
+              />
             );
           })}
         </ScrollView>
@@ -1257,33 +1240,6 @@ const styles = StyleSheet.create({
   dateDisplayText: {
     fontSize: fontSize.base,
     color: colors.textPrimary,
-  },
-
-  // ── Grouped section ───────────────────────────────────────────────────────
-
-  groupSection: {
-    marginBottom: spacing[2],
-  },
-  groupHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    backgroundColor: colors.primaryLight,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: colors.border,
-  },
-  groupClientName: {
-    flex: 1,
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold,
-    color: colors.textPrimary,
-  },
-  groupCount: {
-    fontSize: fontSize.xs,
-    color: colors.textSecondary,
   },
 
   // ── Modal footer ───────────────────────────────────────────────────────────
