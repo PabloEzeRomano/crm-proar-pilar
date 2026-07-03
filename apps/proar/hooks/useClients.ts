@@ -2,8 +2,8 @@ import { useMemo } from 'react';
 import dayjs from '../lib/dayjs';
 import { useClientsStore } from '../stores/clientsStore';
 import { useVisitsStore } from '../stores/visitsStore';
-import { useAuthStore } from '../stores/authStore';
 import { Client, VisitType } from '../types';
+import { usePermissions } from './usePermissions';
 
 export type ClientSortOrder =
   | 'name-asc'
@@ -34,10 +34,9 @@ export function useClients(
   const createClient = useClientsStore((state) => state.createClient);
   const updateClient = useClientsStore((state) => state.updateClient);
   const deleteClient = useClientsStore((state) => state.deleteClient);
-  const profile = useAuthStore((state) => state.profile);
   const allVisits = useVisitsStore((state) => state.visits);
 
-  const isAdminMode = profile?.role === 'admin' || profile?.role === 'root';
+  const { isAdminOrRoot: isAdminMode } = usePermissions();
   const baseClients = isAdminMode ? allClients : clients;
 
   const filteredClients = useMemo<Client[]>(() => {

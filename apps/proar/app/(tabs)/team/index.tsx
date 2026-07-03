@@ -31,8 +31,8 @@ import {
   spacing,
 } from '@/constants/theme';
 import dayjs from '@/lib/dayjs';
-import { useAuthStore } from '@/stores/authStore';
 import { useUsersStore } from '@/stores/usersStore';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useVisitsStore } from '@/stores/visitsStore';
 
 // ---------------------------------------------------------------------------
@@ -41,7 +41,7 @@ import { useVisitsStore } from '@/stores/visitsStore';
 
 export default function TeamIndexScreen() {
   const router = useRouter();
-  const profile = useAuthStore((s) => s.profile);
+  const { isAdminOrRoot } = usePermissions();
 
   const fetchUsers = useUsersStore((s) => s.fetchUsers);
 
@@ -50,8 +50,6 @@ export default function TeamIndexScreen() {
   const fetchAllVisitsForAdmin = useVisitsStore(
     (s) => s.fetchAllVisitsForAdmin
   );
-
-  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root';
 
   // selectedType removed — sale/quote merged into sales_orders
 

@@ -14,9 +14,9 @@ import {
   updateStatusSchema,
 } from '../validators/visit';
 import { useClientsStore } from './clientsStore';
+import { GAP_KEY } from '../constants/agendaSettings';
 
 const PAGE_SIZE = 100;
-const GAP_KEY = 'visit-gap-minutes';
 const DEFAULT_GAP = 60;
 
 interface VisitsState {

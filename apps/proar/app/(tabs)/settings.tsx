@@ -53,7 +53,14 @@ import { useImportStore } from '@/stores/importStore';
 import { useTodayStore } from '@/stores/todayStore';
 import { useVisitsStore } from '@/stores/visitsStore';
 import { useTourStore } from '@/stores/tourStore';
-import { AGENDA_GROUP_BY_CLIENT_KEY } from '@/constants/agendaSettings';
+import {
+  AGENDA_GROUP_BY_CLIENT_KEY,
+  GAP_KEY,
+  HERO_KEY,
+  NOTIFICATIONS_KEY,
+  PROGRESS_KEY,
+} from '@/constants/agendaSettings';
+import { usePermissions } from '@/hooks/usePermissions';
 
 // ---------------------------------------------------------------------------
 // Email validation schema
@@ -90,7 +97,7 @@ function SettingsScreenContent() {
   const deleteAllVisits = useVisitsStore((s) => s.deleteAllUserVisits);
   const deleteAllClients = useClientsStore((s) => s.deleteAllUserClients);
 
-  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root';
+  const { isAdminOrRoot } = usePermissions();
   const teamUsers = useUsersStore((s) => s.users);
 
   // -------------------------------------------------------------------------
@@ -133,9 +140,6 @@ function SettingsScreenContent() {
     message: string;
   } | null>(null);
 
-  // Progress bar visibility
-  const PROGRESS_KEY = 'agenda-progress-visible';
-  const HERO_KEY = 'agenda-hero-visible';
   const [progressVisible, setProgressVisible] = useState(true);
   const [heroVisible, setHeroVisible] = useState(true);
   const [groupByClient, setGroupByClient] = useState(false);
@@ -169,8 +173,6 @@ function SettingsScreenContent() {
     AsyncStorage.setItem(AGENDA_GROUP_BY_CLIENT_KEY, val ? 'true' : 'false');
   }
 
-  // Gap between visits (used by visit form to auto-calculate next time)
-  const GAP_KEY = 'visit-gap-minutes';
   const DEFAULT_GAP = 60;
   const GAP_OPTIONS = [
     { label: '30 min', value: 30 },
@@ -232,7 +234,7 @@ function SettingsScreenContent() {
   useEffect(() => {
     async function loadNotificationsEnabled() {
       try {
-        const value = await AsyncStorage.getItem('notifications-enabled');
+        const value = await AsyncStorage.getItem(NOTIFICATIONS_KEY);
         // Default to true if not set
         setNotificationsEnabled(value !== 'false');
       } catch (error) {
@@ -264,7 +266,7 @@ function SettingsScreenContent() {
     setNotificationsEnabled(val);
     try {
       await AsyncStorage.setItem(
-        'notifications-enabled',
+        NOTIFICATIONS_KEY,
         val ? 'true' : 'false'
       );
     } catch (error) {

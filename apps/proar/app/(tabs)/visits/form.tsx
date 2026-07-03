@@ -65,54 +65,21 @@ import {
 } from '@/types';
 import dayjs from '@/lib/dayjs';
 import { getStatusLabel } from '@/lib/visitStatus';
+import {
+  PRODUCT_FILTER_OPTIONS,
+  ProductFilterType,
+  VISIT_TYPE_OPTIONS_WITH_ICONS,
+} from '@/constants/visitOptions';
+import { GAP_KEY } from '@/constants/agendaSettings';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const GAP_KEY = 'visit-gap-minutes';
 const DEFAULT_GAP = 60;
 
 const MINUTA_TEMPLATE = '';
 
-const VISIT_TYPE_OPTIONS: { value: VisitType; label: string; icon: string }[] =
-  [
-    {
-      value: 'customer_service',
-      label: 'Atención al cliente',
-      icon: 'headset',
-    },
-    {
-      value: 'quote',
-      label: 'Cotizaciones',
-      icon: 'file-document-outline',
-    },
-    { value: 'sales_orders', label: 'Ventas y pedidos', icon: 'cart-outline' },
-    {
-      value: 'new_projects',
-      label: 'Prospectos',
-      icon: 'lightbulb-outline',
-    },
-    {
-      value: 'payments',
-      label: 'Pagos y cobranzas',
-      icon: 'credit-card-outline',
-    },
-    {
-      value: 'technical_service',
-      label: 'Servicio técnico',
-      icon: 'wrench-outline',
-    },
-    { value: 'other', label: 'Otros', icon: 'dots-horizontal-circle-outline' },
-  ];
-
-type ProductFilterType = 'all' | 'formulated' | 'commodity';
-
-const PRODUCT_FILTER_OPTIONS: { value: ProductFilterType; label: string }[] = [
-  { value: 'all', label: 'Todos' },
-  { value: 'formulated', label: 'Formulados' },
-  { value: 'commodity', label: 'Commodities' },
-];
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -685,7 +652,7 @@ export default function VisitFormScreen() {
         <View style={styles.fieldGroup}>
           <FieldLabel label="Tipo de gestión" />
           <View style={styles.typeRow}>
-            {VISIT_TYPE_OPTIONS.map(({ value, label, icon }) => {
+            {VISIT_TYPE_OPTIONS_WITH_ICONS.map(({ value, label, icon }) => {
               const active = visitType === value;
               const typeColor = visitTypeColors[value];
               return (

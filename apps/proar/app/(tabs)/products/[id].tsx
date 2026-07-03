@@ -19,8 +19,9 @@ import {
   spacing,
 } from '@/constants/theme';
 import { showConfirm } from '@/lib/dialog';
-import { useAuthStore } from '@/stores/authStore';
+import { formatPrice } from '@/lib/formatting';
 import { useProductsStore } from '@/stores/productsStore';
+import { usePermissions } from '@/hooks/usePermissions';
 import type { Product, ProductPresentation } from '@/types';
 import type {
   UpdateProductInput,
@@ -32,9 +33,6 @@ import type {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatPrice(price: number) {
-  return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} USD`;
-}
 
 // ---------------------------------------------------------------------------
 // Presentation row
@@ -292,11 +290,7 @@ export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const navigation = useNavigation();
   const router = useRouter();
-  const profile = useAuthStore((s) => s.profile);
-  const isAdmin =
-    profile?.role === 'admin' ||
-    profile?.role === 'root' ||
-    profile?.role === 'product_manager';
+  const { canManageProducts: isAdmin, isRoot } = usePermissions();
 
   const products = useProductsStore((s) => s.products);
   const updateProduct = useProductsStore((s) => s.updateProduct);
@@ -419,7 +413,7 @@ export default function ProductDetailScreen() {
               >
                 <Text style={styles.saveBtnText}>Guardar</Text>
               </Pressable>
-              {profile?.role === 'root' && (
+              {isRoot && (
                 <Pressable
                   style={styles.deleteBtn}
                   onPress={handleDelete}

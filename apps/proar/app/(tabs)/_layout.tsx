@@ -18,7 +18,7 @@ import {
   BREAKPOINT_WIDE,
   MAX_CONTAINER_WIDTH,
 } from '@/constants/theme';
-import { useAuthStore } from '@/stores/authStore';
+import { usePermissions } from '@/hooks/usePermissions';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -52,9 +52,7 @@ function TabIcon({ activeIcon, inactiveIcon, focused, color }: TabIconProps) {
 // ---------------------------------------------------------------------------
 
 export default function TabsLayout() {
-  const profile = useAuthStore((state) => state.profile);
-  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root';
-  const canManageProducts = isAdminOrRoot || profile?.role === 'product_manager';
+  const { isAdminOrRoot, canManageProducts } = usePermissions();
   const { width } = useWindowDimensions();
 
   // On web screens > 768px wide, constrain content to 480px and center it

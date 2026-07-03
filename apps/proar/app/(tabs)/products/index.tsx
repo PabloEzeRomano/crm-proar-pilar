@@ -19,8 +19,8 @@ import {
   shadows,
   spacing,
 } from '@/constants/theme';
-import { useAuthStore } from '@/stores/authStore';
 import { useProductsStore } from '@/stores/productsStore';
+import { usePermissions } from '@/hooks/usePermissions';
 import type { Product, ProductType } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -80,9 +80,7 @@ function ProductRow({
 
 export default function ProductsIndexScreen() {
   const router = useRouter();
-  const profile = useAuthStore((s) => s.profile);
-  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root';
-  const canManageProducts = isAdminOrRoot || profile?.role === 'product_manager';
+  const { canManageProducts } = usePermissions();
 
   const products = useProductsStore((s) => s.products);
   const loading = useProductsStore((s) => s.loading);

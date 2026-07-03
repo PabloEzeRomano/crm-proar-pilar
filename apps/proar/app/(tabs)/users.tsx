@@ -46,6 +46,7 @@ import {
 import { showAlert, showConfirm } from '@/lib/dialog';
 import { useAuthStore } from '@/stores/authStore';
 import { useUsersStore } from '@/stores/usersStore';
+import { usePermissions } from '@/hooks/usePermissions';
 import type { UserListItem, UserRole } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -314,8 +315,7 @@ export default function UsersScreen() {
   const [roleModalRole, setRoleModalRole] = useState<AssignableRole>('user');
   const [roleChanging, setRoleChanging] = useState(false);
 
-  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root';
-  const isRoot = profile?.role === 'root';
+  const { isAdminOrRoot, isRoot } = usePermissions();
 
   const maxUsers = companyConfig?.max_users ?? null;
   const currentCount = users.filter((u) => u.status !== 'banned').length;

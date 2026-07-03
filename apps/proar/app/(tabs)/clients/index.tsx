@@ -34,6 +34,7 @@ import {
   spacing,
 } from '@/constants/theme';
 import { Client, VisitType } from '@/types';
+import { VISIT_TYPE_OPTIONS } from '@/constants/visitOptions';
 
 // ---------------------------------------------------------------------------
 // Sort configuration
@@ -69,15 +70,6 @@ const SORT_OPTIONS: { key: ClientSortOrder; label: string; icon: string }[] = [
   },
 ];
 
-const VISIT_TYPE_OPTIONS: { value: VisitType; label: string }[] = [
-  { value: 'customer_service', label: 'Atención al cliente' },
-  { value: 'quote', label: 'Cotizaciones' },
-  { value: 'sales_orders', label: 'Ventas y pedidos' },
-  { value: 'new_projects', label: 'Prospectos' },
-  { value: 'payments', label: 'Pagos y cobranzas' },
-  { value: 'technical_service', label: 'Servicio técnico' },
-  { value: 'other', label: 'Otros' },
-];
 
 // ---------------------------------------------------------------------------
 // Inner screen component (needs to be inside TourGuideProvider)

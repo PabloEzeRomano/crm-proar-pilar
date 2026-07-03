@@ -29,6 +29,7 @@ import {
 } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
 import { useClientsStore } from '@/stores/clientsStore';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useVisitsStore } from '@/stores/visitsStore';
 import { useProductsStore } from '@/stores/productsStore';
 import type { VisitStatus, VisitType } from '@/types';
@@ -415,8 +416,7 @@ export default function ImportWizardScreen() {
   const createProduct = useProductsStore((s) => s.createProduct);
   const addPresentation = useProductsStore((s) => s.addPresentation);
 
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'root';
-  const canManageProducts = isAdmin || profile?.role === 'product_manager';
+  const { isAdminOrRoot: isAdmin, canManageProducts } = usePermissions();
 
   const [step, setStep] = useState<Step>('upload');
   const [importType, setImportType] = useState<ImportType | null>(null);

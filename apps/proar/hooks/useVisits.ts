@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { VisitWithClient, VisitStatus, VisitType } from '../types';
 import { useVisitsStore } from '../stores/visitsStore';
-import { useAuthStore } from '../stores/authStore';
 import dayjs from '../lib/dayjs';
+import { usePermissions } from './usePermissions';
 
 export function useVisits(
   clientId?: string,
@@ -10,8 +10,7 @@ export function useVisits(
   ownerFilter?: string[],
   typeFilter?: VisitType[]
 ) {
-  const profile = useAuthStore((state) => state.profile);
-  const isAdminOrRoot = profile?.role === 'admin' || profile?.role === 'root';
+  const { isAdminOrRoot } = usePermissions();
 
   const visits = useVisitsStore((state) => state.visits);
   const allVisits = useVisitsStore((state) => state.allVisits);
