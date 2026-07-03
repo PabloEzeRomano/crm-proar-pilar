@@ -19,13 +19,20 @@
       }
     },
     "production": {
+      "autoIncrement": true,
       "extends": "base",
       "android": {
         "buildType": "app-bundle"
       }
     }
   },
+
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "track": "production",
+        "releaseStatus": "completed"
+      }
+    }
   }
 }

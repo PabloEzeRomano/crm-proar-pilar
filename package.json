@@ -12,6 +12,7 @@
     "proar:APK": "yarn workspace @crm/proar APK",
     "proar:build:web": "yarn workspace @crm/proar build:web",
     "proar:lint": "yarn workspace @crm/proar lint",
+    "proar:APK:build": "yarn workspace @crm/proar APK:build",
     "sensei": "yarn workspace @crm/sensei start",
     "sensei:web": "yarn workspace @crm/sensei web",
     "sensei:APK": "yarn workspace @crm/sensei APK",
