@@ -156,12 +156,29 @@ export default function TabsLayout() {
         name="team"
         options={{
           title: 'Equipo',
-          href: isAdminOrRoot ? undefined : null, // hide unless admin or root
+          href: isAdminOrRoot ? undefined : null,
           headerShown: false, // nested Stack in team/_layout.tsx owns the header
           tabBarIcon: ({ focused, color }) => (
             <TabIcon
               activeIcon="account-multiple"
               inactiveIcon="account-multiple-outline"
+              focused={focused}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      {/* ── Facturación — admin/root only ────────────────────────────────── */}
+      <Tabs.Screen
+        name="billing"
+        options={{
+          title: 'Facturación',
+          href: isAdminOrRoot ? undefined : null,
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon
+              activeIcon="currency-usd"
+              inactiveIcon="currency-usd"
               focused={focused}
               color={color}
             />

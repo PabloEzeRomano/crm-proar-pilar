@@ -1,27 +1,19 @@
-/**
- * app/(tabs)/team/index.tsx — Team user list (admin/root only)
- *
- * Shows all users in the company. Tapping a row navigates to the
- * per-user drill-down screen at /(tabs)/team/[userId].
- *
- * Access-guarded: non-admin/root users see a lock screen.
- * All data flows through useUsersStore and useVisitsStore.
- * No direct Supabase calls.
- */
-
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { z } from 'zod';
 import {
   ActivityIndicator,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { VisitRow } from '@/components/visits/VisitRow';
 import {
   borderRadius,
   colors,
@@ -30,213 +22,647 @@ import {
   shadows,
   spacing,
 } from '@/constants/theme';
-import dayjs from '@/lib/dayjs';
+import { showAlert, showConfirm } from '@/lib/dialog';
+import { useAuthStore } from '@/stores/authStore';
 import { useUsersStore } from '@/stores/usersStore';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useVisitsStore } from '@/stores/visitsStore';
+import type { UserListItem, UserRole } from '@/types';
+
+// ---------------------------------------------------------------------------
+// Validation
+// ---------------------------------------------------------------------------
+
+const inviteSchema = z.object({
+  email: z.string().email('Email inválido'),
+});
+
+type InviteErrors = { email?: string };
+
+// ---------------------------------------------------------------------------
+// Role badge
+// ---------------------------------------------------------------------------
+
+const ROLE_LABEL: Record<UserRole, string> = {
+  user: 'Usuario',
+  product_manager: 'Productos',
+  admin: 'Admin',
+  root: 'Root',
+};
+
+const ROLE_COLOR: Record<UserRole, string> = {
+  user: colors.textSecondary,
+  product_manager: '#EA580C',
+  admin: colors.primary,
+  root: colors.error,
+};
+
+const ROLE_BG: Record<UserRole, string> = {
+  user: colors.surface,
+  product_manager: '#FFEDD5',
+  admin: colors.primaryLight ?? '#EFF6FF',
+  root: '#FEE2E2',
+};
+
+const ROLE_LEVEL: Record<UserRole, number> = {
+  user: 1,
+  product_manager: 1,
+  admin: 2,
+  root: 3,
+};
+
+type AssignableRole = 'user' | 'product_manager' | 'admin';
+
+const ASSIGNABLE_ROLES: { value: AssignableRole; label: string }[] = [
+  { value: 'user', label: 'Usuario' },
+  { value: 'product_manager', label: 'Productos' },
+  { value: 'admin', label: 'Admin' },
+];
+
+function RoleBadge({ role }: { role: UserRole }) {
+  return (
+    <View style={[styles.roleBadge, { backgroundColor: ROLE_BG[role] }]}>
+      <Text style={[styles.roleBadgeText, { color: ROLE_COLOR[role] }]}>
+        {ROLE_LABEL[role]}
+      </Text>
+    </View>
+  );
+}
+
+function PendingBadge() {
+  return (
+    <View style={[styles.roleBadge, { backgroundColor: colors.warningLight }]}>
+      <Text style={[styles.roleBadgeText, { color: colors.warning }]}>
+        Pendiente
+      </Text>
+    </View>
+  );
+}
+
+function BannedBadge() {
+  return (
+    <View style={[styles.roleBadge, { backgroundColor: colors.errorLight }]}>
+      <Text style={[styles.roleBadgeText, { color: colors.error }]}>
+        Baneado
+      </Text>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// User row
+// ---------------------------------------------------------------------------
+
+interface UserRowProps {
+  user: UserListItem;
+  callerRole: UserRole;
+  onDeactivate: (user: UserListItem) => void;
+  onReactivate: (user: UserListItem) => void;
+  onDelete: (user: UserListItem) => void;
+  onChangeRole: (user: UserListItem) => void;
+}
+
+function UserRow({
+  user,
+  callerRole,
+  onDeactivate,
+  onReactivate,
+  onDelete,
+  onChangeRole,
+}: UserRowProps) {
+  const isPending = user.status === 'pending';
+  const displayName = isPending ? user.email : (user.full_name ?? '—');
+  const initial = displayName.charAt(0).toUpperCase();
+
+  const callerLevel = ROLE_LEVEL[callerRole];
+  const targetLevel = user.role ? ROLE_LEVEL[user.role] : 0;
+
+  const canDeactivate = user.status === 'active' && targetLevel < callerLevel;
+  const canReactivate = user.status === 'banned' && targetLevel < callerLevel;
+  const canDelete =
+    user.status === 'banned' &&
+    callerRole === 'root' &&
+    targetLevel < callerLevel;
+  const canChangeRole =
+    !isPending && user.status === 'active' && targetLevel < callerLevel;
+
+  return (
+    <View style={styles.row}>
+      <View style={styles.avatar}>
+        <Text style={styles.avatarText}>{initial}</Text>
+      </View>
+      <View style={styles.rowContent}>
+        <Text style={styles.rowName} numberOfLines={1}>
+          {displayName}
+        </Text>
+        {!isPending && (
+          <Text style={styles.rowSub} numberOfLines={1}>
+            {user.email}
+          </Text>
+        )}
+      </View>
+
+      {isPending ? (
+        <PendingBadge />
+      ) : user.status === 'banned' ? (
+        <BannedBadge />
+      ) : user.role ? (
+        canChangeRole ? (
+          <Pressable
+            onPress={() => onChangeRole(user)}
+            accessibilityRole="button"
+            accessibilityLabel={`Cambiar rol de ${user.full_name ?? user.email}`}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <View
+              style={[
+                styles.roleBadge,
+                { backgroundColor: ROLE_BG[user.role] },
+                styles.roleBadgeTappable,
+              ]}
+            >
+              <Text style={[styles.roleBadgeText, { color: ROLE_COLOR[user.role] }]}>
+                {ROLE_LABEL[user.role]}
+              </Text>
+              <MaterialCommunityIcons
+                name="chevron-down"
+                size={14}
+                color={ROLE_COLOR[user.role]}
+              />
+            </View>
+          </Pressable>
+        ) : (
+          <RoleBadge role={user.role} />
+        )
+      ) : null}
+
+      {canDeactivate && (
+        <Pressable
+          onPress={() => onDeactivate(user)}
+          style={styles.iconButton}
+          accessibilityRole="button"
+          accessibilityLabel={`Dar de baja a ${user.full_name ?? user.email}`}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.error} />
+        </Pressable>
+      )}
+
+      {canReactivate && (
+        <Pressable
+          onPress={() => onReactivate(user)}
+          style={styles.iconButton}
+          accessibilityRole="button"
+          accessibilityLabel={`Reactivar a ${user.full_name ?? user.email}`}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MaterialCommunityIcons name="account-check-outline" size={20} color={colors.success} />
+        </Pressable>
+      )}
+
+      {canDelete && (
+        <Pressable
+          onPress={() => onDelete(user)}
+          style={styles.iconButton}
+          accessibilityRole="button"
+          accessibilityLabel={`Eliminar definitivamente a ${user.full_name ?? user.email}`}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MaterialCommunityIcons name="account-remove-outline" size={20} color={colors.error} />
+        </Pressable>
+      )}
+    </View>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
 export default function TeamIndexScreen() {
-  const router = useRouter();
-  const { isAdminOrRoot } = usePermissions();
+  const profile = useAuthStore((s) => s.profile);
+  const { isAdminOrRoot, isRoot } = usePermissions();
 
+  const users = useUsersStore((s) => s.users);
+  const companyConfig = useUsersStore((s) => s.companyConfig);
+  const loading = useUsersStore((s) => s.loading);
+  const error = useUsersStore((s) => s.error);
+  const inviteLoading = useUsersStore((s) => s.inviteLoading);
+  const inviteError = useUsersStore((s) => s.inviteError);
   const fetchUsers = useUsersStore((s) => s.fetchUsers);
+  const fetchCompanyConfig = useUsersStore((s) => s.fetchCompanyConfig);
+  const inviteUser = useUsersStore((s) => s.inviteUser);
+  const deactivateUser = useUsersStore((s) => s.deactivateUser);
+  const reactivateUser = useUsersStore((s) => s.reactivateUser);
+  const deleteUser = useUsersStore((s) => s.deleteUser);
+  const clearInviteError = useUsersStore((s) => s.clearInviteError);
+  const updateUserRole = useUsersStore((s) => s.updateUserRole);
 
-  const allVisits = useVisitsStore((s) => s.allVisits);
-  const allVisitsLoading = useVisitsStore((s) => s.allVisitsLoading);
-  const fetchAllVisitsForAdmin = useVisitsStore(
-    (s) => s.fetchAllVisitsForAdmin
-  );
+  const [modalVisible, setModalVisible] = useState(false);
+  const [email, setEmail] = useState('');
+  const [selectedRole, setSelectedRole] = useState<AssignableRole>('user');
+  const [fieldErrors, setFieldErrors] = useState<InviteErrors>({});
+  const [emailFocused, setEmailFocused] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // selectedType removed — sale/quote merged into sales_orders
+  const [roleModalUser, setRoleModalUser] = useState<UserListItem | null>(null);
+  const [roleModalRole, setRoleModalRole] = useState<AssignableRole>('user');
+  const [roleChanging, setRoleChanging] = useState(false);
+
+  const maxUsers = companyConfig?.max_users ?? null;
+  const currentCount = users.filter((u) => u.status !== 'banned').length;
+  const atLimit = maxUsers !== null && currentCount >= maxUsers && !isRoot;
 
   useEffect(() => {
     if (!isAdminOrRoot) return;
     fetchUsers();
-    fetchAllVisitsForAdmin();
+    fetchCompanyConfig();
   }, []);
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
+  const handleDeactivate = useCallback(
+    async (user: UserListItem) => {
+      const ok = await showConfirm({
+        title: 'Dar de baja usuario',
+        message: '¿Dar de baja a este usuario? Se archivarán sus clientes y gestiones.',
+        confirmText: 'Dar de baja',
+        destructive: true,
+      });
+      if (!ok) return;
+      await deactivateUser(user.id);
+      fetchUsers();
+    },
+    [deactivateUser, fetchUsers]
+  );
+
+  const handleReactivate = useCallback(
+    async (user: UserListItem) => {
+      const ok = await showConfirm({
+        title: 'Reactivar usuario',
+        message: '¿Reactivar a este usuario? Recuperará el acceso y se restaurarán sus clientes.',
+        confirmText: 'Reactivar',
+      });
+      if (!ok) return;
+      const { error } = await reactivateUser(user.id);
+      if (error) showAlert('Error', error);
+      fetchUsers();
+    },
+    [reactivateUser, fetchUsers]
+  );
+
+  const handleDelete = useCallback(
+    async (user: UserListItem) => {
+      const ok = await showConfirm({
+        title: 'Eliminar definitivamente',
+        message:
+          'Esta acción es irreversible. Se borrarán el usuario, sus clientes y gestiones. El email quedará libre para una nueva invitación.',
+        confirmText: 'Eliminar',
+        destructive: true,
+      });
+      if (!ok) return;
+      const { error } = await deleteUser(user.id);
+      if (error) showAlert('Error', error);
+      fetchUsers();
+    },
+    [deleteUser, fetchUsers]
+  );
+
+  function openRoleModal(user: UserListItem) {
+    setRoleModalUser(user);
+    setRoleModalRole((user.role ?? 'user') as AssignableRole);
+  }
+
+  const handleRoleChange = useCallback(async () => {
+    if (!roleModalUser || roleChanging) return;
+    if (roleModalRole === roleModalUser.role) {
+      setRoleModalUser(null);
+      return;
+    }
+    setRoleChanging(true);
+    const { error: err } = await updateUserRole(roleModalUser.id, roleModalRole);
+    setRoleChanging(false);
+    if (err) {
+      showAlert('Error', `No se pudo cambiar el rol: ${err}`);
+    } else {
+      fetchUsers();
+      setRoleModalUser(null);
+    }
+  }, [roleModalUser, roleModalRole, roleChanging, updateUserRole, fetchUsers]);
+
+  function openModal() {
+    setEmail('');
+    setSelectedRole('user');
+    setFieldErrors({});
+    clearInviteError();
+    setSuccessMessage(null);
+    setModalVisible(true);
+  }
+
+  function closeModal() {
+    setModalVisible(false);
+  }
+
+  const handleSubmit = useCallback(async () => {
+    const result = inviteSchema.safeParse({ email: email.trim().toLowerCase() });
+    if (!result.success) {
+      const errs: InviteErrors = {};
+      for (const issue of result.error.issues) {
+        errs.email = issue.message;
+      }
+      setFieldErrors(errs);
+      return;
+    }
+
+    setFieldErrors({});
+    const { error: err } = await inviteUser({ email: result.data.email, role: selectedRole });
+
+    if (err) {
+      showAlert('Error', `No se pudo enviar la invitación: ${err}`);
+      return;
+    }
+
+    setSuccessMessage(`Invitación enviada a ${result.data.email}`);
+    fetchUsers();
+    setTimeout(() => {
+      setModalVisible(false);
+      setSuccessMessage(null);
+    }, 1500);
+  }, [email, selectedRole, inviteUser, fetchUsers]);
+
+  // ── Access guard ──────────────────────────────────────────────────────────
 
   if (!isAdminOrRoot) {
     return (
       <View style={styles.guardContainer}>
-        <MaterialCommunityIcons
-          name="lock-outline"
-          size={48}
-          color={colors.textDisabled}
-        />
+        <MaterialCommunityIcons name="lock-outline" size={48} color={colors.textDisabled} />
         <Text style={styles.guardText}>No tenés acceso a esta sección</Text>
       </View>
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Summary stats (current month)
-  // ---------------------------------------------------------------------------
+  // ── Render ────────────────────────────────────────────────────────────────
 
-  const now = dayjs();
-  const thisMonthVisits = allVisits.filter((v) =>
-    dayjs(v.scheduled_at).isSame(now, 'month')
-  );
-  const salesOrdersThisMonth = thisMonthVisits.filter(
-    (v) => v.type === 'sales_orders'
-  );
-  const salesOrdersAmountTotal = salesOrdersThisMonth.reduce(
-    (s, v) => s + (v.amount ?? 0),
-    0
-  );
-
-  // ---------------------------------------------------------------------------
-  // Filtered visit list
-  // ---------------------------------------------------------------------------
-
-  const filteredVisits = allVisits.filter((v) => v.type === 'sales_orders');
-
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
+  const emailBorderColor = fieldErrors.email
+    ? colors.error
+    : emailFocused
+      ? colors.primary
+      : colors.border;
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-    >
-      {/* ── Summary cards (current month) ─────────────────────────────── */}
-      {!allVisitsLoading && (
-        <>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
-              Gestiones — {now.format('MMMM YYYY')}
+    <View style={styles.container}>
+      {/* ── Seat counter + invite button ──────────────────────────────────── */}
+      <View style={styles.counterRow}>
+        <View style={styles.counterBlock}>
+          <Text style={styles.counterNumber}>
+            {currentCount}
+            {maxUsers !== null ? ` / ${maxUsers}` : ''}
+          </Text>
+          <Text style={styles.counterLabel}>
+            {maxUsers !== null
+              ? `${currentCount === 1 ? 'usuario' : 'usuarios'} · ${maxUsers - currentCount} disponible${maxUsers - currentCount !== 1 ? 's' : ''}`
+              : 'usuarios'}
+          </Text>
+        </View>
+
+        <Pressable
+          style={[styles.inviteButton, atLimit && styles.inviteButtonDisabled]}
+          onPress={openModal}
+          disabled={atLimit}
+          accessibilityRole="button"
+          accessibilityLabel="Invitar usuario"
+          accessibilityState={{ disabled: atLimit }}
+        >
+          <MaterialCommunityIcons
+            name="account-plus-outline"
+            size={20}
+            color={atLimit ? colors.textDisabled : colors.textOnPrimary}
+          />
+          <Text
+            style={[styles.inviteButtonLabel, atLimit && styles.inviteButtonLabelDisabled]}
+          >
+            Invitar
+          </Text>
+        </Pressable>
+      </View>
+
+      {atLimit && (
+        <Text style={styles.limitWarning}>
+          Límite de usuarios alcanzado ({maxUsers}/{maxUsers}). Contactá a root para ampliar el plan.
+        </Text>
+      )}
+
+      {/* ── User list ─────────────────────────────────────────────────────── */}
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={users}
+          keyExtractor={(u) => u.id}
+          renderItem={({ item }) => (
+            <UserRow
+              user={item}
+              callerRole={profile?.role ?? 'user'}
+              onDeactivate={handleDeactivate}
+              onReactivate={handleReactivate}
+              onDelete={handleDelete}
+              onChangeRole={openRoleModal}
+            />
+          )}
+          contentContainerStyle={styles.listContent}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No hay usuarios en esta empresa</Text>
+            </View>
+          }
+        />
+      )}
+
+      {/* ── Invite modal ──────────────────────────────────────────────────── */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={closeModal}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <Pressable style={styles.modalBackdrop} onPress={closeModal} />
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Invitar usuario</Text>
+              <Pressable
+                onPress={closeModal}
+                style={styles.modalClose}
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar"
+              >
+                <MaterialCommunityIcons name="close" size={22} color={colors.textSecondary} />
+              </Pressable>
+            </View>
+
+            {successMessage ? (
+              <View style={styles.successBanner}>
+                <MaterialCommunityIcons name="check-circle-outline" size={18} color={colors.success} />
+                <Text style={styles.successText}>{successMessage}</Text>
+              </View>
+            ) : null}
+
+            {inviteError ? (
+              <Text style={styles.inviteErrorText}>{inviteError}</Text>
+            ) : null}
+
+            <View style={styles.fieldWrapper}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={[styles.input, { borderColor: emailBorderColor }]}
+                value={email}
+                onChangeText={(t) => {
+                  setEmail(t);
+                  if (fieldErrors.email) setFieldErrors({});
+                  clearInviteError();
+                }}
+                onFocus={() => setEmailFocused(true)}
+                onBlur={() => setEmailFocused(false)}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                textContentType="emailAddress"
+                placeholder="usuario@empresa.com"
+                placeholderTextColor={colors.textDisabled}
+                editable={!inviteLoading}
+              />
+              {fieldErrors.email ? (
+                <Text style={styles.fieldError}>{fieldErrors.email}</Text>
+              ) : null}
+            </View>
+
+            <View style={styles.fieldWrapper}>
+              <Text style={styles.label}>Rol</Text>
+              <View style={styles.rolePicker}>
+                {ASSIGNABLE_ROLES.filter((r) => {
+                  const callerLevel = ROLE_LEVEL[profile?.role ?? 'user'];
+                  return ROLE_LEVEL[r.value] < callerLevel || callerLevel >= 3;
+                })
+                  .map((r) => r.value)
+                  .map((r) => (
+                    <Pressable
+                      key={r}
+                      style={[styles.roleOption, selectedRole === r && styles.roleOptionActive]}
+                      onPress={() => setSelectedRole(r)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: selectedRole === r }}
+                    >
+                      <Text
+                        style={[
+                          styles.roleOptionText,
+                          selectedRole === r && styles.roleOptionTextActive,
+                        ]}
+                      >
+                        {ROLE_LABEL[r]}
+                      </Text>
+                    </Pressable>
+                  ))}
+              </View>
+            </View>
+
+            <Pressable
+              style={[styles.submitButton, inviteLoading && styles.submitButtonDisabled]}
+              onPress={handleSubmit}
+              disabled={inviteLoading}
+              accessibilityRole="button"
+              accessibilityLabel="Enviar invitación"
+              accessibilityState={{ disabled: inviteLoading, busy: inviteLoading }}
+            >
+              {inviteLoading ? (
+                <ActivityIndicator color={colors.textOnPrimary} />
+              ) : (
+                <Text style={styles.submitButtonLabel}>Enviar invitación</Text>
+              )}
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ── Role change modal ────────────────────────────────────────────── */}
+      <Modal
+        visible={roleModalUser !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setRoleModalUser(null)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <Pressable style={styles.modalBackdrop} onPress={() => setRoleModalUser(null)} />
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Cambiar rol</Text>
+              <Pressable
+                onPress={() => setRoleModalUser(null)}
+                style={styles.modalClose}
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar"
+              >
+                <MaterialCommunityIcons name="close" size={22} color={colors.textSecondary} />
+              </Pressable>
+            </View>
+
+            <Text style={styles.roleModalSub}>
+              {roleModalUser?.full_name ?? roleModalUser?.email}
             </Text>
-          </View>
 
-          <View style={styles.cardsRow}>
-            <View style={[styles.statCard, styles.statCardSale]}>
-              <Text style={styles.statCardLabel}>Ventas y pedidos</Text>
-              <Text style={[styles.statCardCount, styles.statCardCountSale]}>
-                {salesOrdersThisMonth.length}
-              </Text>
-              <Text style={[styles.statCardAmount, styles.statCardAmountSale]}>
-                $
-                {salesOrdersAmountTotal.toLocaleString('en-US', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}{' '}
-                USD
-              </Text>
-            </View>
-          </View>
-
-          {/* ── Sales orders list ───────────────────────────────────────── */}
-          {filteredVisits.length === 0 ? (
-            <View style={styles.emptyVisitsContainer}>
-              <Text style={styles.emptyText}>
-                No hay ventas y pedidos registrados
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.visitList}>
-              {filteredVisits.map((v) => (
-                <VisitRow
-                  key={v.id}
-                  visit={v}
-                  onPress={() => router.push(`/visits/${v.id}` as never)}
-                  showOwner
-                  showAmount={v.type === 'sales_orders'}
-                />
+            <View style={styles.rolePicker}>
+              {ASSIGNABLE_ROLES.filter((r) => {
+                const callerLevel = ROLE_LEVEL[profile?.role ?? 'user'];
+                return ROLE_LEVEL[r.value] < callerLevel || callerLevel >= 3;
+              }).map((r) => (
+                <Pressable
+                  key={r.value}
+                  style={[styles.roleOption, roleModalRole === r.value && styles.roleOptionActive]}
+                  onPress={() => setRoleModalRole(r.value)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: roleModalRole === r.value }}
+                >
+                  <Text
+                    style={[
+                      styles.roleOptionText,
+                      roleModalRole === r.value && styles.roleOptionTextActive,
+                    ]}
+                  >
+                    {r.label}
+                  </Text>
+                </Pressable>
               ))}
             </View>
-          )}
 
-          {/* ── Admin links ─────────────────────────────────────────────── */}
-          {isAdminOrRoot && (
-            <>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>ADMINISTRACIÓN</Text>
-              </View>
-
-              <View style={styles.adminLinksCard}>
-                <Pressable
-                  style={styles.adminLinkRow}
-                  onPress={() => router.push('/(tabs)/users')}
-                  accessibilityRole="button"
-                  accessibilityLabel="Gestión de usuarios"
-                >
-                  <View
-                    style={[
-                      styles.adminLinkIcon,
-                      { backgroundColor: colors.primaryLight },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name="account-multiple-outline"
-                      size={20}
-                      color={colors.primary}
-                    />
-                  </View>
-                  <View style={styles.adminLinkContent}>
-                    <Text style={styles.adminLinkLabel}>
-                      Gestión de usuarios
-                    </Text>
-                    <Text style={styles.adminLinkSub}>
-                      Invitá y administrá el equipo
-                    </Text>
-                  </View>
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={20}
-                    color={colors.textDisabled}
-                  />
-                </Pressable>
-
-                <View style={styles.adminLinkDivider} />
-
-                <Pressable
-                  style={styles.adminLinkRow}
-                  onPress={() => router.push('/(tabs)/products')}
-                  accessibilityRole="button"
-                  accessibilityLabel="Gestión de productos"
-                >
-                  <View
-                    style={[
-                      styles.adminLinkIcon,
-                      { backgroundColor: colors.successLight },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name="package-variant-closed"
-                      size={20}
-                      color={colors.success}
-                    />
-                  </View>
-                  <View style={styles.adminLinkContent}>
-                    <Text style={styles.adminLinkLabel}>
-                      Gestión de productos
-                    </Text>
-                    <Text style={styles.adminLinkSub}>
-                      Catálogo, presentaciones y precios
-                    </Text>
-                  </View>
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={20}
-                    color={colors.textDisabled}
-                  />
-                </Pressable>
-              </View>
-            </>
-          )}
-        </>
-      )}
-
-      {allVisitsLoading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={colors.primary} />
-        </View>
-      )}
-    </ScrollView>
+            <Pressable
+              style={[styles.submitButton, roleChanging && styles.submitButtonDisabled]}
+              onPress={handleRoleChange}
+              disabled={roleChanging}
+              accessibilityRole="button"
+              accessibilityLabel="Confirmar cambio de rol"
+            >
+              {roleChanging ? (
+                <ActivityIndicator color={colors.textOnPrimary} />
+              ) : (
+                <Text style={styles.submitButtonLabel}>Confirmar</Text>
+              )}
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    </View>
   );
 }
 
@@ -249,10 +675,74 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  scrollContent: {
+  guardContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing[4],
+    backgroundColor: colors.background,
+  },
+  guardText: {
+    fontSize: fontSize.base,
+    color: colors.textSecondary,
+  },
+
+  // Counter row
+  counterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  counterBlock: {
+    gap: spacing[1],
+  },
+  counterNumber: {
+    fontSize: fontSize['2xl'],
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+  },
+  counterLabel: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+  },
+  inviteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    backgroundColor: colors.primary,
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[3],
-    gap: spacing[2],
+    borderRadius: borderRadius.md,
+    minHeight: 48,
+  },
+  inviteButtonDisabled: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  inviteButtonLabel: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.semibold,
+    color: colors.textOnPrimary,
+  },
+  inviteButtonLabelDisabled: {
+    color: colors.textDisabled,
+  },
+  limitWarning: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[2],
+  },
+
+  // List
+  listContent: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
   },
   separator: {
     height: spacing[2],
@@ -292,8 +782,17 @@ const styles = StyleSheet.create({
   },
   rowSub: {
     fontSize: fontSize.xs,
-    color: colors.textSecondary,
+    color: colors.textDisabled,
   },
+  iconButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+
+  // Role badge
   roleBadge: {
     paddingHorizontal: spacing[2],
     paddingVertical: spacing[1],
@@ -305,13 +804,20 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     fontWeight: fontWeight.semibold,
   },
+  roleBadgeTappable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+  },
+
+  // Loading / error / empty
   loadingContainer: {
-    paddingVertical: spacing[6],
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   errorContainer: {
-    paddingVertical: spacing[6],
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing[6],
@@ -329,155 +835,126 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     color: colors.textSecondary,
   },
-  guardContainer: {
+
+  // Modal
+  modalOverlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: spacing[4],
+    justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  modalSheet: {
     backgroundColor: colors.background,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    padding: spacing[6],
+    gap: spacing[4],
+    paddingBottom: spacing[8],
   },
-  guardText: {
-    fontSize: fontSize.base,
-    color: colors.textSecondary,
-  },
-
-  // Section header
-  sectionHeader: {
-    marginTop: spacing[4],
-    marginBottom: spacing[2],
-  },
-  sectionTitle: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.semibold,
-    color: colors.textSecondary,
-    letterSpacing: 0.5,
-  },
-
-  // Summary cards
-  cardsRow: {
+  modalHeader: {
     flexDirection: 'row',
-    gap: spacing[3],
-    marginBottom: spacing[3],
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  statCard: {
-    flex: 1,
-    borderRadius: borderRadius.lg,
-    padding: spacing[4],
-    gap: spacing[1],
-    ...shadows.subtle,
-  },
-  statCardQuote: {
-    backgroundColor: colors.primaryLight,
-  },
-  statCardSale: {
-    backgroundColor: colors.successLight,
-  },
-  statCardLabel: {
-    fontSize: fontSize.xs,
-    fontWeight: fontWeight.semibold,
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  statCardCount: {
-    fontSize: fontSize['3xl'],
+  modalTitle: {
+    fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
-  },
-  statCardCountQuote: {
-    color: colors.primary,
-  },
-  statCardCountSale: {
-    color: colors.success,
-  },
-  statCardAmount: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
-  },
-  statCardAmountQuote: {
-    color: colors.primary,
-  },
-  statCardAmountSale: {
-    color: colors.success,
-  },
-
-  // Segmented control
-  segmentedControl: {
-    flexDirection: 'row',
-    backgroundColor: colors.border,
-    borderRadius: borderRadius.md,
-    padding: 2,
-    marginBottom: spacing[3],
-  },
-  segmentButton: {
-    flex: 1,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: borderRadius.sm,
-  },
-  segmentButtonActive: {
-    backgroundColor: colors.surface,
-    ...shadows.subtle,
-  },
-  segmentButtonText: {
-    fontSize: fontSize.sm,
-    fontWeight: fontWeight.medium,
-    color: colors.textSecondary,
-  },
-  segmentButtonTextActive: {
     color: colors.textPrimary,
-    fontWeight: fontWeight.semibold,
   },
-
-  // Visit list
-  visitList: {
-    marginHorizontal: -spacing[4],
-  },
-  emptyVisitsContainer: {
-    paddingVertical: spacing[8],
-    alignItems: 'center',
-  },
-
-  // Admin links
-  adminLinksCard: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-    ...shadows.subtle,
-    marginBottom: spacing[4],
-  },
-  adminLinkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    gap: spacing[3],
-    minHeight: 64,
-  },
-  adminLinkIcon: {
+  modalClose: {
     width: 40,
     height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    backgroundColor: '#F0FDF4',
+    borderRadius: borderRadius.md,
+    padding: spacing[3],
+  },
+  successText: {
+    fontSize: fontSize.sm,
+    color: colors.success,
+    flex: 1,
+  },
+  inviteErrorText: {
+    fontSize: fontSize.sm,
+    color: colors.error,
+    textAlign: 'center',
+  },
+
+  // Form
+  fieldWrapper: {
+    gap: spacing[1],
+  },
+  label: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
+  },
+  input: {
+    height: 48,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing[3],
+    fontSize: fontSize.base,
+    color: colors.textPrimary,
+  },
+  fieldError: {
+    fontSize: fontSize.sm,
+    color: colors.error,
+  },
+  rolePicker: {
+    flexDirection: 'row',
+    gap: spacing[3],
+  },
+  roleOption: {
+    flex: 1,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  roleOptionActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight ?? '#EFF6FF',
+  },
+  roleOptionText: {
+    fontSize: fontSize.base,
+    fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
+  },
+  roleOptionTextActive: {
+    color: colors.primary,
+    fontWeight: fontWeight.semibold,
+  },
+  submitButton: {
+    height: 52,
+    backgroundColor: colors.primary,
     borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
+    marginTop: spacing[2],
   },
-  adminLinkContent: {
-    flex: 1,
-    gap: spacing[1],
+  submitButtonDisabled: {
+    opacity: 0.6,
   },
-  adminLinkLabel: {
-    fontSize: fontSize.base,
+  submitButtonLabel: {
+    fontSize: fontSize.lg,
     fontWeight: fontWeight.semibold,
-    color: colors.textPrimary,
+    color: colors.textOnPrimary,
   },
-  adminLinkSub: {
-    fontSize: fontSize.sm,
+  roleModalSub: {
+    fontSize: fontSize.base,
     color: colors.textSecondary,
-  },
-  adminLinkDivider: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginLeft: spacing[4] + 40 + spacing[3],
   },
 });
