@@ -55,7 +55,7 @@ export const createVisitSchema = z.object({
 
 export const updateVisitSchema = z.object({
   scheduled_at: z.string().min(1, 'La fecha es requerida').optional(),
-  title: z.string().optional(),
+  title: z.string().nullable().optional(),
   contact_snapshot: contactSnapshotSchema,
   notes: z.string().optional(),
   status: z.enum(['pending', 'completed', 'canceled']).optional(),

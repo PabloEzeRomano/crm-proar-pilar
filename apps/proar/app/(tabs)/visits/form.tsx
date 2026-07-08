@@ -465,7 +465,7 @@ export default function VisitFormScreen() {
     if (isEditMode && visitId) {
       await updateVisit(visitId, {
         scheduled_at: isoString,
-        title: title || undefined,
+        title: title.trim() || null,
         contact_snapshot: selectedContact,
         notes: notes || undefined,
         status,
