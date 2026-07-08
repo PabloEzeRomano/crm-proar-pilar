@@ -13,6 +13,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -99,6 +102,8 @@ export default function VisitDetailView() {
   const [notesText, setNotesText] = useState<string>(visit?.notes ?? '');
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [statusLoading, setStatusLoading] = useState(false);
+  const [temaSheetVisible, setTemaSheetVisible] = useState(false);
+  const [temaTitle, setTemaTitle] = useState('');
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingNotesRef = useRef<string | null>(null);
 
@@ -111,10 +116,43 @@ export default function VisitDetailView() {
 
   const isOwner = visit ? visit.owner_user_id === currentUser?.id : false;
 
+  const navigateToSeguimiento = async (title: string) => {
+    if (!visit) return;
+    if (!visit.thread_id) {
+      await updateVisit(visit.id, { thread_id: visit.id, title } as any);
+    }
+    const threadId = visit.thread_id ?? visit.id;
+    const params = new URLSearchParams({
+      clientId: clientId,
+      threadId,
+      prefillTitle: title,
+      prefillNotes: visit.notes ?? '',
+    });
+    router.push(`${seguimientoFormBase}?${params.toString()}` as any);
+  };
+
+  const confirmTema = async () => {
+    const title = temaTitle.trim();
+    if (!title) return;
+    setTemaSheetVisible(false);
+    await navigateToSeguimiento(title);
+  };
+
   // Set header: "Editar" button (only for visit owner)
   useLayoutEffect(() => {
     if (!visit) return;
     navigation.setOptions({
+      headerLeft: () => (
+        <Pressable
+          onPress={() => router.back()}
+          style={styles.headerButton}
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.primary} />
+        </Pressable>
+      ),
       headerRight: isOwner
         ? () => (
             <Pressable
@@ -211,6 +249,7 @@ export default function VisitDetailView() {
   // -------------------------------------------------------------------------
 
   return (
+    <>
     <KeyboardAwareScrollView
       style={styles.scroll}
       contentContainerStyle={styles.scrollContent}
@@ -495,20 +534,13 @@ export default function VisitDetailView() {
               styles.actionButtonSeguimiento,
               pressed && styles.actionButtonSeguimientoPressed,
             ]}
-            onPress={async () => {
-              // Auto-promote if this visit hasn't been added to a thread yet
-              if (!visit.thread_id) {
-                await updateVisit(visit.id, { thread_id: visit.id } as any);
+            onPress={() => {
+              if (!visit.title) {
+                setTemaTitle('');
+                setTemaSheetVisible(true);
+              } else {
+                navigateToSeguimiento(visit.title);
               }
-              const threadId = visit.thread_id ?? visit.id;
-              const params = new URLSearchParams({
-                clientId: clientId,
-                threadId,
-                prefillTitle: visit.title ?? '',
-                prefillNotes: visit.notes ?? '',
-              });
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              router.push(`${seguimientoFormBase}?${params.toString()}` as any);
             }}
             accessibilityRole="button"
             accessibilityLabel="Dar seguimiento a esta gestión"
@@ -551,6 +583,46 @@ export default function VisitDetailView() {
         </View>
       ) : null}
     </KeyboardAwareScrollView>
+
+      {/* ── Sheet: nombre del tema (primera vez en un hilo) ─────────────── */}
+      <Modal
+        visible={temaSheetVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setTemaSheetVisible(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.sheetOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <Pressable style={styles.sheetBackdrop} onPress={() => setTemaSheetVisible(false)} />
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle}>Nombre del tema</Text>
+            <Text style={styles.sheetSub}>
+              Se asignará a esta gestión y a todos los seguimientos del hilo.
+            </Text>
+            <TextInput
+              style={styles.sheetInput}
+              value={temaTitle}
+              onChangeText={setTemaTitle}
+              placeholder="Ej: Propuesta técnica, Reclamo #12…"
+              placeholderTextColor={colors.textDisabled}
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={confirmTema}
+            />
+            <Pressable
+              style={[styles.sheetButton, !temaTitle.trim() && styles.sheetButtonDisabled]}
+              onPress={confirmTema}
+              disabled={!temaTitle.trim()}
+              accessibilityRole="button"
+            >
+              <Text style={styles.sheetButtonText}>Continuar</Text>
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    </>
   );
 }
 
@@ -890,5 +962,58 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     fontWeight: fontWeight.semibold,
     color: colors.primary,
+  },
+
+  // Tema sheet
+  sheetOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  sheetBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  sheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    padding: spacing[6],
+    gap: spacing[4],
+    paddingBottom: spacing[8],
+  },
+  sheetTitle: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+  },
+  sheetSub: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    marginTop: -spacing[2],
+  },
+  sheetInput: {
+    height: 48,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing[3],
+    fontSize: fontSize.base,
+    color: colors.textPrimary,
+  },
+  sheetButton: {
+    height: 52,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetButtonDisabled: {
+    opacity: 0.4,
+  },
+  sheetButtonText: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold,
+    color: colors.textOnPrimary,
   },
 });
