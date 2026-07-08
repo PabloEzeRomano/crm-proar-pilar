@@ -489,31 +489,6 @@ export default function VisitDetailView() {
       {/* ── Seguimiento (solo propietario) ─────────────────────────────── */}
       {isOwner && visit ? (
         <View style={styles.section}>
-          {/* Iniciar tema — only when visit has no thread yet */}
-          {!visit.thread_id ? (
-            <Pressable
-              style={({ pressed }) => [
-                styles.actionButton,
-                styles.actionButtonIniciarTema,
-                pressed && styles.actionButtonIniciarTemaPressed,
-              ]}
-              onPress={async () => {
-                await updateVisit(visit.id, { thread_id: visit.id } as any);
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Iniciar tema con esta gestión"
-            >
-              <MaterialCommunityIcons
-                name="label-outline"
-                size={18}
-                color={colors.textSecondary}
-              />
-              <Text style={styles.actionButtonIniciarTemaText}>
-                Iniciar tema
-              </Text>
-            </Pressable>
-          ) : null}
-
           <Pressable
             style={({ pressed }) => [
               styles.actionButton,
@@ -900,21 +875,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     fontWeight: fontWeight.semibold,
     color: colors.error,
-  },
-  actionButtonIniciarTema: {
-    flexDirection: 'row',
-    gap: 8,
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-  },
-  actionButtonIniciarTemaPressed: {
-    opacity: 0.75,
-  },
-  actionButtonIniciarTemaText: {
-    fontSize: fontSize.base,
-    fontWeight: fontWeight.medium,
-    color: colors.textSecondary,
   },
   actionButtonSeguimiento: {
     flexDirection: 'row',
