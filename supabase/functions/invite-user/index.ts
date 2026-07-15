@@ -161,16 +161,25 @@ async function generateInviteLink(
 // Custom invite email (Resend)
 // ---------------------------------------------------------------------------
 
-const ACCENT = '#0F766E';
+interface EmailBranding {
+  appName: string;
+  accent: string;
+}
 
-function buildInviteHtml(actionLink: string): string {
+const BRANDING: Record<string, EmailBranding> = {
+  'campaign-management': { appName: 'Sensei CRM', accent: '#0F766E' },
+  'pipeline':            { appName: 'gemm-apps CRM', accent: '#059669' },
+};
+
+function buildInviteHtml(actionLink: string, branding: EmailBranding): string {
+  const { appName, accent } = branding;
   const safeLink = escapeHtml(actionLink);
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Invitación a Sensei CRM</title>
+  <title>Invitación a ${appName}</title>
 </head>
 <body style="margin:0;padding:0;background:#F9FAFB;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#F9FAFB;padding:32px 16px;">
@@ -180,9 +189,9 @@ function buildInviteHtml(actionLink: string): string {
 
           <!-- Header -->
           <tr>
-            <td style="background:${ACCENT};padding:24px 32px;border-radius:12px 12px 0 0;">
-              <p style="margin:0;font-size:13px;color:#CCFBF1;letter-spacing:0.5px;text-transform:uppercase;">Sensei CRM</p>
-              <h1 style="margin:4px 0 0;font-size:22px;font-weight:700;color:#FFFFFF;">Te invitaron a Sensei CRM</h1>
+            <td style="background:${accent};padding:24px 32px;border-radius:12px 12px 0 0;">
+              <p style="margin:0;font-size:13px;color:rgba(255,255,255,0.7);letter-spacing:0.5px;text-transform:uppercase;">${appName}</p>
+              <h1 style="margin:4px 0 0;font-size:22px;font-weight:700;color:#FFFFFF;">Te invitaron a ${appName}</h1>
             </td>
           </tr>
 
@@ -190,7 +199,7 @@ function buildInviteHtml(actionLink: string): string {
           <tr>
             <td style="background:#FFFFFF;padding:28px 32px 8px;">
               <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.5;">
-                Hola, recibiste una invitación para unirte a Sensei CRM.
+                Hola, recibiste una invitación para unirte a ${appName}.
                 Para activar tu cuenta y definir tu contraseña, hacé clic en el botón:
               </p>
             </td>
@@ -201,7 +210,7 @@ function buildInviteHtml(actionLink: string): string {
             <td style="background:#FFFFFF;padding:8px 32px 28px;" align="center">
               <a href="${safeLink}" target="_blank" style="
                 display:inline-block;
-                background:${ACCENT};
+                background:${accent};
                 color:#FFFFFF;
                 font-size:16px;
                 font-weight:600;
@@ -217,7 +226,7 @@ function buildInviteHtml(actionLink: string): string {
             <td style="background:#FFFFFF;padding:0 32px 24px;">
               <p style="margin:0;font-size:12px;color:#9CA3AF;line-height:1.5;">
                 Si el botón no funciona, copiá y pegá este enlace en tu navegador:<br>
-                <a href="${safeLink}" target="_blank" style="color:${ACCENT};word-break:break-all;">${safeLink}</a>
+                <a href="${safeLink}" target="_blank" style="color:${accent};word-break:break-all;">${safeLink}</a>
               </p>
             </td>
           </tr>
@@ -239,9 +248,9 @@ function buildInviteHtml(actionLink: string): string {
 </html>`;
 }
 
-function buildInviteText(actionLink: string): string {
+function buildInviteText(actionLink: string, branding: EmailBranding): string {
   return [
-    'Te invitaron a Sensei CRM.',
+    `Te invitaron a ${branding.appName}.`,
     '',
     'Para activar tu cuenta y definir tu contraseña, abrí este enlace:',
     actionLink,
@@ -259,14 +268,15 @@ async function sendInviteEmail(
   email: string,
   actionLink: string,
   apiKey: string,
-  fromAddress: string
+  fromAddress: string,
+  branding: EmailBranding
 ): Promise<void> {
   const body = {
-    from: `Sensei CRM <${fromAddress}>`,
+    from: `${branding.appName} <${fromAddress}>`,
     to: [email],
-    subject: 'Te invitaron a Sensei CRM',
-    html: buildInviteHtml(actionLink),
-    text: buildInviteText(actionLink),
+    subject: `Te invitaron a ${branding.appName}`,
+    html: buildInviteHtml(actionLink, branding),
+    text: buildInviteText(actionLink, branding),
   };
 
   const res = await fetch('https://api.resend.com/emails', {
@@ -299,7 +309,7 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
-    // Resend secrets — only required for the Sensei (custom email) path.
+    // Resend secrets — required for Sensei and gemm (custom email) paths.
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
     const mailFromAddress = Deno.env.get('MAIL_FROM_ADDRESS');
 
@@ -354,14 +364,16 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'Caller has no company assigned' }, 403);
     }
 
-    // App variant: Sensei (campaign-management) sends a custom Resend email;
-    // other apps (Proar / field-sales) keep Supabase's built-in invite email.
+    // Apps with custom Resend email: Sensei (campaign-management) and gemm (pipeline).
+    // Other apps (Proar / field-sales) keep Supabase's built-in invite email.
     const { data: companyCfg } = await adminClient
       .from('company_config')
       .select('crm_type')
       .eq('company_id', callerProfile.company_id)
       .single<{ crm_type: string }>();
-    const isSensei = companyCfg?.crm_type === 'campaign-management';
+    const crmType = companyCfg?.crm_type ?? '';
+    const branding = BRANDING[crmType];
+    const isCustomEmail = !!branding;
 
     // ── 4. Parse and validate request body ─────────────────────────────────
 
@@ -445,8 +457,8 @@ Deno.serve(async (req) => {
       needs_password: true,
     };
 
-    // ── 6a. Sensei: custom-styled email via Resend (no built-in email) ─────
-    if (isSensei) {
+    // ── 6a. Sensei / gemm: custom-styled email via Resend (no built-in email) ─
+    if (isCustomEmail) {
       if (!resendApiKey || !mailFromAddress) {
         return jsonResponse(
           {
@@ -503,7 +515,7 @@ Deno.serve(async (req) => {
       }
 
       try {
-        await sendInviteEmail(email, actionLink, resendApiKey, mailFromAddress);
+        await sendInviteEmail(email, actionLink, resendApiKey, mailFromAddress, branding);
       } catch (sendErr: unknown) {
         const sendMsg =
           sendErr instanceof Error ? sendErr.message : String(sendErr);
@@ -523,7 +535,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── 6b. Other apps (Proar / field-sales): Supabase built-in invite email ─
+    // ── 6b. Other apps (Proar / field-sales): Supabase built-in invite email ──
     let { data: inviteData, error: inviteErr } =
       await adminClient.auth.admin.inviteUserByEmail(email, {
         data: inviteMeta,
