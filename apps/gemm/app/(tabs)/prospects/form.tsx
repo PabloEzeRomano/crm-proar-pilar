@@ -17,6 +17,7 @@ import {
   PRODUCT_LABELS,
   PIPELINE_STAGES,
   PRODUCTS,
+  type ContactInfo,
   type ProspectStage,
   type ProspectProduct,
 } from '@/types';
@@ -48,6 +49,71 @@ function Field({
   );
 }
 
+function ContactsEditor({
+  contacts,
+  onChange,
+}: {
+  contacts: ContactInfo[];
+  onChange: (contacts: ContactInfo[]) => void;
+}) {
+  function update(index: number, patch: Partial<ContactInfo>) {
+    const next = contacts.map((c, i) => (i === index ? { ...c, ...patch } : c));
+    onChange(next);
+  }
+
+  function remove(index: number) {
+    onChange(contacts.filter((_, i) => i !== index));
+  }
+
+  function add() {
+    onChange([...contacts, {}]);
+  }
+
+  return (
+    <View style={styles.contactsWrapper}>
+      {contacts.map((c, i) => (
+        <View key={i} style={styles.contactCard}>
+          <View style={styles.contactHeader}>
+            <Text style={styles.contactTitle}>Contacto {i + 1}</Text>
+            <Pressable onPress={() => remove(i)} hitSlop={8}>
+              <MaterialCommunityIcons name="close" size={18} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+          <TextInput
+            style={styles.contactInput}
+            value={c.name ?? ''}
+            onChangeText={(v) => update(i, { name: v || undefined })}
+            placeholder="Nombre"
+            placeholderTextColor={colors.textDisabled}
+            autoCapitalize="words"
+          />
+          <TextInput
+            style={styles.contactInput}
+            value={c.phone ?? ''}
+            onChangeText={(v) => update(i, { phone: v || undefined })}
+            placeholder="Teléfono"
+            placeholderTextColor={colors.textDisabled}
+            keyboardType="phone-pad"
+          />
+          <TextInput
+            style={[styles.contactInput, styles.contactInputLast]}
+            value={c.email ?? ''}
+            onChangeText={(v) => update(i, { email: v || undefined })}
+            placeholder="Email"
+            placeholderTextColor={colors.textDisabled}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+        </View>
+      ))}
+      <Pressable style={styles.addContactBtn} onPress={add}>
+        <MaterialCommunityIcons name="plus" size={16} color={colors.primary} />
+        <Text style={styles.addContactText}>Agregar contacto</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 export default function ProspectFormScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const router = useRouter();
@@ -61,22 +127,26 @@ export default function ProspectFormScreen() {
   const updateProspect = useProspectsStore((s) => s.updateProspect);
 
   const [name, setName] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [contacts, setContacts] = useState<ContactInfo[]>([]);
+  const [industry, setIndustry] = useState('');
+  const [address, setAddress] = useState('');
+  const [zone, setZone] = useState('');
+  const [cuit, setCuit] = useState('');
   const [product, setProduct] = useState<ProspectProduct>('crm');
   const [stage, setStage] = useState<ProspectStage>('lead');
   const [notes, setNotes] = useState('');
-  const [nextFollowUp, setNextFollowUp] = useState(''); // YYYY-MM-DD HH:MM
+  const [nextFollowUp, setNextFollowUp] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (existingProspect) {
       setName(existingProspect.name);
-      setCompanyName(existingProspect.company_name ?? '');
-      setEmail(existingProspect.email ?? '');
-      setPhone(existingProspect.phone ?? '');
+      setContacts(existingProspect.contacts ?? []);
+      setIndustry(existingProspect.industry ?? '');
+      setAddress(existingProspect.address ?? '');
+      setZone(existingProspect.zone ?? '');
+      setCuit(existingProspect.cuit ?? '');
       setProduct(existingProspect.product);
       setStage(existingProspect.stage);
       setNotes(existingProspect.notes ?? '');
@@ -95,7 +165,6 @@ export default function ProspectFormScreen() {
   function validate(): boolean {
     const errs: Record<string, string> = {};
     if (!name.trim()) errs.name = 'El nombre es requerido';
-    if (email.trim() && !email.includes('@')) errs.email = 'Email inválido';
     if (nextFollowUp && isNaN(Date.parse(nextFollowUp)))
       errs.nextFollowUp = 'Fecha inválida';
     setErrors(errs);
@@ -106,17 +175,25 @@ export default function ProspectFormScreen() {
     if (!validate()) return;
     setSaving(true);
 
+    const cleanContacts = contacts
+      .map((c) => ({
+        name: c.name?.trim() || undefined,
+        phone: c.phone?.trim() || undefined,
+        email: c.email?.trim() || undefined,
+      }))
+      .filter((c) => c.name || c.phone || c.email);
+
     const payload = {
       name: name.trim(),
-      company_name: companyName.trim() || null,
-      email: email.trim() || null,
-      phone: phone.trim() || null,
+      contacts: cleanContacts,
+      industry: industry.trim() || null,
+      address: address.trim() || null,
+      zone: zone.trim() || null,
+      cuit: cuit.trim() || null,
       product,
       stage,
       notes: notes.trim() || null,
-      next_follow_up: nextFollowUp
-        ? new Date(nextFollowUp).toISOString()
-        : null,
+      next_follow_up: nextFollowUp ? new Date(nextFollowUp).toISOString() : null,
     };
 
     if (isEdit && id) {
@@ -137,47 +214,64 @@ export default function ProspectFormScreen() {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <Field label="Nombre *" error={errors.name}>
+      <Field label="Empresa / Prospecto *" error={errors.name}>
         <TextInput
           style={[styles.input, errors.name && styles.inputError]}
           value={name}
           onChangeText={setName}
-          placeholder="Nombre del prospecto"
-          placeholderTextColor={colors.textDisabled}
-        />
-      </Field>
-
-      <Field label="Empresa">
-        <TextInput
-          style={styles.input}
-          value={companyName}
-          onChangeText={setCompanyName}
           placeholder="Nombre de la empresa"
           placeholderTextColor={colors.textDisabled}
         />
       </Field>
 
-      <Field label="Email" error={errors.email}>
+      <Field label="Rubro">
         <TextInput
-          style={[styles.input, errors.email && styles.inputError]}
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          placeholder="email@empresa.com"
+          style={styles.input}
+          value={industry}
+          onChangeText={setIndustry}
+          placeholder="Ej: Tecnología, Gastronomía..."
           placeholderTextColor={colors.textDisabled}
         />
       </Field>
 
-      <Field label="Teléfono">
+      <Field label="Dirección">
         <TextInput
           style={styles.input}
-          value={phone}
-          onChangeText={setPhone}
-          keyboardType="phone-pad"
-          placeholder="+54 11 1234-5678"
+          value={address}
+          onChangeText={setAddress}
+          placeholder="Dirección"
           placeholderTextColor={colors.textDisabled}
         />
+      </Field>
+
+      <View style={styles.row}>
+        <View style={styles.rowHalf}>
+          <Field label="Zona">
+            <TextInput
+              style={styles.input}
+              value={zone}
+              onChangeText={setZone}
+              placeholder="Zona / Región"
+              placeholderTextColor={colors.textDisabled}
+            />
+          </Field>
+        </View>
+        <View style={styles.rowHalf}>
+          <Field label="CUIT">
+            <TextInput
+              style={styles.input}
+              value={cuit}
+              onChangeText={setCuit}
+              placeholder="20-12345678-9"
+              placeholderTextColor={colors.textDisabled}
+              keyboardType="numbers-and-punctuation"
+            />
+          </Field>
+        </View>
+      </View>
+
+      <Field label="Contactos">
+        <ContactsEditor contacts={contacts} onChange={setContacts} />
       </Field>
 
       <Field label="Producto">
@@ -270,6 +364,8 @@ export default function ProspectFormScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing[4], gap: spacing[4], paddingBottom: spacing[8] },
+  row: { flexDirection: 'row', gap: spacing[3] },
+  rowHalf: { flex: 1 },
   field: { gap: spacing[1] },
   fieldLabel: {
     fontSize: fontSize.sm,
@@ -288,10 +384,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   inputError: { borderColor: colors.error },
-  textArea: {
-    height: 100,
-    paddingTop: spacing[3],
-  },
+  textArea: { height: 100, paddingTop: spacing[3] },
   chipRow: { flexDirection: 'row', gap: spacing[2] },
   chip: {
     paddingHorizontal: spacing[3],
@@ -306,11 +399,7 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
-  stageGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-  },
+  stageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] },
   stageChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -343,5 +432,51 @@ const styles = StyleSheet.create({
     color: colors.textOnPrimary,
     fontSize: fontSize.base,
     fontWeight: fontWeight.semibold,
+  },
+  // Contacts editor
+  contactsWrapper: { gap: spacing[2] },
+  contactCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  contactHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing[3],
+    paddingTop: spacing[2],
+    paddingBottom: spacing[1],
+  },
+  contactTitle: {
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.semibold,
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  contactInput: {
+    height: 40,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingHorizontal: spacing[3],
+    fontSize: fontSize.sm,
+    color: colors.textPrimary,
+    backgroundColor: colors.background,
+  },
+  contactInputLast: {},
+  addContactBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[1],
+  },
+  addContactText: {
+    fontSize: fontSize.sm,
+    color: colors.primary,
+    fontWeight: fontWeight.medium,
   },
 });

@@ -47,9 +47,9 @@ function ProspectRow({ prospect }: { prospect: Prospect }) {
         <Text style={styles.rowName} numberOfLines={1}>
           {prospect.name}
         </Text>
-        {prospect.company_name ? (
+        {prospect.contacts?.[0]?.name ? (
           <Text style={styles.rowCompany} numberOfLines={1}>
-            {prospect.company_name}
+            {prospect.contacts[0].name}
           </Text>
         ) : null}
       </View>
@@ -94,7 +94,7 @@ export default function ProspectsScreen() {
     ? prospects.filter(
         (p) =>
           p.name.toLowerCase().includes(query.toLowerCase()) ||
-          (p.company_name?.toLowerCase() ?? '').includes(query.toLowerCase())
+          (p.contacts?.[0]?.name?.toLowerCase() ?? '').includes(query.toLowerCase())
       )
     : prospects;
 

@@ -16,6 +16,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useProspectsStore } from '@/stores/prospectsStore';
+import { useEmailStore } from '@/stores/emailStore';
 import {
   PIPELINE_STAGES,
   STAGE_LABELS,
@@ -58,6 +59,9 @@ export default function ProspectDetailScreen() {
   const addInteraction = useProspectsStore((s) => s.addInteraction);
   const deleteProspect = useProspectsStore((s) => s.deleteProspect);
 
+  const emailSends = useEmailStore((s) => s.prospectSends[id] ?? []);
+  const fetchProspectSends = useEmailStore((s) => s.fetchProspectSends);
+
   const [addingInteraction, setAddingInteraction] = useState(false);
   const [interactionType, setInteractionType] = useState<InteractionType>('note');
   const [interactionBody, setInteractionBody] = useState('');
@@ -66,7 +70,10 @@ export default function ProspectDetailScreen() {
   const [stageSheetVisible, setStageSheetVisible] = useState(false);
 
   useEffect(() => {
-    if (id) fetchInteractions(id);
+    if (id) {
+      fetchInteractions(id);
+      fetchProspectSends(id);
+    }
   }, [id]);
 
   useLayoutEffect(() => {
@@ -154,29 +161,53 @@ export default function ProspectDetailScreen() {
                 {PRODUCT_LABELS[prospect.product]}
               </Text>
             </View>
-            {prospect.company_name ? (
-              <Text style={styles.metaText}>{prospect.company_name}</Text>
+            {prospect.industry ? (
+              <Text style={styles.metaText}>{prospect.industry}</Text>
             ) : null}
           </View>
+
+          {(prospect.address || prospect.zone || prospect.cuit) ? (
+            <View style={styles.locationRow}>
+              {prospect.address ? (
+                <Text style={styles.locationText} numberOfLines={1}>{prospect.address}</Text>
+              ) : null}
+              {prospect.zone ? (
+                <Text style={styles.locationSep}> · </Text>
+              ) : null}
+              {prospect.zone ? (
+                <Text style={styles.locationText}>{prospect.zone}</Text>
+              ) : null}
+              {prospect.cuit ? (
+                <Text style={styles.locationText}> · CUIT {prospect.cuit}</Text>
+              ) : null}
+            </View>
+          ) : null}
         </View>
 
-        {/* Contact info */}
-        {(prospect.email || prospect.phone) ? (
+        {/* Contacts */}
+        {prospect.contacts && prospect.contacts.length > 0 ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Contacto</Text>
+            <Text style={styles.sectionTitle}>Contactos</Text>
             <View style={styles.card}>
-              {prospect.phone ? (
-                <View style={styles.infoRow}>
-                  <MaterialCommunityIcons name="phone-outline" size={16} color={colors.textSecondary} />
-                  <Text style={styles.infoText}>{prospect.phone}</Text>
+              {prospect.contacts.map((c, idx) => (
+                <View key={idx} style={[styles.contactBlock, idx > 0 && styles.contactDivider]}>
+                  {c.name ? (
+                    <Text style={styles.contactName}>{c.name}</Text>
+                  ) : null}
+                  {c.phone ? (
+                    <View style={styles.infoRow}>
+                      <MaterialCommunityIcons name="phone-outline" size={14} color={colors.textSecondary} />
+                      <Text style={styles.infoText}>{c.phone}</Text>
+                    </View>
+                  ) : null}
+                  {c.email ? (
+                    <View style={styles.infoRow}>
+                      <MaterialCommunityIcons name="email-outline" size={14} color={colors.textSecondary} />
+                      <Text style={styles.infoText}>{c.email}</Text>
+                    </View>
+                  ) : null}
                 </View>
-              ) : null}
-              {prospect.email ? (
-                <View style={styles.infoRow}>
-                  <MaterialCommunityIcons name="email-outline" size={16} color={colors.textSecondary} />
-                  <Text style={styles.infoText}>{prospect.email}</Text>
-                </View>
-              ) : null}
+              ))}
             </View>
           </View>
         ) : null}
@@ -214,6 +245,39 @@ export default function ProspectDetailScreen() {
           <MaterialCommunityIcons name="pencil-outline" size={16} color={colors.primary} />
           <Text style={styles.editBtnText}>Editar prospecto</Text>
         </Pressable>
+
+        {/* Send email button */}
+        <Pressable
+          style={({ pressed }) => [styles.emailBtn, pressed && styles.editBtnPressed]}
+          onPress={() =>
+            router.push({ pathname: '/(tabs)/correos/compose', params: { prospectId: id } } as any)
+          }
+        >
+          <MaterialCommunityIcons name="email-arrow-right-outline" size={16} color={colors.textOnPrimary} />
+          <Text style={styles.emailBtnText}>Enviar correo</Text>
+        </Pressable>
+
+        {/* Email history */}
+        {emailSends.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Correos enviados</Text>
+            {emailSends.map((s) => (
+              <View key={s.id} style={styles.interactionItem}>
+                <View style={styles.interactionHeader}>
+                  <View style={[styles.emailStatusDot, { backgroundColor: s.status === 'sent' ? colors.success : colors.error }]} />
+                  <Text style={styles.interactionType}>{s.template_name}</Text>
+                  <Text style={styles.interactionDate}>{dayjs(s.created_at).format('DD/MM HH:mm')}</Text>
+                </View>
+                <Text style={styles.interactionBody}>
+                  Para: {s.recipient_name ? `${s.recipient_name} <${s.recipient_email}>` : s.recipient_email}
+                </Text>
+                <Text style={[styles.interactionBody, { color: colors.textSecondary }]} numberOfLines={1}>
+                  {s.subject}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Interactions */}
         <View style={styles.section}>
@@ -410,6 +474,12 @@ const styles = StyleSheet.create({
   },
   badgeText: { fontSize: fontSize.xs, fontWeight: fontWeight.medium },
   metaText: { fontSize: fontSize.sm, color: colors.textSecondary },
+  locationRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginTop: spacing[1] },
+  locationText: { fontSize: fontSize.xs, color: colors.textSecondary },
+  locationSep: { fontSize: fontSize.xs, color: colors.textDisabled },
+  contactBlock: { gap: 4 },
+  contactDivider: { marginTop: spacing[2], paddingTop: spacing[2], borderTopWidth: 1, borderTopColor: colors.border },
+  contactName: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: colors.textPrimary },
   section: { gap: spacing[2] },
   sectionRow: {
     flexDirection: 'row',
@@ -449,6 +519,25 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: fontWeight.medium,
     color: colors.primary,
+  },
+  emailBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
+    height: 44,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.primary,
+  },
+  emailBtnText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.textOnPrimary,
+  },
+  emailStatusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: borderRadius.full,
   },
   addBtn: {
     flexDirection: 'row',

@@ -41,9 +41,9 @@ function ProspectCard({ prospect }: { prospect: Prospect }) {
           </Text>
         </View>
       </View>
-      {prospect.company_name ? (
+      {prospect.contacts?.[0]?.name ? (
         <Text style={styles.cardCompany} numberOfLines={1}>
-          {prospect.company_name}
+          {prospect.contacts[0].name}
         </Text>
       ) : null}
       {hasFollowUp ? (
