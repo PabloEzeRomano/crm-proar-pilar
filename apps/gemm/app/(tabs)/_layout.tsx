@@ -85,6 +85,22 @@ export default function TabsLayout() {
         }}
       />
 
+      <Tabs.Screen
+        name="correos"
+        options={{
+          title: 'Correos',
+          headerShown: false,
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon
+              activeIcon="email"
+              inactiveIcon="email-outline"
+              focused={focused}
+              color={color}
+            />
+          ),
+        }}
+      />
+
       {/* Hidden tabs — navigated to programmatically */}
       <Tabs.Screen name="settings" options={{ title: 'Configuración', href: null }} />
       <Tabs.Screen name="import" options={{ title: 'Importar', href: null, headerShown: false }} />

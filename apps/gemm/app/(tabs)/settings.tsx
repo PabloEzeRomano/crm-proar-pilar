@@ -391,6 +391,17 @@ export default function SettingsScreen() {
           </>
         )}
 
+        {/* ── CORREOS ──────────────────────────────────────────── */}
+        <SectionHeader>CORREOS</SectionHeader>
+        <View style={styles.section}>
+          <SettingsRow
+            icon="email-edit-outline"
+            label="Plantillas de correo"
+            subtitle="Crear y editar mensajes predeterminados"
+            onPress={() => router.push('/(tabs)/correos/templates' as any)}
+          />
+        </View>
+
         {/* ── DATOS ────────────────────────────────────────────── */}
         {isAdminOrRoot && (
           <>
