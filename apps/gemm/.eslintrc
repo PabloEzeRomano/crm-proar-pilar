@@ -1,0 +1,11 @@
+{
+  "extends": ["eslint:recommended", "prettier"],
+  "plugins": ["react", "react-native"],
+  "env": {
+    "react-native/react-native": true
+  },
+  "rules": {
+    "react/react-in-jsx-scope": "off",
+    "no-unused-vars": "warn"
+  }
+}
