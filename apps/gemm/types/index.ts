@@ -1,3 +1,9 @@
+export interface ContactInfo {
+  name?: string;
+  phone?: string;
+  email?: string;
+}
+
 export type ProspectStage =
   | 'lead'
   | 'contacted'
@@ -15,9 +21,11 @@ export interface Prospect {
   owner_user_id: string;
   company_id: string;
   name: string;
-  company_name: string | null;
-  email: string | null;
-  phone: string | null;
+  contacts: ContactInfo[];
+  industry: string | null;
+  address: string | null;
+  zone: string | null;
+  cuit: string | null;
   product: ProspectProduct;
   stage: ProspectStage;
   notes: string | null;
@@ -66,3 +74,32 @@ export const PIPELINE_STAGES: ProspectStage[] = [
 ];
 
 export const PRODUCTS: ProspectProduct[] = ['crm', 'miturno', 'qrtify'];
+
+// ── Email ─────────────────────────────────────────────────────────────────────
+
+export interface EmailTemplate {
+  id: string;
+  company_id: string;
+  created_by: string;
+  name: string;
+  subject: string;
+  body: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmailSend {
+  id: string;
+  company_id: string;
+  sender_user_id: string;
+  template_id: string | null;
+  template_name: string;
+  prospect_id: string | null;
+  recipient_email: string;
+  recipient_name: string | null;
+  subject: string;
+  status: 'sent' | 'failed';
+  resend_message_id: string | null;
+  error_message: string | null;
+  created_at: string;
+}

@@ -3,11 +3,19 @@ import { z } from 'zod';
 const stageSchema = z.enum(['lead', 'contacted', 'proposal', 'negotiation', 'won', 'lost']);
 const productSchema = z.enum(['crm', 'miturno', 'qrtify']);
 
+const contactInfoSchema = z.object({
+  name: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().optional(),
+});
+
 export const createProspectSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
-  company_name: z.string().nullable().optional(),
-  email: z.string().email('Email inválido').nullable().optional(),
-  phone: z.string().nullable().optional(),
+  contacts: z.array(contactInfoSchema).default([]),
+  industry: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  zone: z.string().nullable().optional(),
+  cuit: z.string().nullable().optional(),
   product: productSchema,
   stage: stageSchema.default('lead'),
   notes: z.string().nullable().optional(),
@@ -16,9 +24,11 @@ export const createProspectSchema = z.object({
 
 export const updateProspectSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido').optional(),
-  company_name: z.string().nullable().optional(),
-  email: z.string().email('Email inválido').nullable().optional(),
-  phone: z.string().nullable().optional(),
+  contacts: z.array(contactInfoSchema).optional(),
+  industry: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  zone: z.string().nullable().optional(),
+  cuit: z.string().nullable().optional(),
   product: productSchema.optional(),
   stage: stageSchema.optional(),
   notes: z.string().nullable().optional(),
