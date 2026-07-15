@@ -18,7 +18,12 @@
     "sensei:web": "yarn workspace @crm/sensei web",
     "sensei:build:web": "yarn workspace @crm/sensei build:web",
     "sensei:lint": "yarn workspace @crm/sensei lint",
-    "lint": "yarn workspace @crm/proar lint && yarn workspace @crm/sensei lint"
+    "gemm": "yarn workspace @crm/gemm start",
+    "gemm:web": "yarn workspace @crm/gemm web",
+    "gemm:android": "yarn workspace @crm/gemm android",
+    "gemm:android:release": "yarn workspace @crm/gemm android:release",
+    "gemm:build:web": "yarn workspace @crm/gemm build:web",
+    "lint": "yarn workspace @crm/proar lint && yarn workspace @crm/sensei lint && yarn workspace @crm/gemm lint"
   },
   "dependencies": {
     "@expo-google-fonts/dm-sans": "^0.4.2",
