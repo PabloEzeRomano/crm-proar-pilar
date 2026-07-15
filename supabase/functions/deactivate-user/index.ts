@@ -128,10 +128,15 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'Target user profile not found' }, 404);
     }
 
-    // Cannot deactivate admin or root users
-    if (targetProfile.role === 'admin' || targetProfile.role === 'root') {
+    // Root users cannot be deactivated
+    if (targetProfile.role === 'root') {
+      return jsonResponse({ error: 'Cannot deactivate root users' }, 403);
+    }
+
+    // Only root can deactivate admins
+    if (targetProfile.role === 'admin' && callerProfile.role !== 'root') {
       return jsonResponse(
-        { error: 'Cannot deactivate admin or root users' },
+        { error: 'Only root can deactivate admin users' },
         403
       );
     }
