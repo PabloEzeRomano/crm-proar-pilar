@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { useFonts } from 'expo-font';
 import {
   DMSans_400Regular,
@@ -115,6 +115,7 @@ function useAuthGuard(): void {
   const isInviteSetup = useAuthStore((s) => s.isInviteSetup);
   const isInviteUser = useAuthStore((s) => s.isInviteUser);
   const router = useRouter();
+  const segments = useSegments();
 
   useEffect(() => {
     if (loading) return;
@@ -123,9 +124,13 @@ function useAuthGuard(): void {
       router.replace('/(auth)/set-invite-password');
       return;
     }
-    if (!userId) router.replace('/(auth)/login');
-    else router.replace('/(tabs)/pipeline');
-  }, [userId, loading, isInviteSetup, isInviteUser]);
+    const inTabs = segments[0] === '(tabs)';
+    if (!userId) {
+      router.replace('/(auth)/login');
+    } else if (!inTabs) {
+      router.replace('/(tabs)/pipeline');
+    }
+  }, [userId, loading, isInviteSetup, isInviteUser, segments]);
 }
 
 export default function RootLayout() {
