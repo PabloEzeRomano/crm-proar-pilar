@@ -40,6 +40,8 @@ import { showConfirm } from '@/lib/dialog';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
+const EMPTY: never[] = [];
+
 const INTERACTION_ICONS: Record<InteractionType, IconName> = {
   note: 'note-text-outline',
   call: 'phone-outline',
@@ -53,13 +55,13 @@ export default function ProspectDetailScreen() {
   const insets = useSafeAreaInsets();
 
   const prospect = useProspectsStore((s) => s.prospects.find((p) => p.id === id));
-  const interactions = useProspectsStore((s) => s.interactions[id] ?? []);
+  const interactions = useProspectsStore((s) => s.interactions[id] ?? EMPTY);
   const fetchInteractions = useProspectsStore((s) => s.fetchInteractions);
   const moveProspect = useProspectsStore((s) => s.moveProspect);
   const addInteraction = useProspectsStore((s) => s.addInteraction);
   const deleteProspect = useProspectsStore((s) => s.deleteProspect);
 
-  const emailSends = useEmailStore((s) => s.prospectSends[id] ?? []);
+  const emailSends = useEmailStore((s) => s.prospectSends[id] ?? EMPTY);
   const fetchProspectSends = useEmailStore((s) => s.fetchProspectSends);
 
   const [addingInteraction, setAddingInteraction] = useState(false);
