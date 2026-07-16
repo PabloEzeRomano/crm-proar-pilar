@@ -34,7 +34,7 @@ export const useProspectsStore = create<ProspectsState>((set, get) => ({
     const { data, error } = await supabase
       .from('prospects')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('name', { ascending: true });
     if (error) {
       set({ error: error.message, loading: false });
       return;

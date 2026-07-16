@@ -23,6 +23,7 @@ export interface Prospect {
   name: string;
   contacts: ContactInfo[];
   industry: string | null;
+  subindustry: string | null;
   address: string | null;
   zone: string | null;
   cuit: string | null;
