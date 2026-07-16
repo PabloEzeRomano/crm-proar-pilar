@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -11,9 +11,10 @@ import {
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SearchableSelect } from '@crm/core';
 
 import { useProspectsStore } from '@/stores/prospectsStore';
-import { PIPELINE_STAGES, STAGE_LABELS, PRODUCT_LABELS, type Prospect, type ProspectStage } from '@/types';
+import { STAGE_LABELS, PRODUCT_LABELS, type Prospect, type ProspectStage } from '@/types';
 import { colors, stageColors, productColors, fontSize, fontWeight, spacing, borderRadius, shadows } from '@/constants/theme';
 import dayjs from '@/lib/dayjs';
 
@@ -106,12 +107,19 @@ function KanbanColumn({
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
+const normalizeRubro = (industry: string | null | undefined): string | null => {
+  if (!industry) return null;
+  return industry.split('(')[0].trim() || null;
+};
+
 export default function PipelineScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const prospects = useProspectsStore((s) => s.prospects);
   const loading = useProspectsStore((s) => s.loading);
   const fetchProspects = useProspectsStore((s) => s.fetchProspects);
+  const [selectedRubros, setSelectedRubros] = useState<string[]>([]);
+  const [selectedSubrubros, setSelectedSubrubros] = useState<string[]>([]);
 
   useEffect(() => {
     fetchProspects();
@@ -122,8 +130,50 @@ export default function PipelineScreen() {
   const closedStages: ProspectStage[] = ['won', 'lost'];
   const kanbanStages = [...activeStages, ...closedStages];
 
+  const rubroOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of prospects) {
+      const r = normalizeRubro(p.industry);
+      if (r) set.add(r);
+    }
+    return [...set].sort();
+  }, [prospects]);
+
+  // Reset subrubros when rubros change (stale subrubros from a different rubro)
+  const handleRubrosChange = (rubros: string[]) => {
+    setSelectedRubros(rubros);
+    if (rubros.length === 0) setSelectedSubrubros([]);
+  };
+
+  const byRubro = useMemo(
+    () =>
+      selectedRubros.length > 0
+        ? prospects.filter((p) => {
+            const r = normalizeRubro(p.industry);
+            return r !== null && selectedRubros.includes(r);
+          })
+        : prospects,
+    [prospects, selectedRubros]
+  );
+
+  const subrubroOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of byRubro) {
+      if (p.subindustry) set.add(p.subindustry);
+    }
+    return [...set].sort();
+  }, [byRubro]);
+
+  const filteredProspects = useMemo(
+    () =>
+      selectedSubrubros.length > 0
+        ? byRubro.filter((p) => p.subindustry != null && selectedSubrubros.includes(p.subindustry))
+        : byRubro,
+    [byRubro, selectedSubrubros]
+  );
+
   const byStage = (stage: ProspectStage) =>
-    prospects.filter((p) => p.stage === stage);
+    filteredProspects.filter((p) => p.stage === stage);
 
   const overdueProspects = prospects.filter(
     (p) =>
@@ -143,6 +193,36 @@ export default function PipelineScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
+      {/* Rubro + Subrubro filters */}
+      {rubroOptions.length > 0 && (
+        <View style={styles.filterBar}>
+          <View style={styles.filterRow}>
+            <View style={styles.filterItem}>
+              <SearchableSelect
+                label="Rubro"
+                options={rubroOptions}
+                selected={selectedRubros}
+                onChange={handleRubrosChange}
+                multiple
+                placeholder="Filtrar por rubro"
+              />
+            </View>
+            {selectedRubros.length > 0 && subrubroOptions.length > 0 && (
+              <View style={styles.filterItem}>
+                <SearchableSelect
+                  label="Subrubro"
+                  options={subrubroOptions}
+                  selected={selectedSubrubros}
+                  onChange={setSelectedSubrubros}
+                  multiple
+                  placeholder="Filtrar por subrubro"
+                />
+              </View>
+            )}
+          </View>
+        </View>
+      )}
+
       {/* Follow-ups vencidos */}
       {overdueProspects.length > 0 && (
         <Pressable
@@ -173,6 +253,7 @@ export default function PipelineScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={Platform.OS === 'web'}
+        style={styles.boardScroll}
         contentContainerStyle={styles.board}
       >
         {kanbanStages.map((stage) => (
@@ -188,15 +269,18 @@ const COLUMN_WIDTH = 220;
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  boardScroll: {
+    flex: 1,
+  },
   board: {
     flexDirection: 'row',
+    alignItems: 'stretch',
     padding: spacing[3],
     gap: spacing[3],
     flexGrow: 1,
   },
   column: {
     width: COLUMN_WIDTH,
-    flex: 1,
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
     ...shadows.subtle,
@@ -233,8 +317,8 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
   },
   columnCards: {
+    flex: 1,
     padding: spacing[2],
-    maxHeight: 500,
   },
   emptyCol: {
     fontSize: fontSize.sm,
@@ -315,5 +399,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...shadows.subtle,
+  },
+  filterBar: {
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+  },
+  filterRow: {
+    flexDirection: 'row',
+    gap: spacing[2],
+  },
+  filterItem: {
+    flex: 1,
   },
 });
