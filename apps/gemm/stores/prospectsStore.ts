@@ -31,15 +31,25 @@ export const useProspectsStore = create<ProspectsState>((set, get) => ({
 
   fetchProspects: async () => {
     set({ loading: true, error: null });
-    const { data, error } = await supabase
-      .from('prospects')
-      .select('*')
-      .order('name', { ascending: true });
-    if (error) {
-      set({ error: error.message, loading: false });
-      return;
+    const PAGE = 1000;
+    const all: Prospect[] = [];
+    let from = 0;
+    while (true) {
+      const { data, error } = await supabase
+        .from('prospects')
+        .select('*')
+        .order('name', { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) {
+        set({ error: error.message, loading: false });
+        return;
+      }
+      if (!data || data.length === 0) break;
+      all.push(...(data as Prospect[]));
+      if (data.length < PAGE) break;
+      from += PAGE;
     }
-    set({ prospects: data ?? [], loading: false });
+    set({ prospects: all, loading: false });
   },
 
   fetchInteractions: async (prospectId: string) => {

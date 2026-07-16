@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -87,6 +87,9 @@ export default function ProspectsScreen() {
   const insets = useSafeAreaInsets();
   const prospects = useProspectsStore((s) => s.prospects);
   const loading = useProspectsStore((s) => s.loading);
+  const fetchProspects = useProspectsStore((s) => s.fetchProspects);
+
+  useEffect(() => { fetchProspects(); }, []);
 
   const [query, setQuery] = useState('');
 

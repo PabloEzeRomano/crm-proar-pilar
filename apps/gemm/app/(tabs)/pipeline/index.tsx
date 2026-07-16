@@ -264,7 +264,7 @@ export default function PipelineScreen() {
   );
 }
 
-const COLUMN_WIDTH = 220;
+const COLUMN_WIDTH = 250;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
