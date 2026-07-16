@@ -13,7 +13,11 @@ declare const Deno: {
   };
 };
 
+declare const EdgeRuntime: {
+  waitUntil(promise: Promise<unknown>): void;
+};
+
 /** Map Deno remote import to the same types as the app’s npm package. */
-declare module 'https://esm.sh/@supabase/supabase-js@2' {
-  export * from '@supabase/supabase-js';
+declare module ‘https://esm.sh/@supabase/supabase-js@2’ {
+  export * from ‘@supabase/supabase-js’;
 }

@@ -101,6 +101,22 @@ export default function TabsLayout() {
         }}
       />
 
+      <Tabs.Screen
+        name="buscador"
+        options={{
+          title: 'Buscador',
+          headerShown: false,
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon
+              activeIcon="magnify"
+              inactiveIcon="magnify"
+              focused={focused}
+              color={color}
+            />
+          ),
+        }}
+      />
+
       {/* Hidden tabs — navigated to programmatically */}
       <Tabs.Screen name="settings" options={{ title: 'Configuración', href: null }} />
       <Tabs.Screen name="import" options={{ title: 'Importar', href: null, headerShown: false }} />
