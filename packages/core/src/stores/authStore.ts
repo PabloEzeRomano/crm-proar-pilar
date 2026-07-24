@@ -6,6 +6,7 @@ import { Profile } from '../types';
 
 const APP_SCHEME = process.env.EXPO_PUBLIC_APP_SCHEME ?? 'crm-proar';
 const CRM_TYPE = process.env.EXPO_PUBLIC_CRM_TYPE; // 'field-sales' | 'campaign-management'
+const ROOT_COMPANY_ID = process.env.EXPO_PUBLIC_COMPANY_ID ?? null;
 
 export interface AuthState {
   session: Session | null;
@@ -108,6 +109,24 @@ async function validateCrmType(companyId: string | null, role?: string): Promise
 }
 
 /**
+ * If root + EXPO_PUBLIC_COMPANY_ID set + differs from current company_id → auto-update.
+ * Returns the updated profile (or original if no change needed).
+ */
+async function maybeAutoAssignCompany(profile: Profile): Promise<Profile> {
+console.log('Datitos', {ROOT_COMPANY_ID, id: profile.company_id}, )
+  if (profile.role !== 'root') return profile;
+  if (!ROOT_COMPANY_ID) return profile;
+  if (profile.company_id === ROOT_COMPANY_ID) return profile;
+
+  await supabase
+    .from('profiles')
+    .update({ company_id: ROOT_COMPANY_ID })
+    .eq('id', profile.id);
+
+  return { ...profile, company_id: ROOT_COMPANY_ID };
+}
+
+/**
  * True when the user was invited and has not set a password yet. Set in the
  * invite-user Edge Function (user_metadata.needs_password) and cleared by
  * setInitialPassword. Flow-agnostic invite detection: works for the implicit
@@ -143,9 +162,10 @@ export const useAuthStore = create<AuthState>()((set) => ({
         user: existingSession.user,
         isInviteUser: userNeedsPassword(existingSession.user),
       });
-      const profile = await fetchProfile(existingSession.user.id);
+      let profile = await fetchProfile(existingSession.user.id);
 
       if (profile) {
+        profile = await maybeAutoAssignCompany(profile);
         const crmError = await validateCrmType(profile.company_id, profile.role);
         if (crmError) {
           await supabase.auth.signOut();
@@ -178,6 +198,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
         fetchProfile(session.user.id)
           .then(async (profile) => {
             if (profile) {
+              profile = await maybeAutoAssignCompany(profile);
               const crmError = await validateCrmType(profile.company_id, profile.role);
               if (crmError) {
                 await supabase.auth.signOut();
