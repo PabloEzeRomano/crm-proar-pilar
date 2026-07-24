@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { z } from 'zod';
 
 import { useAuthStore } from '@/stores/authStore';
@@ -31,6 +32,7 @@ export default function LoginScreen() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   async function handleLogin() {
@@ -85,14 +87,28 @@ export default function LoginScreen() {
 
           <View style={styles.field}>
             <Text style={styles.label}>Contraseña</Text>
-            <TextInput
-              style={[styles.input, fieldErrors.password ? styles.inputError : null]}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              placeholder="••••••"
-              placeholderTextColor={colors.textDisabled}
-            />
+            <View style={styles.pwContainer}>
+              <TextInput
+                style={[styles.input, styles.pwInput, fieldErrors.password ? styles.inputError : null]}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                placeholder="••••••"
+                placeholderTextColor={colors.textDisabled}
+              />
+              <Pressable
+                style={styles.pwToggle}
+                onPress={() => setShowPassword((v) => !v)}
+                accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                accessibilityRole="button"
+              >
+                <MaterialCommunityIcons
+                  name={showPassword ? 'eye-off' : 'eye'}
+                  size={20}
+                  color={colors.textSecondary}
+                />
+              </Pressable>
+            </View>
             {fieldErrors.password ? (
               <Text style={styles.fieldError}>{fieldErrors.password}</Text>
             ) : null}
@@ -161,6 +177,9 @@ const styles = StyleSheet.create({
   },
   inputError: { borderColor: colors.error },
   fieldError: { fontSize: fontSize.xs, color: colors.error },
+  pwContainer: { position: 'relative', flexDirection: 'row', alignItems: 'center' },
+  pwInput: { flex: 1, paddingRight: 48 },
+  pwToggle: { position: 'absolute', right: spacing[3], padding: spacing[2], height: 48, justifyContent: 'center' },
   errorBox: {
     backgroundColor: colors.errorLight,
     borderRadius: borderRadius.md,

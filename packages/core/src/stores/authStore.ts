@@ -29,6 +29,10 @@ export interface AuthState {
   setError: (message: string) => void;
   requestPasswordReset: (email: string) => Promise<{ error: string | null }>;
   updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
+  changePassword: (
+    currentPassword: string,
+    newPassword: string
+  ) => Promise<{ error: string | null }>;
   setInviteUser: (value: boolean) => void;
   completeInviteFlow: (isNewUser: boolean) => void;
   setInitialPassword: (
@@ -305,6 +309,18 @@ export const useAuthStore = create<AuthState>()((set) => ({
     set({ isPasswordRecovery: false });
     await supabase.auth.signOut();
     return { error: null };
+  },
+
+  changePassword: async (currentPassword, newPassword) => {
+    const { user } = (await supabase.auth.getUser()).data;
+    if (!user?.email) return { error: 'No autenticado' };
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    });
+    if (signInError) return { error: 'Contraseña actual incorrecta' };
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    return { error: error?.message ?? null };
   },
 
   clearError: () => set({ error: null }),
