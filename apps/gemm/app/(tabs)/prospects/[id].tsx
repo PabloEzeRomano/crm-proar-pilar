@@ -270,7 +270,7 @@ export default function ProspectDetailScreen() {
               const phone = prospect.contacts?.find((c) => c.phone)?.phone ?? '';
               const clean = phone.replace(/[\s\-\(\)]/g, '').replace(/^\+/, '');
               router.push(
-                `/(tabs)/correos/whatsapp-compose?phone=${clean}&name=${encodeURIComponent(prospect.name)}&prospectId=${id}` as any
+                `/(tabs)/whatsapp/compose?phone=${clean}&name=${encodeURIComponent(prospect.name)}&prospectId=${id}` as any
               );
             }}
           >

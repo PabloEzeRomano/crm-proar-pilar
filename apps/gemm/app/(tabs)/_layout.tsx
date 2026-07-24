@@ -102,6 +102,22 @@ export default function TabsLayout() {
       />
 
       <Tabs.Screen
+        name="whatsapp"
+        options={{
+          title: 'WhatsApp',
+          headerShown: false,
+          tabBarIcon: ({ focused, color }) => (
+            <TabIcon
+              activeIcon="whatsapp"
+              inactiveIcon="whatsapp"
+              focused={focused}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
         name="buscador"
         options={{
           title: 'Buscador',

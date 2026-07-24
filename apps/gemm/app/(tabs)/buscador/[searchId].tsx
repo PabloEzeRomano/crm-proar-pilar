@@ -80,7 +80,7 @@ function PlaceCard({
     if (!phone) return;
     const clean = phone.replace(/[\s\-\(\)]/g, '').replace(/^\+/, '');
     router.push(
-      `/(tabs)/correos/whatsapp-compose?phone=${clean}&name=${encodeURIComponent(place.name)}&prospectId=${place.prospect_id ?? ''}` as any
+      `/(tabs)/whatsapp/compose?phone=${clean}&name=${encodeURIComponent(place.name)}&prospectId=${place.prospect_id ?? ''}` as any
     );
   }
 

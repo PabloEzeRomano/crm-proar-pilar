@@ -84,7 +84,6 @@ export default function WhatsAppComposeScreen() {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Phone */}
         <View style={styles.field}>
           <Text style={styles.label}>Teléfono <Text style={styles.required}>*</Text></Text>
           <View style={styles.inputRow}>
@@ -100,7 +99,6 @@ export default function WhatsAppComposeScreen() {
           </View>
         </View>
 
-        {/* Template selector */}
         <View style={styles.field}>
           <Text style={styles.label}>Plantilla (opcional)</Text>
           {loadingTemplates ? (
@@ -134,7 +132,6 @@ export default function WhatsAppComposeScreen() {
           )}
         </View>
 
-        {/* Message body */}
         <View style={styles.field}>
           <Text style={styles.label}>Mensaje <Text style={styles.required}>*</Text></Text>
           <TextInput

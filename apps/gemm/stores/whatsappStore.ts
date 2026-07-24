@@ -11,15 +11,20 @@ interface SendInput {
 }
 
 interface WhatsAppState {
+  sends: WhatsAppSend[];
+  loadingSends: boolean;
   prospectSends: Record<string, WhatsAppSend[]>;
   sending: boolean;
   error: string | null;
 
   sendWhatsApp: (input: SendInput) => Promise<boolean>;
+  fetchAllSends: () => Promise<void>;
   fetchProspectSends: (prospectId: string) => Promise<void>;
 }
 
 export const useWhatsAppStore = create<WhatsAppState>((set) => ({
+  sends: [],
+  loadingSends: false,
   prospectSends: {},
   sending: false,
   error: null,
@@ -44,6 +49,15 @@ export const useWhatsAppStore = create<WhatsAppState>((set) => ({
       set({ error: err instanceof Error ? err.message : 'Error desconocido', sending: false });
       return false;
     }
+  },
+
+  fetchAllSends: async () => {
+    set({ loadingSends: true });
+    const { data } = await supabase
+      .from('whatsapp_sends')
+      .select('*')
+      .order('created_at', { ascending: false });
+    set({ sends: (data ?? []) as WhatsAppSend[], loadingSends: false });
   },
 
   fetchProspectSends: async (prospectId) => {

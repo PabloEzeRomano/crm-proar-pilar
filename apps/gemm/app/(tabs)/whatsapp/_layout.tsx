@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { colors, fontSize } from '@/constants/theme';
 
-export default function CorreosLayout() {
+export default function WhatsAppLayout() {
   return (
     <Stack
       screenOptions={{
@@ -12,10 +12,8 @@ export default function CorreosLayout() {
         headerTitleStyle: { fontSize: fontSize.lg, fontWeight: '600', color: colors.textPrimary },
       }}
     >
-      <Stack.Screen name="index" options={{ title: 'Correos enviados' }} />
-      <Stack.Screen name="compose" options={{ title: 'Nuevo correo' }} />
-      <Stack.Screen name="templates/index" options={{ title: 'Plantillas' }} />
-      <Stack.Screen name="templates/form" options={{ title: 'Plantilla' }} />
+      <Stack.Screen name="index" options={{ title: 'WhatsApp enviados' }} />
+      <Stack.Screen name="compose" options={{ title: 'Enviar por WhatsApp' }} />
     </Stack>
   );
 }
