@@ -52,13 +52,7 @@ const CONTACT_RESULTS: { key: ContactResult; label: string }[] = (
 ).map((key) => ({ key, label: contactResultLabel[key] }));
 
 const INTEREST_RESULTS: { key: InterestResult; label: string }[] = (
-  [
-    'interested',
-    'not_interested',
-    'not_qualified',
-    'follow_up',
-    'sale',
-  ] as InterestResult[]
+  ['sale', 'interested', 'follow_up', 'not_interested'] as InterestResult[]
 ).map((key) => ({ key, label: interestResultLabel[key] }));
 
 // ---------------------------------------------------------------------------
@@ -153,6 +147,10 @@ export default function NewInteractionScreen() {
   const [financing, setFinancing] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [amount, setAmount] = useState('');
+  const [creditQualification, setCreditQualification] = useState<
+    'qualified' | 'not_qualified' | null
+  >(null);
+  const [creditedAmount, setCreditedAmount] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -170,13 +168,19 @@ export default function NewInteractionScreen() {
   }, [campaignId]);
 
   // Conditional visibility
-  const showInterest = contactResult === 'contacted';
-  const showRejection = interestResult === 'not_interested';
-  const showSaleDetails = interestResult === 'sale';
+  const isNotQualified = creditQualification === 'not_qualified';
+  const isQualified = creditQualification === 'qualified';
+  const showInterest = isQualified && contactResult === 'contacted';
+  const showRejection = showInterest && interestResult === 'not_interested';
+  const showSaleDetails = showInterest && interestResult === 'sale';
 
   const handleSave = async () => {
-    if (!campaignId || !clientId || !channel || !contactResult) {
-      setError('Completar campaña, cliente, canal y resultado de contacto');
+    if (!campaignId || !clientId || !creditQualification) {
+      setError('Completar campaña, cliente y calificación crediticia');
+      return;
+    }
+    if (isQualified && (!channel || !contactResult)) {
+      setError('Completar canal y resultado de contacto');
       return;
     }
 
@@ -198,16 +202,22 @@ export default function NewInteractionScreen() {
       assignment_id: params.assignmentId ?? null,
       campaign_id: campaignId,
       client_id: clientId,
-      channel,
-      contact_result: contactResult,
-      interest_result: showInterest ? interestResult : null,
+      channel: channel ?? 'phone',
+      contact_result: isNotQualified ? 'not_contacted' : contactResult!,
+      interest_result: isNotQualified
+        ? 'not_qualified'
+        : showInterest
+          ? interestResult
+          : null,
       rejection_reason_id:
         showRejection && rejectionReasonId ? rejectionReasonId : null,
       offer_id: showSaleDetails && offerId ? offerId : null,
       payment_method: showSaleDetails && paymentMethod ? paymentMethod : null,
-      financing: showSaleDetails && financing ? financing : null,
+      financing: isQualified && financing ? financing : null,
       invoice_number: showSaleDetails && invoiceNumber ? invoiceNumber : null,
       amount: showSaleDetails && amount ? parseFloat(amount) : null,
+      credited_amount:
+        isQualified && creditedAmount ? parseFloat(creditedAmount) : null,
       notes: notes.trim() || null,
     });
 
@@ -277,69 +287,137 @@ export default function NewInteractionScreen() {
           />
         </View>
 
-        {/* Channel */}
+        {/* Credit qualification */}
         <View style={styles.field}>
-          <Text style={styles.label}>Canal *</Text>
-          <ChipSelector
-            options={CHANNELS}
-            value={channel}
-            onChange={setChannel}
-          />
-        </View>
-
-        {/* Contact result */}
-        <View style={styles.field}>
-          <Text style={styles.label}>Resultado de contacto *</Text>
-          <ChipSelector
-            options={CONTACT_RESULTS}
-            value={contactResult}
-            onChange={setContactResult}
-          />
-        </View>
-
-        {/* Interest result — only if contacted */}
-        {showInterest && (
-          <View style={styles.field}>
-            <Text style={styles.label}>Resultado de interés</Text>
-            <ChipSelector
-              options={INTEREST_RESULTS}
-              value={interestResult}
-              onChange={setInterestResult}
-            />
+          <Text style={styles.label}>Calificación crediticia *</Text>
+          <View style={styles.chipRow}>
+            <Pressable
+              style={[
+                styles.chip,
+                creditQualification === 'not_qualified' && styles.chipActive,
+              ]}
+              onPress={() => setCreditQualification('not_qualified')}
+            >
+              <Text
+                style={[
+                  styles.chipText,
+                  creditQualification === 'not_qualified' &&
+                    styles.chipTextActive,
+                ]}
+              >
+                No califica
+              </Text>
+            </Pressable>
+            <Pressable
+              style={[
+                styles.chip,
+                creditQualification === 'qualified' && styles.chipActive,
+              ]}
+              onPress={() => setCreditQualification('qualified')}
+            >
+              <Text
+                style={[
+                  styles.chipText,
+                  creditQualification === 'qualified' && styles.chipTextActive,
+                ]}
+              >
+                Califica
+              </Text>
+            </Pressable>
           </View>
-        )}
+        </View>
 
-        {/* Rejection reason — only if not interested */}
-        {showRejection && (
-          <View style={styles.field}>
-            <Text style={styles.label}>Motivo de rechazo</Text>
-            <View style={styles.pickerRow}>
-              {reasons
-                .filter((r) => r.active)
-                .map((r) => (
-                  <Pressable
-                    key={r.id}
-                    style={[
-                      styles.chip,
-                      rejectionReasonId === r.id && styles.chipActive,
-                    ]}
-                    onPress={() => setRejectionReasonId(r.id)}
-                  >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        rejectionReasonId === r.id && styles.chipTextActive,
-                      ]}
-                    >
-                      {r.value}
-                    </Text>
-                  </Pressable>
-                ))}
+        {/* Credited amount + financier — only when qualified */}
+        {isQualified && (
+          <>
+            <View style={styles.row}>
+              <View style={[styles.field, styles.flex]}>
+                <Text style={styles.label}>Monto que califica</Text>
+                <TextInput
+                  style={styles.input}
+                  value={creditedAmount}
+                  onChangeText={setCreditedAmount}
+                  placeholder="0.00"
+                  placeholderTextColor={colors.textDisabled}
+                  keyboardType="decimal-pad"
+                />
+              </View>
             </View>
-          </View>
+            <View style={styles.field}>
+              <Text style={styles.label}>Financiera que califica</Text>
+              <SearchableSelect
+                label="Financiera"
+                placeholder="Seleccionar financiera"
+                options={financiers.filter((f) => f.active).map((f) => f.name)}
+                selected={financing ? [financing] : []}
+                onChange={(names) => setFinancing(names[0] ?? '')}
+              />
+            </View>
+
+            {/* Channel */}
+            <View style={styles.field}>
+              <Text style={styles.label}>Canal *</Text>
+              <ChipSelector
+                options={CHANNELS}
+                value={channel}
+                onChange={setChannel}
+              />
+            </View>
+
+            {/* Contact result */}
+            <View style={styles.field}>
+              <Text style={styles.label}>Resultado de contacto *</Text>
+              <ChipSelector
+                options={CONTACT_RESULTS}
+                value={contactResult}
+                onChange={setContactResult}
+              />
+            </View>
+
+            {/* Interest result — only if contacted */}
+            {showInterest && (
+              <View style={styles.field}>
+                <Text style={styles.label}>Resultado de interés</Text>
+                <ChipSelector
+                  options={INTEREST_RESULTS}
+                  value={interestResult}
+                  onChange={setInterestResult}
+                />
+              </View>
+            )}
+
+            {/* Rejection reason — only if not interested */}
+            {showRejection && (
+              <View style={styles.field}>
+                <Text style={styles.label}>Motivo de rechazo</Text>
+                <View style={styles.pickerRow}>
+                  {reasons
+                    .filter((r) => r.active)
+                    .map((r) => (
+                      <Pressable
+                        key={r.id}
+                        style={[
+                          styles.chip,
+                          rejectionReasonId === r.id && styles.chipActive,
+                        ]}
+                        onPress={() => setRejectionReasonId(r.id)}
+                      >
+                        <Text
+                          style={[
+                            styles.chipText,
+                            rejectionReasonId === r.id && styles.chipTextActive,
+                          ]}
+                        >
+                          {r.value}
+                        </Text>
+                      </Pressable>
+                    ))}
+                </View>
+              </View>
+            )}
+          </>
         )}
 
-        {/* Sale details — only if sale */}
         {showSaleDetails && (
           <>
             <View style={styles.field}>

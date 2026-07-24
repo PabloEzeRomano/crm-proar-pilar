@@ -118,6 +118,7 @@ export interface Interaction {
   financing: string | null;
   invoice_number: string | null;
   amount: number | null;
+  credited_amount: number | null;
   channel: InteractionChannel;
   notes: string | null;
   created_at: string;
