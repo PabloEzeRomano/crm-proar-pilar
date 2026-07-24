@@ -256,8 +256,9 @@ export default function VisitFormScreen() {
         setRecipientEmail(firstEmail);
       }
       // Pre-fill from seguimiento (thread continuation)
-      if (paramPrefillTitle) setTitle(decodeURIComponent(paramPrefillTitle));
-      if (paramPrefillNotes) setNotes(decodeURIComponent(paramPrefillNotes));
+      // Expo Router already decodes URL params — no decodeURIComponent needed.
+      if (paramPrefillTitle) setTitle(paramPrefillTitle);
+      if (paramPrefillNotes) setNotes(paramPrefillNotes);
     }
   }, [isEditMode, existingVisit?.id, paramClientId, clients]);
 
