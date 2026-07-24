@@ -18,6 +18,10 @@ export interface VendorReportRow {
   sales: number;
   /** sales / contacted, 0..1 */
   conversionRate: number;
+  /** distinct clients with at least 1 interaction */
+  managed: number;
+  /** clients assigned in client_assignments */
+  assigned: number;
 }
 
 export interface BranchReportRow {
@@ -28,6 +32,8 @@ export interface BranchReportRow {
   rejected: number;
   sales: number;
   conversionRate: number;
+  managed: number;
+  assigned: number;
 }
 
 export interface FinancierReportRow {
@@ -86,20 +92,38 @@ export const useReportsStore = create<ReportsState>()((set) => ({
   fetchReports: async (users, branchNames) => {
     set({ loading: true, error: null });
 
-    const { data, error } = await supabase
-      .from('interactions')
-      .select('user_id, contact_result, interest_result, financing');
+    const [interactionsRes, assignmentsRes] = await Promise.all([
+      supabase
+        .from('interactions')
+        .select('user_id, client_id, contact_result, interest_result, financing'),
+      supabase
+        .from('client_assignments')
+        .select('assigned_to, client_id'),
+    ]);
 
-    if (error) {
-      set({ error: error.message, loading: false });
+    if (interactionsRes.error) {
+      set({ error: interactionsRes.error.message, loading: false });
       return;
     }
 
     const interactions =
-      (data as Pick<
+      (interactionsRes.data as Pick<
         Interaction,
-        'user_id' | 'contact_result' | 'interest_result' | 'financing'
+        'user_id' | 'client_id' | 'contact_result' | 'interest_result' | 'financing'
       >[]) ?? [];
+
+    // assigned count per user
+    const assignedCountByUser = new Map<string, number>();
+    for (const row of (assignmentsRes.data ?? []) as { assigned_to: string; client_id: string }[]) {
+      assignedCountByUser.set(row.assigned_to, (assignedCountByUser.get(row.assigned_to) ?? 0) + 1);
+    }
+
+    // distinct managed clients per user
+    const managedClientsByUser = new Map<string, Set<string>>();
+    for (const it of interactions) {
+      if (!managedClientsByUser.has(it.user_id)) managedClientsByUser.set(it.user_id, new Set());
+      managedClientsByUser.get(it.user_id)!.add(it.client_id);
+    }
 
     // Index users by id for branch + name lookup.
     const userById = new Map<string, ReportUser>();
@@ -127,6 +151,8 @@ export const useReportsStore = create<ReportsState>()((set) => ({
           rejected: 0,
           sales: 0,
           conversionRate: 0,
+          managed: managedClientsByUser.get(it.user_id)?.size ?? 0,
+          assigned: assignedCountByUser.get(it.user_id) ?? 0,
         };
         vendorMap.set(it.user_id, row);
       }
@@ -159,6 +185,8 @@ export const useReportsStore = create<ReportsState>()((set) => ({
           rejected: 0,
           sales: 0,
           conversionRate: 0,
+          managed: 0,
+          assigned: 0,
         };
         branchMap.set(key, row);
       }
@@ -166,6 +194,8 @@ export const useReportsStore = create<ReportsState>()((set) => ({
       row.notContacted += v.notContacted;
       row.rejected += v.rejected;
       row.sales += v.sales;
+      row.managed += v.managed;
+      row.assigned += v.assigned;
     }
 
     const branches = Array.from(branchMap.values())

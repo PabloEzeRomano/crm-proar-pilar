@@ -45,6 +45,7 @@ interface MetricColumn {
 }
 
 const VENDOR_COLS: MetricColumn[] = [
+  { label: 'Gest.', width: 60 },
   { label: 'Cont.', width: 48 },
   { label: 'No cont.', width: 56 },
   { label: 'Rech.', width: 48 },
@@ -170,20 +171,23 @@ export default function ReportsScreen() {
                   {v.branchName}
                 </Text>
               </View>
-              <Text style={[styles.numCell, { width: VENDOR_COLS[0].width }]}>
-                {v.contacted}
+              <Text style={[styles.numCell, styles.gestCell, { width: VENDOR_COLS[0].width }]}>
+                {v.managed}/{v.assigned}
               </Text>
               <Text style={[styles.numCell, { width: VENDOR_COLS[1].width }]}>
-                {v.notContacted}
+                {v.contacted}
               </Text>
               <Text style={[styles.numCell, { width: VENDOR_COLS[2].width }]}>
+                {v.notContacted}
+              </Text>
+              <Text style={[styles.numCell, { width: VENDOR_COLS[3].width }]}>
                 {v.rejected}
               </Text>
               <Text
                 style={[
                   styles.numCell,
                   styles.salesCell,
-                  { width: VENDOR_COLS[3].width },
+                  { width: VENDOR_COLS[4].width },
                 ]}
               >
                 {v.sales}
@@ -192,7 +196,7 @@ export default function ReportsScreen() {
                 style={[
                   styles.numCell,
                   styles.convCell,
-                  { width: VENDOR_COLS[4].width },
+                  { width: VENDOR_COLS[5].width },
                 ]}
               >
                 {formatPct(v.conversionRate)}
@@ -216,20 +220,23 @@ export default function ReportsScreen() {
                   {b.branchName}
                 </Text>
               </View>
-              <Text style={[styles.numCell, { width: VENDOR_COLS[0].width }]}>
-                {b.contacted}
+              <Text style={[styles.numCell, styles.gestCell, { width: VENDOR_COLS[0].width }]}>
+                {b.managed}/{b.assigned}
               </Text>
               <Text style={[styles.numCell, { width: VENDOR_COLS[1].width }]}>
-                {b.notContacted}
+                {b.contacted}
               </Text>
               <Text style={[styles.numCell, { width: VENDOR_COLS[2].width }]}>
+                {b.notContacted}
+              </Text>
+              <Text style={[styles.numCell, { width: VENDOR_COLS[3].width }]}>
                 {b.rejected}
               </Text>
               <Text
                 style={[
                   styles.numCell,
                   styles.salesCell,
-                  { width: VENDOR_COLS[3].width },
+                  { width: VENDOR_COLS[4].width },
                 ]}
               >
                 {b.sales}
@@ -238,7 +245,7 @@ export default function ReportsScreen() {
                 style={[
                   styles.numCell,
                   styles.convCell,
-                  { width: VENDOR_COLS[4].width },
+                  { width: VENDOR_COLS[5].width },
                 ]}
               >
                 {formatPct(b.conversionRate)}
@@ -367,6 +374,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     textAlign: 'right',
   },
+  gestCell: { fontWeight: fontWeight.semibold, color: colors.textPrimary },
   salesCell: { fontWeight: fontWeight.bold, color: colors.success },
   convCell: { fontWeight: fontWeight.semibold, color: colors.primary },
   financierRow: {
