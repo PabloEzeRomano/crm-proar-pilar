@@ -86,7 +86,10 @@ export default function LoginScreen() {
   }
 
   async function handleSubmit() {
-    const result = loginSchema.safeParse({ email: email.trim(), password });
+    const result = loginSchema.safeParse({
+      email: email.trim().toLowerCase(),
+      password,
+    });
 
     if (!result.success) {
       const errors: FieldErrors = {};

@@ -86,7 +86,12 @@ export default function LoginScreen() {
   }
 
   async function handleSubmit() {
-    const result = loginSchema.safeParse({ email: email.trim(), password: password.trim() });
+    // Never trim the password: no screen trims when *setting* one, so trimming
+    // here would reject a credential the user legitimately saved.
+    const result = loginSchema.safeParse({
+      email: email.trim().toLowerCase(),
+      password,
+    });
 
     if (!result.success) {
       const errors: FieldErrors = {};
