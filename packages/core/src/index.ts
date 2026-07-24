@@ -3,6 +3,8 @@
 // Lib
 export { supabase } from './lib/supabase';
 export { default as dayjs, fromUTC } from './lib/dayjs';
+export { showAlert, showConfirm, showActionSheet } from './lib/dialog';
+export type { ConfirmOptions, DialogAction } from './lib/dialog';
 
 // Stores
 export { useAuthStore } from './stores/authStore';
@@ -25,3 +27,9 @@ export type { Theme } from './theme';
 // Components
 export { default as SearchableSelect } from './components/SearchableSelect';
 export type { SearchableSelectProps } from './components/SearchableSelect';
+
+export { default as PasswordInput } from './components/PasswordInput';
+export type { PasswordInputProps } from './components/PasswordInput';
+
+export { default as ChangePasswordSheet } from './components/ChangePasswordSheet';
+export type { ChangePasswordSheetProps } from './components/ChangePasswordSheet';
