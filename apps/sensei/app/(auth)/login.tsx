@@ -22,8 +22,8 @@ import {
 } from 'react-native';
 import { z } from 'zod';
 import { useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+import { PasswordInput } from '@crm/core';
 import { useAuthStore } from '@/stores/authStore';
 import { brand } from '@/constants/brand';
 import {
@@ -65,7 +65,6 @@ export default function LoginScreen() {
   // Focus state for styled borders
   const [emailFocused, setEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   // ------------------------------------------------------------------
   // Handlers
@@ -170,41 +169,18 @@ export default function LoginScreen() {
           {/* Password field */}
           <View style={styles.fieldWrapper}>
             <Text style={styles.label}>Contraseña</Text>
-            <View style={styles.passwordFieldContainer}>
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.passwordInput,
-                  { borderColor: passwordBorderColor },
-                ]}
-                value={password}
-                onChangeText={handlePasswordChange}
-                onFocus={() => setPasswordFocused(true)}
-                onBlur={() => setPasswordFocused(false)}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-                autoComplete="current-password"
-                textContentType="password"
-                placeholder="••••••"
-                placeholderTextColor={colors.textDisabled}
-                editable={!loading}
-              />
-              <Pressable
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.passwordToggle}
-                accessibilityLabel={
-                  showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
-                }
-                accessibilityRole="button"
-              >
-                <MaterialCommunityIcons
-                  name={showPassword ? 'eye-off' : 'eye'}
-                  size={24}
-                  color={colors.textSecondary}
-                />
-              </Pressable>
-            </View>
+            <PasswordInput
+              style={[styles.input, { borderColor: passwordBorderColor }]}
+              value={password}
+              onChangeText={handlePasswordChange}
+              onFocus={() => setPasswordFocused(true)}
+              onBlur={() => setPasswordFocused(false)}
+              autoComplete="current-password"
+              textContentType="password"
+              placeholder="••••••"
+              placeholderTextColor={colors.textDisabled}
+              editable={!loading}
+            />
             {fieldErrors.password ? (
               <Text style={styles.fieldError}>{fieldErrors.password}</Text>
             ) : null}
@@ -306,26 +282,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[3],
     fontSize: fontSize.base,
     color: colors.textPrimary,
-  },
-
-  passwordFieldContainer: {
-    position: 'relative',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  passwordInput: {
-    flex: 1,
-    paddingRight: 48,
-  },
-
-  passwordToggle: {
-    position: 'absolute',
-    right: spacing[3],
-    padding: spacing[2],
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 
   fieldError: {

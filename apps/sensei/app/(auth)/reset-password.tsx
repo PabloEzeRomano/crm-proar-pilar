@@ -15,11 +15,10 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+import { PasswordInput } from '@crm/core';
 import { useAuthStore } from '@/stores/authStore';
 import {
   resetPasswordSchema,
@@ -54,8 +53,6 @@ export default function ResetPasswordScreen() {
 
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [confirmFocused, setConfirmFocused] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
 
   // ------------------------------------------------------------------
   // Handlers
@@ -155,40 +152,17 @@ export default function ResetPasswordScreen() {
           {/* Password field */}
           <View style={styles.fieldWrapper}>
             <Text style={styles.label}>Contraseña</Text>
-            <View style={styles.passwordFieldContainer}>
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.passwordInput,
-                  { borderColor: passwordBorderColor },
-                ]}
-                value={password}
-                onChangeText={handlePasswordChange}
-                onFocus={() => setPasswordFocused(true)}
-                onBlur={() => setPasswordFocused(false)}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-                textContentType="newPassword"
-                placeholder="••••••••"
-                placeholderTextColor={colors.textDisabled}
-                editable={!loading}
-              />
-              <Pressable
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.passwordToggle}
-                accessibilityLabel={
-                  showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
-                }
-                accessibilityRole="button"
-              >
-                <MaterialCommunityIcons
-                  name={showPassword ? 'eye-off' : 'eye'}
-                  size={24}
-                  color={colors.textSecondary}
-                />
-              </Pressable>
-            </View>
+            <PasswordInput
+              style={[styles.input, { borderColor: passwordBorderColor }]}
+              value={password}
+              onChangeText={handlePasswordChange}
+              onFocus={() => setPasswordFocused(true)}
+              onBlur={() => setPasswordFocused(false)}
+              textContentType="newPassword"
+              placeholder="••••••••"
+              placeholderTextColor={colors.textDisabled}
+              editable={!loading}
+            />
             {fieldErrors.password ? (
               <Text style={styles.fieldError}>{fieldErrors.password}</Text>
             ) : null}
@@ -197,40 +171,17 @@ export default function ResetPasswordScreen() {
           {/* Confirm password field */}
           <View style={styles.fieldWrapper}>
             <Text style={styles.label}>Confirmar contraseña</Text>
-            <View style={styles.passwordFieldContainer}>
-              <TextInput
-                style={[
-                  styles.input,
-                  styles.passwordInput,
-                  { borderColor: confirmBorderColor },
-                ]}
-                value={passwordConfirm}
-                onChangeText={handleConfirmChange}
-                onFocus={() => setConfirmFocused(true)}
-                onBlur={() => setConfirmFocused(false)}
-                secureTextEntry={!showConfirm}
-                autoCapitalize="none"
-                autoCorrect={false}
-                textContentType="newPassword"
-                placeholder="••••••••"
-                placeholderTextColor={colors.textDisabled}
-                editable={!loading}
-              />
-              <Pressable
-                onPress={() => setShowConfirm(!showConfirm)}
-                style={styles.passwordToggle}
-                accessibilityLabel={
-                  showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'
-                }
-                accessibilityRole="button"
-              >
-                <MaterialCommunityIcons
-                  name={showConfirm ? 'eye-off' : 'eye'}
-                  size={24}
-                  color={colors.textSecondary}
-                />
-              </Pressable>
-            </View>
+            <PasswordInput
+              style={[styles.input, { borderColor: confirmBorderColor }]}
+              value={passwordConfirm}
+              onChangeText={handleConfirmChange}
+              onFocus={() => setConfirmFocused(true)}
+              onBlur={() => setConfirmFocused(false)}
+              textContentType="newPassword"
+              placeholder="••••••••"
+              placeholderTextColor={colors.textDisabled}
+              editable={!loading}
+            />
             {fieldErrors.passwordConfirm ? (
               <Text style={styles.fieldError}>
                 {fieldErrors.passwordConfirm}
@@ -303,26 +254,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[3],
     fontSize: fontSize.base,
     color: colors.textPrimary,
-  },
-
-  passwordFieldContainer: {
-    position: 'relative',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  passwordInput: {
-    flex: 1,
-    paddingRight: 48,
-  },
-
-  passwordToggle: {
-    position: 'absolute',
-    right: spacing[3],
-    padding: spacing[2],
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 
   fieldError: {
