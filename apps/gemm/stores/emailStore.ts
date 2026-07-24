@@ -40,6 +40,7 @@ export const useEmailStore = create<EmailState>((set, get) => ({
     const { data, error } = await supabase
       .from('email_templates')
       .select('*')
+      .eq('channel', 'email')
       .order('name');
     if (error) { set({ error: error.message, loading: false }); return; }
     set({ templates: data ?? [], loading: false });

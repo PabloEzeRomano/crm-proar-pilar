@@ -85,8 +85,24 @@ export interface EmailTemplate {
   name: string;
   subject: string;
   body: string;
+  channel: 'email' | 'whatsapp';
   created_at: string;
   updated_at: string;
+}
+
+export interface WhatsAppSend {
+  id: string;
+  company_id: string;
+  sender_user_id: string;
+  prospect_id: string | null;
+  template_id: string | null;
+  recipient_phone: string;
+  recipient_name: string | null;
+  body: string;
+  evolution_message_id: string | null;
+  status: 'sent' | 'failed';
+  error_message: string | null;
+  created_at: string;
 }
 
 export interface EmailSend {

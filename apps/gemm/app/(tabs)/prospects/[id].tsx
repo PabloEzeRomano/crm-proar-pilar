@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useProspectsStore } from '@/stores/prospectsStore';
 import { useEmailStore } from '@/stores/emailStore';
+import { useWhatsAppStore } from '@/stores/whatsappStore';
 import {
   PIPELINE_STAGES,
   STAGE_LABELS,
@@ -64,6 +65,9 @@ export default function ProspectDetailScreen() {
   const emailSends = useEmailStore((s) => s.prospectSends[id] ?? EMPTY);
   const fetchProspectSends = useEmailStore((s) => s.fetchProspectSends);
 
+  const waSends = useWhatsAppStore((s) => s.prospectSends[id] ?? EMPTY);
+  const fetchWaSends = useWhatsAppStore((s) => s.fetchProspectSends);
+
   const [addingInteraction, setAddingInteraction] = useState(false);
   const [interactionType, setInteractionType] = useState<InteractionType>('note');
   const [interactionBody, setInteractionBody] = useState('');
@@ -75,6 +79,7 @@ export default function ProspectDetailScreen() {
     if (id) {
       fetchInteractions(id);
       fetchProspectSends(id);
+      fetchWaSends(id);
     }
   }, [id]);
 
@@ -248,16 +253,31 @@ export default function ProspectDetailScreen() {
           <Text style={styles.editBtnText}>Editar prospecto</Text>
         </Pressable>
 
-        {/* Send email button */}
-        <Pressable
-          style={({ pressed }) => [styles.emailBtn, pressed && styles.editBtnPressed]}
-          onPress={() =>
-            router.push({ pathname: '/(tabs)/correos/compose', params: { prospectId: id } } as any)
-          }
-        >
-          <MaterialCommunityIcons name="email-arrow-right-outline" size={16} color={colors.textOnPrimary} />
-          <Text style={styles.emailBtnText}>Enviar correo</Text>
-        </Pressable>
+        {/* Action buttons */}
+        <View style={styles.actionRow}>
+          <Pressable
+            style={({ pressed }) => [styles.emailBtn, { flex: 1 }, pressed && styles.editBtnPressed]}
+            onPress={() =>
+              router.push({ pathname: '/(tabs)/correos/compose', params: { prospectId: id } } as any)
+            }
+          >
+            <MaterialCommunityIcons name="email-arrow-right-outline" size={16} color={colors.textOnPrimary} />
+            <Text style={styles.emailBtnText}>Correo</Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.waBtn, { flex: 1 }, pressed && styles.editBtnPressed]}
+            onPress={() => {
+              const phone = prospect.contacts?.find((c) => c.phone)?.phone ?? '';
+              const clean = phone.replace(/[\s\-\(\)]/g, '').replace(/^\+/, '');
+              router.push(
+                `/(tabs)/correos/whatsapp-compose?phone=${clean}&name=${encodeURIComponent(prospect.name)}&prospectId=${id}` as any
+              );
+            }}
+          >
+            <MaterialCommunityIcons name="whatsapp" size={16} color="#fff" />
+            <Text style={styles.waBtnText}>WhatsApp</Text>
+          </Pressable>
+        </View>
 
         {/* Email history */}
         {emailSends.length > 0 && (
@@ -276,6 +296,29 @@ export default function ProspectDetailScreen() {
                 <Text style={[styles.interactionBody, { color: colors.textSecondary }]} numberOfLines={1}>
                   {s.subject}
                 </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* WhatsApp history */}
+        {waSends.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>WhatsApp enviados</Text>
+            {waSends.map((s) => (
+              <View key={s.id} style={styles.interactionItem}>
+                <View style={styles.interactionHeader}>
+                  <MaterialCommunityIcons
+                    name="whatsapp"
+                    size={16}
+                    color={s.status === 'sent' ? '#25D366' : colors.error}
+                  />
+                  <Text style={[styles.interactionType, { color: s.status === 'sent' ? '#25D366' : colors.error }]}>
+                    {s.recipient_name ?? s.recipient_phone}
+                  </Text>
+                  <Text style={styles.interactionDate}>{dayjs(s.created_at).format('DD/MM HH:mm')}</Text>
+                </View>
+                <Text style={styles.interactionBody} numberOfLines={2}>{s.body}</Text>
               </View>
             ))}
           </View>
@@ -522,6 +565,10 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.medium,
     color: colors.primary,
   },
+  actionRow: {
+    flexDirection: 'row',
+    gap: spacing[2],
+  },
   emailBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -535,6 +582,20 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: fontWeight.medium,
     color: colors.textOnPrimary,
+  },
+  waBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
+    height: 44,
+    borderRadius: borderRadius.md,
+    backgroundColor: '#25D366',
+  },
+  waBtnText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: '#fff',
   },
   emailStatusDot: {
     width: 7,

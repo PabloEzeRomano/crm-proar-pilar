@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useLocalSearchParams, useNavigation } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -74,9 +74,14 @@ function PlaceCard({
     Linking.openURL(href).catch(() => {});
   }
 
-  function callPhone(phone: string | null) {
+  const router = useRouter();
+
+  function openWhatsApp(phone: string | null) {
     if (!phone) return;
-    Linking.openURL(`tel:${phone}`).catch(() => {});
+    const clean = phone.replace(/[\s\-\(\)]/g, '').replace(/^\+/, '');
+    router.push(
+      `/(tabs)/correos/whatsapp-compose?phone=${clean}&name=${encodeURIComponent(place.name)}&prospectId=${place.prospect_id ?? ''}` as any
+    );
   }
 
   return (
@@ -119,11 +124,11 @@ function PlaceCard({
       <View style={styles.contactRow}>
         {place.phone && (
           <Pressable
-            style={styles.contactBtn}
-            onPress={() => callPhone(place.phone)}
+            style={[styles.contactBtn, styles.contactBtnWa]}
+            onPress={() => openWhatsApp(place.phone)}
           >
-            <MaterialCommunityIcons name="phone-outline" size={14} color={colors.primary} />
-            <Text style={styles.contactBtnText} numberOfLines={1}>{place.phone}</Text>
+            <MaterialCommunityIcons name="whatsapp" size={14} color="#25D366" />
+            <Text style={[styles.contactBtnText, { color: '#25D366' }]} numberOfLines={1}>{place.phone}</Text>
           </Pressable>
         )}
         {place.website && (
@@ -606,6 +611,9 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.sm,
     backgroundColor: colors.primaryLight,
     maxWidth: 180,
+  },
+  contactBtnWa: {
+    backgroundColor: '#25D36615',
   },
   contactBtnText: {
     fontSize: fontSize.sm,
