@@ -32,6 +32,7 @@ import {
   View,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { ChangePasswordSheet } from '@crm/core';
 import TourStep from '@/components/tour/TourStep';
 import AppDatePicker from '@/components/ui/AppDatePicker';
 
@@ -83,7 +84,6 @@ function SettingsScreenContent() {
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
   const signOut = useAuthStore((s) => s.signOut);
-  const changePassword = useAuthStore((s) => s.changePassword);
   const updateEmailConfig = useAuthStore((s) => s.updateEmailConfig);
   const resetTour = useAuthStore((s) => s.resetTour);
 
@@ -141,52 +141,7 @@ function SettingsScreenContent() {
     message: string;
   } | null>(null);
 
-  const [showPwModal, setShowPwModal] = useState(false);
-  const [currentPw, setCurrentPw] = useState('');
-  const [newPw, setNewPw] = useState('');
-  const [confirmPw, setConfirmPw] = useState('');
-  const [showCurrentPw, setShowCurrentPw] = useState(false);
-  const [showNewPw, setShowNewPw] = useState(false);
-  const [showConfirmPw, setShowConfirmPw] = useState(false);
-  const [pwError, setPwError] = useState<string | null>(null);
-  const [pwSaving, setPwSaving] = useState(false);
-  const [pwDone, setPwDone] = useState(false);
-
-  function openPasswordModal() {
-    setCurrentPw('');
-    setNewPw('');
-    setConfirmPw('');
-    setShowCurrentPw(false);
-    setShowNewPw(false);
-    setShowConfirmPw(false);
-    setPwError(null);
-    setPwDone(false);
-    setShowPwModal(true);
-  }
-
-  async function handleChangePassword() {
-    if (!currentPw) {
-      setPwError('Ingresá la contraseña actual');
-      return;
-    }
-    if (newPw.length < 6) {
-      setPwError('La nueva contraseña debe tener al menos 6 caracteres');
-      return;
-    }
-    if (newPw !== confirmPw) {
-      setPwError('Las contraseñas no coinciden');
-      return;
-    }
-    setPwError(null);
-    setPwSaving(true);
-    const { error } = await changePassword(currentPw, newPw);
-    setPwSaving(false);
-    if (error) {
-      setPwError(error);
-    } else {
-      setPwDone(true);
-    }
-  }
+  const [showPwSheet, setShowPwSheet] = useState(false);
 
   const [progressVisible, setProgressVisible] = useState(true);
   const [heroVisible, setHeroVisible] = useState(true);
@@ -1027,7 +982,7 @@ function SettingsScreenContent() {
           {/* Cambiar contraseña */}
           <Pressable
             style={[styles.row, styles.rowBorderTop]}
-            onPress={openPasswordModal}
+            onPress={() => setShowPwSheet(true)}
             accessibilityRole="button"
             accessibilityLabel="Cambiar contraseña"
           >
@@ -1412,127 +1367,11 @@ function SettingsScreenContent() {
         </View>
       </Modal>
 
-      {/* ================================================================
-          Change password modal
-      ================================================================ */}
-      <Modal
-        visible={showPwModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowPwModal(false)}
-        statusBarTranslucent
-      >
-        <Pressable style={styles.modalBackdrop} onPress={() => setShowPwModal(false)} />
-        <View style={[styles.modalSheet, { paddingBottom: spacing[4] + insets.bottom }]}>
-          <View style={styles.modalHandle} />
-
-          {pwDone ? (
-            <View style={[styles.modalContent, { alignItems: 'center', gap: spacing[3] }]}>
-              <Text style={[styles.modalTitle, { textAlign: 'center' }]}>
-                Contraseña actualizada
-              </Text>
-              <Pressable
-                style={[styles.sendReportButton, styles.modalSendButton]}
-                onPress={() => setShowPwModal(false)}
-              >
-                <Text style={styles.importButtonLabel}>Cerrar</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Cambiar contraseña</Text>
-                <Pressable
-                  onPress={() => setShowPwModal(false)}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <MaterialCommunityIcons name="close" size={22} color={colors.textSecondary} />
-                </Pressable>
-              </View>
-
-              <View style={[styles.modalContent, { gap: spacing[3] }]}>
-                <View style={styles.modalSection}>
-                  <Text style={styles.modalSectionLabel}>Contraseña actual</Text>
-                  <View style={styles.pwContainer}>
-                    <TextInput
-                      style={[styles.input, styles.pwInput, pwError ? { borderColor: colors.error } : null]}
-                      value={currentPw}
-                      onChangeText={setCurrentPw}
-                      secureTextEntry={!showCurrentPw}
-                      placeholder="Tu contraseña actual"
-                      placeholderTextColor={colors.textDisabled}
-                      autoFocus
-                    />
-                    <Pressable style={styles.pwToggle} onPress={() => setShowCurrentPw((v) => !v)} accessibilityRole="button">
-                      <MaterialCommunityIcons name={showCurrentPw ? 'eye-off' : 'eye'} size={20} color={colors.textSecondary} />
-                    </Pressable>
-                  </View>
-                </View>
-                <View style={styles.modalSection}>
-                  <Text style={styles.modalSectionLabel}>Nueva contraseña</Text>
-                  <View style={styles.pwContainer}>
-                    <TextInput
-                      style={[styles.input, styles.pwInput, pwError ? { borderColor: colors.error } : null]}
-                      value={newPw}
-                      onChangeText={setNewPw}
-                      secureTextEntry={!showNewPw}
-                      placeholder="Mínimo 6 caracteres"
-                      placeholderTextColor={colors.textDisabled}
-                    />
-                    <Pressable style={styles.pwToggle} onPress={() => setShowNewPw((v) => !v)} accessibilityRole="button">
-                      <MaterialCommunityIcons name={showNewPw ? 'eye-off' : 'eye'} size={20} color={colors.textSecondary} />
-                    </Pressable>
-                  </View>
-                </View>
-                <View style={styles.modalSection}>
-                  <Text style={styles.modalSectionLabel}>Confirmar contraseña</Text>
-                  <View style={styles.pwContainer}>
-                    <TextInput
-                      style={[styles.input, styles.pwInput, pwError ? { borderColor: colors.error } : null]}
-                      value={confirmPw}
-                      onChangeText={setConfirmPw}
-                      secureTextEntry={!showConfirmPw}
-                      placeholder="Repetir contraseña"
-                      placeholderTextColor={colors.textDisabled}
-                      onSubmitEditing={handleChangePassword}
-                    />
-                    <Pressable style={styles.pwToggle} onPress={() => setShowConfirmPw((v) => !v)} accessibilityRole="button">
-                      <MaterialCommunityIcons name={showConfirmPw ? 'eye-off' : 'eye'} size={20} color={colors.textSecondary} />
-                    </Pressable>
-                  </View>
-                </View>
-                {pwError ? (
-                  <Text style={styles.fieldError}>{pwError}</Text>
-                ) : null}
-              </View>
-
-              <View style={styles.modalActions}>
-                <Pressable
-                  style={styles.modalCancelButton}
-                  onPress={() => setShowPwModal(false)}
-                >
-                  <Text style={styles.modalCancelLabel}>Cancelar</Text>
-                </Pressable>
-                <Pressable
-                  style={[
-                    styles.sendReportButton,
-                    styles.modalSendButton,
-                    pwSaving && styles.importButtonDisabled,
-                  ]}
-                  onPress={handleChangePassword}
-                  disabled={pwSaving}
-                >
-                  {pwSaving ? (
-                    <ActivityIndicator color={colors.textOnPrimary} size="small" />
-                  ) : (
-                    <Text style={styles.importButtonLabel}>Guardar</Text>
-                  )}
-                </Pressable>
-              </View>
-            </>
-          )}
-        </View>
-      </Modal>
+      <ChangePasswordSheet
+        visible={showPwSheet}
+        onClose={() => setShowPwSheet(false)}
+        bottomInset={insets.bottom}
+      />
 
       {/* ================================================================
           Floating save bar — visible only when there are unsaved changes
@@ -2035,7 +1874,4 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold,
     color: colors.textOnPrimary,
   },
-  pwContainer: { position: 'relative', flexDirection: 'row', alignItems: 'center' },
-  pwInput: { flex: 1, paddingRight: 48 },
-  pwToggle: { position: 'absolute', right: spacing[3], padding: spacing[2], height: 48, justifyContent: 'center' },
 });
