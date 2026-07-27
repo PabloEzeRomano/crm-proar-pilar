@@ -14,6 +14,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useWhatsAppStore } from '@/stores/whatsappStore';
+import { useProspectsStore } from '@/stores/prospectsStore';
+import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/lib/supabase';
 import { showAlert } from '@/lib/dialog';
 import type { EmailTemplate } from '@/types';
@@ -31,6 +33,10 @@ export default function WhatsAppComposeScreen() {
 
   const sendWhatsApp = useWhatsAppStore((s) => s.sendWhatsApp);
   const sending = useWhatsAppStore((s) => s.sending);
+  const prospects = useProspectsStore((s) => s.prospects);
+  const profile = useAuthStore((s) => s.profile);
+
+  const prospect = preProspectId ? prospects.find((p) => p.id === preProspectId) : null;
 
   const [phone, setPhone] = useState(prePhone ?? '');
   const [body, setBody] = useState('');
@@ -50,13 +56,24 @@ export default function WhatsAppComposeScreen() {
     })();
   }, []);
 
+  function interpolate(text: string): string {
+    const vars: Record<string, string> = {
+      prospectName: prospect?.name ?? preName ?? '',
+      contactName: prospect?.contacts?.[0]?.name ?? preName ?? '',
+      senderName: profile?.full_name ?? '',
+    };
+    return text.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? '');
+  }
+
   function applyTemplate(t: EmailTemplate) {
     setSelectedTemplate(t);
-    setBody(t.body);
+    setBody(interpolate(t.body));
   }
 
   async function handleSend() {
-    const cleanPhone = phone.replace(/[\s\-\(\)]/g, '').replace(/^\+/, '');
+    let cleanPhone = phone.replace(/[\s\-\(\)]/g, '').replace(/^\+/, '').replace(/^0/, '');
+    cleanPhone = cleanPhone.replace(/^(11|[2-9]\d{1,2})15(\d{8})$/, '$1$2');
+    if (!cleanPhone.startsWith('549')) cleanPhone = '549' + cleanPhone;
     if (!cleanPhone || !body.trim()) {
       showAlert('Error', 'Completá el teléfono y el mensaje.');
       return;
@@ -69,6 +86,9 @@ export default function WhatsAppComposeScreen() {
       templateId: selectedTemplate?.id,
     });
     if (ok) {
+      if (preProspectId && prospect?.stage === 'lead') {
+        useProspectsStore.getState().moveProspect(preProspectId, 'contacted');
+      }
       showAlert('Enviado', 'Mensaje enviado por WhatsApp.');
       router.back();
     }

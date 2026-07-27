@@ -269,9 +269,10 @@ export default function ProspectDetailScreen() {
             onPress={() => {
               const phone = prospect.contacts?.find((c) => c.phone)?.phone ?? '';
               const clean = phone.replace(/[\s\-\(\)]/g, '').replace(/^\+/, '');
-              router.push(
-                `/(tabs)/whatsapp/compose?phone=${clean}&name=${encodeURIComponent(prospect.name)}&prospectId=${id}` as any
-              );
+              router.push({
+                pathname: '/(tabs)/whatsapp/compose',
+                params: { phone: clean, name: prospect.name, prospectId: id },
+              } as any);
             }}
           >
             <MaterialCommunityIcons name="whatsapp" size={16} color="#fff" />
