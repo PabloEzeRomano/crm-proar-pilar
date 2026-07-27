@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -105,8 +105,18 @@ export default function TemplateFormScreen() {
     router.back();
   }
 
+  const lastFocus = useRef<'subject' | 'body'>('body');
+  const cursorPos = useRef({ subject: subject.length, body: body.length });
+
   function insertVariable(v: string) {
-    setBody((prev) => prev + v);
+    const field = lastFocus.current;
+    const pos = cursorPos.current[field];
+    const setter = field === 'subject' ? setSubject : setBody;
+    setter((prev) => {
+      const clamped = Math.min(pos, prev.length);
+      return prev.slice(0, clamped) + v + prev.slice(clamped);
+    });
+    cursorPos.current[field] = pos + v.length;
   }
 
   return (
@@ -150,6 +160,8 @@ export default function TemplateFormScreen() {
             style={[styles.input, errors.subject && styles.inputError]}
             value={subject}
             onChangeText={setSubject}
+            onFocus={() => { lastFocus.current = 'subject'; }}
+            onSelectionChange={(e) => { cursorPos.current.subject = e.nativeEvent.selection.start; }}
             placeholder="Ej: Propuesta para {{prospectName}}"
             placeholderTextColor={colors.textDisabled}
           />
@@ -163,6 +175,8 @@ export default function TemplateFormScreen() {
           style={[styles.input, styles.textArea, errors.body && styles.inputError]}
           value={body}
           onChangeText={setBody}
+          onFocus={() => { lastFocus.current = 'body'; }}
+          onSelectionChange={(e) => { cursorPos.current.body = e.nativeEvent.selection.start; }}
           multiline
           placeholder="Hola {{contactName}}, me comunico de parte de gemm-apps..."
           placeholderTextColor={colors.textDisabled}
@@ -181,7 +195,7 @@ export default function TemplateFormScreen() {
             <MaterialCommunityIcons name="plus-circle-outline" size={16} color={colors.primary} />
           </Pressable>
         ))}
-        <Text style={styles.hintNote}>Toca una variable para insertarla en el cuerpo</Text>
+        <Text style={styles.hintNote}>Toca una variable para insertarla donde está el cursor</Text>
       </View>
 
       <Pressable
