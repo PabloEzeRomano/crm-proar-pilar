@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -12,6 +12,8 @@ import {
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SearchableSelect } from '@crm/core';
 
 import { useEmailStore, type SendRecipient } from '@/stores/emailStore';
 import { useProspectsStore } from '@/stores/prospectsStore';
@@ -19,6 +21,11 @@ import { useAuthStore } from '@/stores/authStore';
 import { showAlert } from '@/lib/dialog';
 import type { EmailTemplate, Prospect } from '@/types';
 import { colors, fontSize, fontWeight, spacing, borderRadius, shadows } from '@/constants/theme';
+
+const normalizeRubro = (industry: string | null | undefined): string | null => {
+  if (!industry) return null;
+  return industry.split('(')[0].trim() || null;
+};
 
 // prospectId param: pre-selects a single prospect (from prospect detail)
 export default function ComposeScreen() {
@@ -51,6 +58,12 @@ export default function ComposeScreen() {
 
   const [previewVisible, setPreviewVisible] = useState(false);
 
+  // ── Search + filters ───────────────────────────────────────────────────────
+  const [searchText, setSearchText] = useState('');
+  const [selectedRubros, setSelectedRubros] = useState<string[]>([]);
+  const [selectedSubrubros, setSelectedSubrubros] = useState<string[]>([]);
+  const filtersLoaded = useRef(false);
+
   useLayoutEffect(() => {
     navigation.setOptions({ title: 'Nuevo correo' });
   }, []);
@@ -62,7 +75,72 @@ export default function ComposeScreen() {
       const def = useEmailStore.getState().signatures.find((s) => s.is_default);
       if (def) setSelectedSignatureId(def.id);
     });
+    AsyncStorage.getItem('compose_filters').then((raw) => {
+      if (!raw) { filtersLoaded.current = true; return; }
+      try {
+        const f = JSON.parse(raw);
+        if (f.rubros) setSelectedRubros(f.rubros);
+        if (f.subrubros) setSelectedSubrubros(f.subrubros);
+      } catch {}
+      filtersLoaded.current = true;
+    });
   }, []);
+
+  const saveFilters = useCallback((rubros: string[], subrubros: string[]) => {
+    if (!filtersLoaded.current) return;
+    AsyncStorage.setItem('compose_filters', JSON.stringify({ rubros, subrubros }));
+  }, []);
+
+  const rubroOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of prospects) {
+      const r = normalizeRubro(p.industry);
+      if (r) set.add(r);
+    }
+    return [...set].sort();
+  }, [prospects]);
+
+  const byRubro = useMemo(
+    () =>
+      selectedRubros.length > 0
+        ? prospects.filter((p) => {
+            const r = normalizeRubro(p.industry);
+            return r !== null && selectedRubros.includes(r);
+          })
+        : prospects,
+    [prospects, selectedRubros]
+  );
+
+  const subrubroOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of byRubro) {
+      if (p.subindustry) set.add(p.subindustry);
+    }
+    return [...set].sort();
+  }, [byRubro]);
+
+  const filteredProspects = useMemo(() => {
+    let list = selectedSubrubros.length > 0
+      ? byRubro.filter((p) => p.subindustry != null && selectedSubrubros.includes(p.subindustry))
+      : byRubro;
+    list = list.filter((p) => p.contacts?.some((c) => c.email));
+    const q = searchText.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.contacts?.some((c) => c.name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [byRubro, selectedSubrubros, searchText]);
+
+  const handleRubrosChange = (rubros: string[]) => {
+    setSelectedRubros(rubros);
+    const subs = rubros.length === 0 ? [] : selectedSubrubros;
+    if (rubros.length === 0) setSelectedSubrubros([]);
+    saveFilters(rubros, subs);
+  };
 
   // Pre-select prospect from params
   useEffect(() => {
@@ -289,10 +367,59 @@ export default function ComposeScreen() {
         {/* ── Prospects ─────────────────────────────────────────── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>DESTINATARIOS</Text>
-          {prospects.length === 0 ? (
-            <Text style={styles.empty}>Sin prospectos cargados</Text>
+
+          {/* Search + filters */}
+          <View style={styles.searchBar}>
+            <MaterialCommunityIcons name="magnify" size={18} color={colors.textSecondary} />
+            <TextInput
+              style={styles.searchInput}
+              value={searchText}
+              onChangeText={setSearchText}
+              placeholder="Buscar prospecto..."
+              placeholderTextColor={colors.textDisabled}
+              autoCorrect={false}
+              autoCapitalize="none"
+            />
+            {searchText.length > 0 && (
+              <Pressable onPress={() => setSearchText('')} hitSlop={8}>
+                <MaterialCommunityIcons name="close-circle" size={18} color={colors.textSecondary} />
+              </Pressable>
+            )}
+          </View>
+
+          <View style={styles.filterRow}>
+            {rubroOptions.length > 0 && (
+              <View style={styles.filterItem}>
+                <SearchableSelect
+                  label="Rubro"
+                  options={rubroOptions}
+                  selected={selectedRubros}
+                  onChange={handleRubrosChange}
+                  multiple
+                  placeholder="Filtrar rubro"
+                />
+              </View>
+            )}
+            {selectedRubros.length > 0 && subrubroOptions.length > 0 && (
+              <View style={styles.filterItem}>
+                <SearchableSelect
+                  label="Subrubro"
+                  options={subrubroOptions}
+                  selected={selectedSubrubros}
+                  onChange={(subs: string[]) => { setSelectedSubrubros(subs); saveFilters(selectedRubros, subs); }}
+                  multiple
+                  placeholder="Filtrar subrubro"
+                />
+              </View>
+            )}
+          </View>
+
+          {filteredProspects.length === 0 ? (
+            <Text style={styles.empty}>
+              {prospects.length === 0 ? 'Sin prospectos cargados' : 'Sin resultados'}
+            </Text>
           ) : (
-            prospects.map((p) => (
+            filteredProspects.map((p) => (
               <ProspectRow
                 key={p.id}
                 prospect={p}
@@ -501,6 +628,31 @@ const styles = StyleSheet.create({
   },
   templatePreviewLabel: { fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: colors.textSecondary, textTransform: 'uppercase' as const, letterSpacing: 0.5 },
   templatePreviewValue: { fontSize: fontSize.sm, color: colors.textPrimary, marginTop: 2 },
+  // Search + filters
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 44,
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    gap: spacing[2],
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: fontSize.sm,
+    color: colors.textPrimary,
+    height: 44,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    gap: spacing[2],
+  },
+  filterItem: {
+    flex: 1,
+  },
   // Prospect list
   prospectCard: {
     backgroundColor: colors.surface,

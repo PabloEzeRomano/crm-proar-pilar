@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -119,6 +120,7 @@ export default function PipelineScreen() {
   const prospects = useProspectsStore((s) => s.prospects);
   const loading = useProspectsStore((s) => s.loading);
   const fetchProspects = useProspectsStore((s) => s.fetchProspects);
+  const [searchText, setSearchText] = useState('');
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [selectedRubros, setSelectedRubros] = useState<string[]>([]);
   const [selectedSubrubros, setSelectedSubrubros] = useState<string[]>([]);
@@ -198,13 +200,20 @@ export default function PipelineScreen() {
     return [...set].sort();
   }, [byRubro]);
 
-  const filteredProspects = useMemo(
-    () =>
-      selectedSubrubros.length > 0
-        ? byRubro.filter((p) => p.subindustry != null && selectedSubrubros.includes(p.subindustry))
-        : byRubro,
-    [byRubro, selectedSubrubros]
-  );
+  const filteredProspects = useMemo(() => {
+    let list = selectedSubrubros.length > 0
+      ? byRubro.filter((p) => p.subindustry != null && selectedSubrubros.includes(p.subindustry))
+      : byRubro;
+    const q = searchText.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.contacts?.some((c) => c.name?.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [byRubro, selectedSubrubros, searchText]);
 
   const byStage = (stage: ProspectStage) =>
     filteredProspects.filter((p) => p.stage === stage);
@@ -227,8 +236,25 @@ export default function PipelineScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      {/* Filters: App → Rubro → Subrubro */}
+      {/* Search + Filters */}
       <View style={styles.filterBar}>
+        <View style={styles.searchBar}>
+          <MaterialCommunityIcons name="magnify" size={18} color={colors.textSecondary} />
+          <TextInput
+            style={styles.searchInput}
+            value={searchText}
+            onChangeText={setSearchText}
+            placeholder="Buscar prospecto..."
+            placeholderTextColor={colors.textDisabled}
+            autoCorrect={false}
+            autoCapitalize="none"
+          />
+          {searchText.length > 0 && (
+            <Pressable onPress={() => setSearchText('')} hitSlop={8}>
+              <MaterialCommunityIcons name="close-circle" size={18} color={colors.textSecondary} />
+            </Pressable>
+          )}
+        </View>
         <View style={styles.filterRow}>
           <View style={styles.filterItem}>
             <SearchableSelect
@@ -447,6 +473,24 @@ const styles = StyleSheet.create({
   filterBar: {
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[2],
+    gap: spacing[2],
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 44,
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    gap: spacing[2],
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: fontSize.sm,
+    color: colors.textPrimary,
+    height: 44,
   },
   filterRow: {
     flexDirection: 'row',
