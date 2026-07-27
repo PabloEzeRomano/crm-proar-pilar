@@ -105,6 +105,17 @@ export interface WhatsAppSend {
   created_at: string;
 }
 
+export interface EmailSignature {
+  id: string;
+  company_id: string;
+  created_by: string;
+  name: string;
+  body_html: string;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface EmailSend {
   id: string;
   company_id: string;

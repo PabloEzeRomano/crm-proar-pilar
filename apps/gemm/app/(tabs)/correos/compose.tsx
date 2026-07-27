@@ -33,6 +33,8 @@ export default function ComposeScreen() {
   const sending = useEmailStore((s) => s.sending);
   const fetchTemplates = useEmailStore((s) => s.fetchTemplates);
   const sendEmails = useEmailStore((s) => s.sendEmails);
+  const signatures = useEmailStore((s) => s.signatures);
+  const fetchSignatures = useEmailStore((s) => s.fetchSignatures);
   const prospects = useProspectsStore((s) => s.prospects);
   const fetchProspects = useProspectsStore((s) => s.fetchProspects);
 
@@ -40,6 +42,7 @@ export default function ComposeScreen() {
   const [freeSubject, setFreeSubject] = useState('');
   const [freeBody, setFreeBody] = useState('');
   const isFreeText = !selectedTemplate;
+  const [selectedSignatureId, setSelectedSignatureId] = useState<string | null>(null);
 
   // selections: prospectId → set of contact indices
   const [selections, setSelections] = useState<Map<string, Set<number>>>(new Map());
@@ -55,6 +58,10 @@ export default function ComposeScreen() {
   useEffect(() => {
     fetchTemplates();
     fetchProspects();
+    fetchSignatures().then(() => {
+      const def = useEmailStore.getState().signatures.find((s) => s.is_default);
+      if (def) setSelectedSignatureId(def.id);
+    });
   }, []);
 
   // Pre-select prospect from params
@@ -168,8 +175,8 @@ export default function ComposeScreen() {
     }
 
     const opts = selectedTemplate
-      ? { templateId: selectedTemplate.id }
-      : { subject: freeSubject.trim(), body: freeBody.trim() };
+      ? { templateId: selectedTemplate.id, signatureId: selectedSignatureId ?? undefined }
+      : { subject: freeSubject.trim(), body: freeBody.trim(), signatureId: selectedSignatureId ?? undefined };
     const { sent, failed } = await sendEmails(opts, recipients);
 
     if (sent > 0) {
@@ -252,6 +259,32 @@ export default function ComposeScreen() {
             </View>
           )}
         </View>
+
+        {/* ── Signature ─────────────────────────────────────────── */}
+        {signatures.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>FIRMA</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.chipRow}>
+                <Pressable
+                  style={[styles.chip, !selectedSignatureId && styles.chipSelected]}
+                  onPress={() => setSelectedSignatureId(null)}
+                >
+                  <Text style={[styles.chipText, !selectedSignatureId && styles.chipTextSelected]}>Sin firma</Text>
+                </Pressable>
+                {signatures.map((s) => (
+                  <Pressable
+                    key={s.id}
+                    style={[styles.chip, selectedSignatureId === s.id && styles.chipSelected]}
+                    onPress={() => setSelectedSignatureId(s.id)}
+                  >
+                    <Text style={[styles.chipText, selectedSignatureId === s.id && styles.chipTextSelected]}>{s.name}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        )}
 
         {/* ── Prospects ─────────────────────────────────────────── */}
         <View style={styles.section}>

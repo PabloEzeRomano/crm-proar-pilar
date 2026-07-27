@@ -99,13 +99,22 @@ export default function CorreosScreen() {
         />
       )}
 
+      {/* Signatures shortcut */}
+      <Pressable
+        style={[styles.shortcutBtn, { bottom: insets.bottom + spacing[4] + 64 + 44 }]}
+        onPress={() => router.push('/(tabs)/correos/signatures' as any)}
+      >
+        <MaterialCommunityIcons name="draw-pen" size={20} color={colors.primary} />
+        <Text style={styles.shortcutBtnText}>Firmas</Text>
+      </Pressable>
+
       {/* Templates shortcut */}
       <Pressable
-        style={[styles.templatesBtn, { bottom: insets.bottom + spacing[4] + 64 }]}
+        style={[styles.shortcutBtn, { bottom: insets.bottom + spacing[4] + 64 }]}
         onPress={() => router.push('/(tabs)/correos/templates' as any)}
       >
         <MaterialCommunityIcons name="email-edit-outline" size={20} color={colors.primary} />
-        <Text style={styles.templatesBtnText}>Plantillas</Text>
+        <Text style={styles.shortcutBtnText}>Plantillas</Text>
       </Pressable>
 
       {/* FAB — compose */}
@@ -168,7 +177,7 @@ const styles = StyleSheet.create({
   },
   prospectTagText: { fontSize: fontSize.xs, color: colors.primary, fontWeight: fontWeight.medium },
   errorText: { fontSize: fontSize.xs, color: colors.error, marginTop: 2 },
-  templatesBtn: {
+  shortcutBtn: {
     position: 'absolute',
     right: spacing[4],
     flexDirection: 'row',
@@ -183,7 +192,7 @@ const styles = StyleSheet.create({
     zIndex: 9,
     ...shadows.subtle,
   },
-  templatesBtnText: { fontSize: fontSize.sm, fontWeight: fontWeight.medium, color: colors.primary },
+  shortcutBtnText: { fontSize: fontSize.sm, fontWeight: fontWeight.medium, color: colors.primary },
   fab: {
     position: 'absolute',
     right: spacing[4],

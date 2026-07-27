@@ -33,6 +33,7 @@ interface RequestBody {
   templateId?: string;
   subject?: string;
   body?: string;
+  signatureId?: string;
   recipients: Recipient[];
 }
 
@@ -157,7 +158,21 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'templateId or subject+body required' }, 400);
     }
 
-    // ── 5. Send emails ───────────────────────────────────────────────────────
+    // ── 5. Load signature (optional) ────────────────────────────────────────
+
+    let signatureHtml = '';
+    if (body.signatureId) {
+      const { data: sig } = await adminClient
+        .from('email_signatures')
+        .select('body_html, company_id')
+        .eq('id', body.signatureId)
+        .single<{ body_html: string; company_id: string }>();
+      if (sig && sig.company_id === profile.company_id) {
+        signatureHtml = sig.body_html;
+      }
+    }
+
+    // ── 6. Send emails ───────────────────────────────────────────────────────
 
     let sent = 0;
     let failed = 0;
@@ -188,7 +203,7 @@ Deno.serve(async (req) => {
               : [recipient.email],
             subject,
             text: bodyText,
-            html: `<div style="font-family:sans-serif;font-size:14px;line-height:1.6;color:#111;">${bodyHtml}</div>`,
+            html: `<div style="font-family:sans-serif;font-size:14px;line-height:1.6;color:#111;">${bodyHtml}</div>${signatureHtml ? `<br><div style="margin-top:16px;border-top:1px solid #e0e0e0;padding-top:12px;">${signatureHtml}</div>` : ''}`,
           }),
         });
 

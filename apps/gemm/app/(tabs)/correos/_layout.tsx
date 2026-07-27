@@ -16,6 +16,8 @@ export default function CorreosLayout() {
       <Stack.Screen name="compose" options={{ title: 'Nuevo correo' }} />
       <Stack.Screen name="templates/index" options={{ title: 'Plantillas' }} />
       <Stack.Screen name="templates/form" options={{ title: 'Plantilla' }} />
+      <Stack.Screen name="signatures/index" options={{ title: 'Firmas' }} />
+      <Stack.Screen name="signatures/form" options={{ title: 'Firma' }} />
     </Stack>
   );
 }

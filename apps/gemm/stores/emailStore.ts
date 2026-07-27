@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
-import type { EmailTemplate, EmailSend } from '@/types';
+import type { EmailTemplate, EmailSend, EmailSignature } from '@/types';
 
 export interface SendRecipient {
   email: string;
@@ -14,6 +14,7 @@ interface EmailState {
   templates: EmailTemplate[];
   sends: EmailSend[];
   prospectSends: Record<string, EmailSend[]>;
+  signatures: EmailSignature[];
   loading: boolean;
   sending: boolean;
   error: string | null;
@@ -24,13 +25,19 @@ interface EmailState {
   createTemplate: (data: Pick<EmailTemplate, 'name' | 'subject' | 'body'> & { channel?: 'email' | 'whatsapp' }) => Promise<EmailTemplate | null>;
   updateTemplate: (id: string, data: Partial<Pick<EmailTemplate, 'name' | 'subject' | 'body'> & { channel?: 'email' | 'whatsapp' }>) => Promise<void>;
   deleteTemplate: (id: string) => Promise<void>;
-  sendEmails: (opts: { templateId?: string; subject?: string; body?: string }, recipients: SendRecipient[]) => Promise<{ sent: number; failed: number }>;
+  fetchSignatures: () => Promise<void>;
+  createSignature: (data: Pick<EmailSignature, 'name' | 'body_html'> & { is_default?: boolean }) => Promise<EmailSignature | null>;
+  updateSignature: (id: string, data: Partial<Pick<EmailSignature, 'name' | 'body_html' | 'is_default'>>) => Promise<void>;
+  deleteSignature: (id: string) => Promise<void>;
+  setDefaultSignature: (id: string) => Promise<void>;
+  sendEmails: (opts: { templateId?: string; subject?: string; body?: string; signatureId?: string }, recipients: SendRecipient[]) => Promise<{ sent: number; failed: number }>;
 }
 
 export const useEmailStore = create<EmailState>((set, get) => ({
   templates: [],
   sends: [],
   prospectSends: {},
+  signatures: [],
   loading: false,
   sending: false,
   error: null,
@@ -101,6 +108,81 @@ export const useEmailStore = create<EmailState>((set, get) => ({
     const { error } = await supabase.from('email_templates').delete().eq('id', id);
     if (error) return;
     set((s) => ({ templates: s.templates.filter((t) => t.id !== id) }));
+  },
+
+  fetchSignatures: async () => {
+    const { data } = await supabase
+      .from('email_signatures')
+      .select('*')
+      .order('name');
+    set({ signatures: (data ?? []) as EmailSignature[] });
+  },
+
+  createSignature: async (data) => {
+    const userId = useAuthStore.getState().session?.user?.id;
+    const profile = useAuthStore.getState().profile;
+    if (!userId || !profile?.company_id) return null;
+
+    if (data.is_default) {
+      await supabase
+        .from('email_signatures')
+        .update({ is_default: false })
+        .eq('company_id', profile.company_id);
+    }
+
+    const { data: created, error } = await supabase
+      .from('email_signatures')
+      .insert({ ...data, created_by: userId, company_id: profile.company_id })
+      .select()
+      .single();
+
+    if (error || !created) return null;
+    if (data.is_default) {
+      set((s) => ({
+        signatures: [...s.signatures.map((sg) => ({ ...sg, is_default: false })), created]
+          .sort((a, b) => a.name.localeCompare(b.name)),
+      }));
+    } else {
+      set((s) => ({ signatures: [...s.signatures, created].sort((a, b) => a.name.localeCompare(b.name)) }));
+    }
+    return created as EmailSignature;
+  },
+
+  updateSignature: async (id, data) => {
+    const { data: updated, error } = await supabase
+      .from('email_signatures')
+      .update({ ...data, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error || !updated) return;
+    set((s) => ({
+      signatures: s.signatures
+        .map((sg) => (sg.id === id ? (updated as EmailSignature) : sg))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    }));
+  },
+
+  deleteSignature: async (id) => {
+    const { error } = await supabase.from('email_signatures').delete().eq('id', id);
+    if (error) return;
+    set((s) => ({ signatures: s.signatures.filter((sg) => sg.id !== id) }));
+  },
+
+  setDefaultSignature: async (id) => {
+    const profile = useAuthStore.getState().profile;
+    if (!profile?.company_id) return;
+    await supabase
+      .from('email_signatures')
+      .update({ is_default: false })
+      .eq('company_id', profile.company_id);
+    await supabase
+      .from('email_signatures')
+      .update({ is_default: true })
+      .eq('id', id);
+    set((s) => ({
+      signatures: s.signatures.map((sg) => ({ ...sg, is_default: sg.id === id })),
+    }));
   },
 
   sendEmails: async (opts, recipients) => {
