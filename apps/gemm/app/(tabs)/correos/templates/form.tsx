@@ -36,6 +36,7 @@ export default function TemplateFormScreen() {
 
   const existing = templates.find((t) => t.id === id);
 
+  const [channel, setChannel] = useState<'email' | 'whatsapp'>('email');
   const [name, setName] = useState('');
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
@@ -44,6 +45,7 @@ export default function TemplateFormScreen() {
 
   useEffect(() => {
     if (existing) {
+      setChannel(existing.channel as 'email' | 'whatsapp');
       setName(existing.name);
       setSubject(existing.subject);
       setBody(existing.body);
@@ -66,7 +68,7 @@ export default function TemplateFormScreen() {
   function validate() {
     const errs: Record<string, string> = {};
     if (!name.trim()) errs.name = 'Requerido';
-    if (!subject.trim()) errs.subject = 'Requerido';
+    if (channel === 'email' && !subject.trim()) errs.subject = 'Requerido';
     if (!body.trim()) errs.body = 'Requerido';
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -75,7 +77,12 @@ export default function TemplateFormScreen() {
   async function handleSave() {
     if (!validate()) return;
     setSaving(true);
-    const payload = { name: name.trim(), subject: subject.trim(), body: body.trim() };
+    const payload = {
+      name: name.trim(),
+      subject: channel === 'email' ? subject.trim() : '',
+      body: body.trim(),
+      channel,
+    };
     if (isEdit && id) {
       await updateTemplate(id, payload);
       router.back();
@@ -105,6 +112,26 @@ export default function TemplateFormScreen() {
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <View style={styles.field}>
+        <Text style={styles.label}>Canal</Text>
+        <View style={styles.channelRow}>
+          <Pressable
+            style={[styles.channelBtn, channel === 'email' && styles.channelBtnActive]}
+            onPress={() => setChannel('email')}
+          >
+            <MaterialCommunityIcons name="email-outline" size={16} color={channel === 'email' ? colors.primary : colors.textSecondary} />
+            <Text style={[styles.channelBtnText, channel === 'email' && styles.channelBtnTextActive]}>Email</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.channelBtn, channel === 'whatsapp' && styles.channelBtnActiveWa]}
+            onPress={() => setChannel('whatsapp')}
+          >
+            <MaterialCommunityIcons name="whatsapp" size={16} color={channel === 'whatsapp' ? '#25D366' : colors.textSecondary} />
+            <Text style={[styles.channelBtnText, channel === 'whatsapp' && styles.channelBtnTextActiveWa]}>WhatsApp</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      <View style={styles.field}>
         <Text style={styles.label}>Nombre de la plantilla *</Text>
         <TextInput
           style={[styles.input, errors.name && styles.inputError]}
@@ -116,17 +143,19 @@ export default function TemplateFormScreen() {
         {errors.name ? <Text style={styles.error}>{errors.name}</Text> : null}
       </View>
 
-      <View style={styles.field}>
-        <Text style={styles.label}>Asunto *</Text>
-        <TextInput
-          style={[styles.input, errors.subject && styles.inputError]}
-          value={subject}
-          onChangeText={setSubject}
-          placeholder="Ej: Propuesta para {{prospectName}}"
-          placeholderTextColor={colors.textDisabled}
-        />
-        {errors.subject ? <Text style={styles.error}>{errors.subject}</Text> : null}
-      </View>
+      {channel === 'email' && (
+        <View style={styles.field}>
+          <Text style={styles.label}>Asunto *</Text>
+          <TextInput
+            style={[styles.input, errors.subject && styles.inputError]}
+            value={subject}
+            onChangeText={setSubject}
+            placeholder="Ej: Propuesta para {{prospectName}}"
+            placeholderTextColor={colors.textDisabled}
+          />
+          {errors.subject ? <Text style={styles.error}>{errors.subject}</Text> : null}
+        </View>
+      )}
 
       <View style={styles.field}>
         <Text style={styles.label}>Cuerpo *</Text>
@@ -198,6 +227,43 @@ const styles = StyleSheet.create({
   hintKey: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: colors.primary, flex: 1 },
   hintDesc: { fontSize: fontSize.sm, color: colors.textSecondary, flex: 1 },
   hintNote: { fontSize: fontSize.xs, color: colors.textDisabled, marginTop: spacing[1] },
+  channelRow: {
+    flexDirection: 'row',
+    gap: spacing[2],
+  },
+  channelBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[1],
+    height: 44,
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  channelBtnActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary + '10',
+  },
+  channelBtnActiveWa: {
+    borderColor: '#25D366',
+    backgroundColor: '#25D36615',
+  },
+  channelBtnText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
+  },
+  channelBtnTextActive: {
+    color: colors.primary,
+    fontWeight: fontWeight.semibold,
+  },
+  channelBtnTextActiveWa: {
+    color: '#25D366',
+    fontWeight: fontWeight.semibold,
+  },
   saveBtn: {
     height: 52,
     backgroundColor: colors.primary,

@@ -41,12 +41,18 @@ export default function TemplatesScreen() {
               style={({ pressed }) => [styles.card, pressed && { opacity: 0.75 }]}
               onPress={() => router.push({ pathname: '/(tabs)/correos/templates/form', params: { id: t.id } } as any)}
             >
-              <View style={styles.cardIcon}>
-                <MaterialCommunityIcons name="email-outline" size={20} color={colors.primary} />
+              <View style={[styles.cardIcon, t.channel === 'whatsapp' && styles.cardIconWa]}>
+                <MaterialCommunityIcons
+                  name={t.channel === 'whatsapp' ? 'whatsapp' : 'email-outline'}
+                  size={20}
+                  color={t.channel === 'whatsapp' ? '#25D366' : colors.primary}
+                />
               </View>
               <View style={styles.cardBody}>
                 <Text style={styles.cardName}>{t.name}</Text>
-                <Text style={styles.cardSubject} numberOfLines={1}>{t.subject}</Text>
+                <Text style={styles.cardSubject} numberOfLines={1}>
+                  {t.channel === 'whatsapp' ? 'WhatsApp' : t.subject}
+                </Text>
               </View>
               <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textDisabled} />
             </Pressable>
@@ -88,6 +94,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  cardIconWa: {
+    backgroundColor: '#25D36615',
   },
   cardBody: { flex: 1 },
   cardName: { fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: colors.textPrimary },

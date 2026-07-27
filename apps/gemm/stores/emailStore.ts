@@ -21,10 +21,10 @@ interface EmailState {
   fetchTemplates: () => Promise<void>;
   fetchSends: () => Promise<void>;
   fetchProspectSends: (prospectId: string) => Promise<void>;
-  createTemplate: (data: Pick<EmailTemplate, 'name' | 'subject' | 'body'>) => Promise<EmailTemplate | null>;
-  updateTemplate: (id: string, data: Partial<Pick<EmailTemplate, 'name' | 'subject' | 'body'>>) => Promise<void>;
+  createTemplate: (data: Pick<EmailTemplate, 'name' | 'subject' | 'body'> & { channel?: 'email' | 'whatsapp' }) => Promise<EmailTemplate | null>;
+  updateTemplate: (id: string, data: Partial<Pick<EmailTemplate, 'name' | 'subject' | 'body'> & { channel?: 'email' | 'whatsapp' }>) => Promise<void>;
   deleteTemplate: (id: string) => Promise<void>;
-  sendEmails: (templateId: string, recipients: SendRecipient[]) => Promise<{ sent: number; failed: number }>;
+  sendEmails: (opts: { templateId?: string; subject?: string; body?: string }, recipients: SendRecipient[]) => Promise<{ sent: number; failed: number }>;
 }
 
 export const useEmailStore = create<EmailState>((set, get) => ({
@@ -40,7 +40,6 @@ export const useEmailStore = create<EmailState>((set, get) => ({
     const { data, error } = await supabase
       .from('email_templates')
       .select('*')
-      .eq('channel', 'email')
       .order('name');
     if (error) { set({ error: error.message, loading: false }); return; }
     set({ templates: data ?? [], loading: false });
@@ -104,13 +103,13 @@ export const useEmailStore = create<EmailState>((set, get) => ({
     set((s) => ({ templates: s.templates.filter((t) => t.id !== id) }));
   },
 
-  sendEmails: async (templateId, recipients) => {
+  sendEmails: async (opts, recipients) => {
     set({ sending: true });
     const session = useAuthStore.getState().session;
     if (!session) { set({ sending: false }); return { sent: 0, failed: recipients.length }; }
 
     const { data, error } = await supabase.functions.invoke('send-prospect-email', {
-      body: { templateId, recipients },
+      body: { ...opts, recipients },
       headers: { Authorization: `Bearer ${session.access_token}` },
     });
 
