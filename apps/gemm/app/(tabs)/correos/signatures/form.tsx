@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -16,6 +16,23 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useEmailStore } from '@/stores/emailStore';
 import { showAlert, showConfirm } from '@/lib/dialog';
 import { colors, fontSize, fontWeight, spacing, borderRadius } from '@/constants/theme';
+
+function HtmlPreview({ html }: { html: string }) {
+  const ref = useRef<View>(null);
+
+  useEffect(() => {
+    if (Platform.OS === 'web' && ref.current) {
+      (ref.current as unknown as HTMLDivElement).innerHTML = html;
+    }
+  }, [html]);
+
+  return (
+    <View
+      ref={ref}
+      style={{ minHeight: 40, padding: spacing[2] }}
+    />
+  );
+}
 
 export default function SignatureFormScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -158,10 +175,14 @@ export default function SignatureFormScreen() {
 
       {bodyHtml.trim().length > 0 && (
         <View style={styles.previewBox}>
-          <Text style={styles.previewTitle}>Vista previa (texto plano)</Text>
-          <Text style={styles.previewText}>
-            {bodyHtml.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}
-          </Text>
+          <Text style={styles.previewTitle}>Vista previa</Text>
+          {Platform.OS === 'web' ? (
+            <HtmlPreview html={bodyHtml} />
+          ) : (
+            <Text style={styles.previewText}>
+              {bodyHtml.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()}
+            </Text>
+          )}
         </View>
       )}
 
