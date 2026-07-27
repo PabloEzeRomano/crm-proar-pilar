@@ -38,6 +38,7 @@ export default function PipelineLayout() {
           ),
         }}
       />
+      <Stack.Screen name="[id]" options={{ title: 'Prospecto' }} />
     </Stack>
   );
 }

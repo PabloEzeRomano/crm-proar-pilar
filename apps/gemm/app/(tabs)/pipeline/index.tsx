@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -11,10 +11,11 @@ import {
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SearchableSelect } from '@crm/core';
 
 import { useProspectsStore } from '@/stores/prospectsStore';
-import { STAGE_LABELS, PRODUCT_LABELS, type Prospect, type ProspectStage } from '@/types';
+import { STAGE_LABELS, PRODUCT_LABELS, PRODUCTS, type Prospect, type ProspectStage } from '@/types';
 import { colors, stageColors, productColors, fontSize, fontWeight, spacing, borderRadius, shadows } from '@/constants/theme';
 import dayjs from '@/lib/dayjs';
 
@@ -30,7 +31,7 @@ function ProspectCard({ prospect }: { prospect: Prospect }) {
   return (
     <Pressable
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-      onPress={() => router.push(`/(tabs)/prospects/${prospect.id}` as any)}
+      onPress={() => router.push(`/(tabs)/pipeline/${prospect.id}` as any)}
     >
       <View style={styles.cardHeader}>
         <Text style={styles.cardName} numberOfLines={1}>
@@ -118,11 +119,28 @@ export default function PipelineScreen() {
   const prospects = useProspectsStore((s) => s.prospects);
   const loading = useProspectsStore((s) => s.loading);
   const fetchProspects = useProspectsStore((s) => s.fetchProspects);
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [selectedRubros, setSelectedRubros] = useState<string[]>([]);
   const [selectedSubrubros, setSelectedSubrubros] = useState<string[]>([]);
+  const filtersLoaded = useRef(false);
 
   useEffect(() => {
     fetchProspects();
+    AsyncStorage.getItem('pipeline_filters').then((raw) => {
+      if (!raw) { filtersLoaded.current = true; return; }
+      try {
+        const f = JSON.parse(raw);
+        if (f.products) setSelectedProducts(f.products);
+        if (f.rubros) setSelectedRubros(f.rubros);
+        if (f.subrubros) setSelectedSubrubros(f.subrubros);
+      } catch {}
+      filtersLoaded.current = true;
+    });
+  }, []);
+
+  const saveFilters = useCallback((products: string[], rubros: string[], subrubros: string[]) => {
+    if (!filtersLoaded.current) return;
+    AsyncStorage.setItem('pipeline_filters', JSON.stringify({ products, rubros, subrubros }));
   }, []);
 
   // Only show active stages in kanban (exclude won/lost)
@@ -130,30 +148,46 @@ export default function PipelineScreen() {
   const closedStages: ProspectStage[] = ['won', 'lost'];
   const kanbanStages = [...activeStages, ...closedStages];
 
+  const productOptions = PRODUCTS.map((p) => PRODUCT_LABELS[p]);
+
+  const handleProductsChange = (labels: string[]) => {
+    setSelectedProducts(labels);
+    setSelectedRubros([]);
+    setSelectedSubrubros([]);
+    saveFilters(labels, [], []);
+  };
+
+  const byProduct = useMemo(() => {
+    if (selectedProducts.length === 0) return prospects;
+    const keys = PRODUCTS.filter((p) => selectedProducts.includes(PRODUCT_LABELS[p]));
+    return prospects.filter((p) => keys.includes(p.product));
+  }, [prospects, selectedProducts]);
+
   const rubroOptions = useMemo(() => {
     const set = new Set<string>();
-    for (const p of prospects) {
+    for (const p of byProduct) {
       const r = normalizeRubro(p.industry);
       if (r) set.add(r);
     }
     return [...set].sort();
-  }, [prospects]);
+  }, [byProduct]);
 
-  // Reset subrubros when rubros change (stale subrubros from a different rubro)
   const handleRubrosChange = (rubros: string[]) => {
     setSelectedRubros(rubros);
+    const subs = rubros.length === 0 ? [] : selectedSubrubros;
     if (rubros.length === 0) setSelectedSubrubros([]);
+    saveFilters(selectedProducts, rubros, subs);
   };
 
   const byRubro = useMemo(
     () =>
       selectedRubros.length > 0
-        ? prospects.filter((p) => {
+        ? byProduct.filter((p) => {
             const r = normalizeRubro(p.industry);
             return r !== null && selectedRubros.includes(r);
           })
-        : prospects,
-    [prospects, selectedRubros]
+        : byProduct,
+    [byProduct, selectedRubros]
   );
 
   const subrubroOptions = useMemo(() => {
@@ -193,10 +227,20 @@ export default function PipelineScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      {/* Rubro + Subrubro filters */}
-      {rubroOptions.length > 0 && (
-        <View style={styles.filterBar}>
-          <View style={styles.filterRow}>
+      {/* Filters: App → Rubro → Subrubro */}
+      <View style={styles.filterBar}>
+        <View style={styles.filterRow}>
+          <View style={styles.filterItem}>
+            <SearchableSelect
+              label="App"
+              options={productOptions}
+              selected={selectedProducts}
+              onChange={handleProductsChange}
+              multiple
+              placeholder="Filtrar por app"
+            />
+          </View>
+          {rubroOptions.length > 0 && (
             <View style={styles.filterItem}>
               <SearchableSelect
                 label="Rubro"
@@ -207,21 +251,21 @@ export default function PipelineScreen() {
                 placeholder="Filtrar por rubro"
               />
             </View>
-            {selectedRubros.length > 0 && subrubroOptions.length > 0 && (
-              <View style={styles.filterItem}>
-                <SearchableSelect
-                  label="Subrubro"
-                  options={subrubroOptions}
-                  selected={selectedSubrubros}
-                  onChange={setSelectedSubrubros}
-                  multiple
-                  placeholder="Filtrar por subrubro"
-                />
-              </View>
-            )}
-          </View>
+          )}
+          {selectedRubros.length > 0 && subrubroOptions.length > 0 && (
+            <View style={styles.filterItem}>
+              <SearchableSelect
+                label="Subrubro"
+                options={subrubroOptions}
+                selected={selectedSubrubros}
+                onChange={(subs: string[]) => { setSelectedSubrubros(subs); saveFilters(selectedProducts, selectedRubros, subs); }}
+                multiple
+                placeholder="Filtrar por subrubro"
+              />
+            </View>
+          )}
         </View>
-      )}
+      </View>
 
       {/* Follow-ups vencidos */}
       {overdueProspects.length > 0 && (
