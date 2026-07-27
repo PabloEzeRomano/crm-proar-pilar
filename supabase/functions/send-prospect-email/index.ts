@@ -93,8 +93,8 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const resendKey = Deno.env.get('RESEND_API_KEY')!;
-    const fromAddress = Deno.env.get('MAIL_FROM_ADDRESS') ?? 'noreply@gemm-apps.com';
+    const resendKey = Deno.env.get('RESEND_API_KEY_GEMM') ?? Deno.env.get('RESEND_API_KEY')!;
+    const fromAddress = Deno.env.get('MAIL_FROM_ADDRESS_GEMM') ?? Deno.env.get('MAIL_FROM_ADDRESS') ?? 'noreply@gemm-apps.com';
 
     // ── 1. Auth ─────────────────────────────────────────────────────────────
 
