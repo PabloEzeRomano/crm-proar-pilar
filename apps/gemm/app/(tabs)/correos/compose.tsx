@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
@@ -27,7 +28,8 @@ export default function ComposeScreen() {
   const insets = useSafeAreaInsets();
 
   const profile = useAuthStore((s) => s.profile);
-  const templates = useEmailStore((s) => s.templates);
+  const allTemplates = useEmailStore((s) => s.templates);
+  const templates = allTemplates.filter((t) => t.channel !== 'whatsapp');
   const sending = useEmailStore((s) => s.sending);
   const fetchTemplates = useEmailStore((s) => s.fetchTemplates);
   const sendEmails = useEmailStore((s) => s.sendEmails);
@@ -35,7 +37,9 @@ export default function ComposeScreen() {
   const fetchProspects = useProspectsStore((s) => s.fetchProspects);
 
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
-  const [templateSheetVisible, setTemplateSheetVisible] = useState(false);
+  const [freeSubject, setFreeSubject] = useState('');
+  const [freeBody, setFreeBody] = useState('');
+  const isFreeText = !selectedTemplate;
 
   // selections: prospectId → set of contact indices
   const [selections, setSelections] = useState<Map<string, Set<number>>>(new Map());
@@ -141,18 +145,20 @@ export default function ComposeScreen() {
   }
 
   function renderPreview(): { subject: string; body: string } | null {
-    if (!selectedTemplate) return null;
+    const subj = selectedTemplate ? selectedTemplate.subject : freeSubject;
+    const bod = selectedTemplate ? selectedTemplate.body : freeBody;
+    if (!subj || !bod) return null;
     const recipients = buildRecipients();
     if (recipients.length === 0) return null;
     const vars = recipients[0].variables;
     const render = (s: string) =>
       s.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? '');
-    return { subject: render(selectedTemplate.subject), body: render(selectedTemplate.body) };
+    return { subject: render(subj), body: render(bod) };
   }
 
   async function handleSend() {
-    if (!selectedTemplate) {
-      showAlert('Falta plantilla', 'Seleccioná una plantilla antes de enviar.');
+    if (!selectedTemplate && (!freeSubject.trim() || !freeBody.trim())) {
+      showAlert('Faltan datos', 'Elegí una plantilla o completá asunto y mensaje.');
       return;
     }
     const recipients = buildRecipients();
@@ -161,7 +167,20 @@ export default function ComposeScreen() {
       return;
     }
 
-    const { sent, failed } = await sendEmails(selectedTemplate.id, recipients);
+    const opts = selectedTemplate
+      ? { templateId: selectedTemplate.id }
+      : { subject: freeSubject.trim(), body: freeBody.trim() };
+    const { sent, failed } = await sendEmails(opts, recipients);
+
+    if (sent > 0) {
+      const moveProspect = useProspectsStore.getState().moveProspect;
+      for (const r of recipients) {
+        if (r.prospectId) {
+          const p = prospects.find((pr) => pr.id === r.prospectId);
+          if (p?.stage === 'lead') moveProspect(r.prospectId, 'contacted');
+        }
+      }
+    }
 
     if (failed === 0) {
       showAlert('Enviado', `${sent} correo${sent !== 1 ? 's' : ''} enviado${sent !== 1 ? 's' : ''} correctamente.`);
@@ -172,6 +191,7 @@ export default function ComposeScreen() {
   }
 
   const recipientCount = buildRecipients().length;
+  const hasContent = selectedTemplate ? true : (freeSubject.trim().length > 0 && freeBody.trim().length > 0);
   const preview = previewVisible ? renderPreview() : null;
 
   return (
@@ -181,29 +201,56 @@ export default function ComposeScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing[8] }]}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ── Template ──────────────────────────────────────────── */}
+        {/* ── Template / Free text toggle ────────────────────── */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>PLANTILLA</Text>
-          <Pressable
-            style={({ pressed }) => [styles.templatePicker, pressed && { opacity: 0.75 }]}
-            onPress={() => setTemplateSheetVisible(true)}
-          >
-            {selectedTemplate ? (
-              <View style={styles.templatePickerContent}>
-                <MaterialCommunityIcons name="email-outline" size={18} color={colors.primary} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.templateName}>{selectedTemplate.name}</Text>
-                  <Text style={styles.templateSubject} numberOfLines={1}>{selectedTemplate.subject}</Text>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.templatePickerContent}>
-                <MaterialCommunityIcons name="email-outline" size={18} color={colors.textDisabled} />
-                <Text style={styles.templatePlaceholder}>Seleccionar plantilla…</Text>
-              </View>
-            )}
-            <MaterialCommunityIcons name="chevron-down" size={18} color={colors.textSecondary} />
-          </Pressable>
+          <Text style={styles.sectionTitle}>MENSAJE</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.chipRow}>
+              <Pressable
+                style={[styles.chip, isFreeText && styles.chipSelected]}
+                onPress={() => setSelectedTemplate(null)}
+              >
+                <Text style={[styles.chipText, isFreeText && styles.chipTextSelected]}>Texto libre</Text>
+              </Pressable>
+              {templates.map((t) => (
+                <Pressable
+                  key={t.id}
+                  style={[styles.chip, selectedTemplate?.id === t.id && styles.chipSelected]}
+                  onPress={() => setSelectedTemplate(t)}
+                >
+                  <Text style={[styles.chipText, selectedTemplate?.id === t.id && styles.chipTextSelected]}>{t.name}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </ScrollView>
+
+          {isFreeText ? (
+            <View style={styles.freeTextFields}>
+              <TextInput
+                style={styles.freeInput}
+                value={freeSubject}
+                onChangeText={setFreeSubject}
+                placeholder="Asunto"
+                placeholderTextColor={colors.textDisabled}
+              />
+              <TextInput
+                style={[styles.freeInput, styles.freeBody]}
+                value={freeBody}
+                onChangeText={setFreeBody}
+                placeholder="Cuerpo del mensaje..."
+                placeholderTextColor={colors.textDisabled}
+                multiline
+                textAlignVertical="top"
+              />
+            </View>
+          ) : (
+            <View style={styles.templatePreviewBox}>
+              <Text style={styles.templatePreviewLabel}>Asunto</Text>
+              <Text style={styles.templatePreviewValue}>{selectedTemplate?.subject}</Text>
+              <Text style={[styles.templatePreviewLabel, { marginTop: spacing[2] }]}>Cuerpo</Text>
+              <Text style={styles.templatePreviewValue} numberOfLines={4}>{selectedTemplate?.body}</Text>
+            </View>
+          )}
         </View>
 
         {/* ── Prospects ─────────────────────────────────────────── */}
@@ -228,7 +275,7 @@ export default function ComposeScreen() {
         </View>
 
         {/* ── Actions ───────────────────────────────────────────── */}
-        {recipientCount > 0 && selectedTemplate && (
+        {recipientCount > 0 && hasContent && (
           <Pressable
             style={styles.previewBtn}
             onPress={() => setPreviewVisible(true)}
@@ -244,10 +291,10 @@ export default function ComposeScreen() {
           style={({ pressed }) => [
             styles.sendBtn,
             pressed && { opacity: 0.85 },
-            (!selectedTemplate || recipientCount === 0 || sending) && styles.sendBtnDisabled,
+            (!hasContent || recipientCount === 0 || sending) && styles.sendBtnDisabled,
           ]}
           onPress={handleSend}
-          disabled={!selectedTemplate || recipientCount === 0 || sending}
+          disabled={!hasContent || recipientCount === 0 || sending}
         >
           {sending ? (
             <ActivityIndicator color={colors.textOnPrimary} />
@@ -263,48 +310,6 @@ export default function ComposeScreen() {
           )}
         </Pressable>
       </ScrollView>
-
-      {/* ── Template picker sheet ─────────────────────────────── */}
-      <Modal
-        visible={templateSheetVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setTemplateSheetVisible(false)}
-      >
-        <Pressable style={styles.overlay} onPress={() => setTemplateSheetVisible(false)}>
-          <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing[4] }]}>
-            <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>Elegir plantilla</Text>
-            <ScrollView style={{ maxHeight: 400 }}>
-              {templates.length === 0 ? (
-                <Text style={styles.empty}>Sin plantillas. Creá una en Configuración.</Text>
-              ) : (
-                templates.map((t) => (
-                  <Pressable
-                    key={t.id}
-                    style={[
-                      styles.templateOption,
-                      selectedTemplate?.id === t.id && styles.templateOptionActive,
-                    ]}
-                    onPress={() => {
-                      setSelectedTemplate(t);
-                      setTemplateSheetVisible(false);
-                    }}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.templateOptionName}>{t.name}</Text>
-                      <Text style={styles.templateOptionSubject} numberOfLines={1}>{t.subject}</Text>
-                    </View>
-                    {selectedTemplate?.id === t.id && (
-                      <MaterialCommunityIcons name="check" size={18} color={colors.primary} />
-                    )}
-                  </Pressable>
-                ))
-              )}
-            </ScrollView>
-          </View>
-        </Pressable>
-      </Modal>
 
       {/* ── Preview modal ─────────────────────────────────────── */}
       <Modal
@@ -428,21 +433,41 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     paddingHorizontal: spacing[1],
   },
-  // Template picker
-  templatePicker: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  // Chips
+  chipRow: { flexDirection: 'row', gap: spacing[2], paddingVertical: 2 },
+  chip: {
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.full,
+    borderWidth: 1.5,
+    borderColor: colors.border,
     backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing[3],
-    gap: spacing[2],
-    ...shadows.subtle,
   },
-  templatePickerContent: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing[2] },
-  templateName: { fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: colors.textPrimary },
-  templateSubject: { fontSize: fontSize.sm, color: colors.textSecondary },
-  templatePlaceholder: { fontSize: fontSize.base, color: colors.textDisabled },
+  chipSelected: { borderColor: colors.primary, backgroundColor: colors.primaryLight },
+  chipText: { fontSize: fontSize.sm, color: colors.textSecondary },
+  chipTextSelected: { color: colors.primary, fontWeight: fontWeight.semibold },
+  // Free text
+  freeTextFields: { gap: spacing[2], marginTop: spacing[1] },
+  freeInput: {
+    height: 48,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    paddingHorizontal: spacing[3],
+    fontSize: fontSize.base,
+    color: colors.textPrimary,
+  },
+  freeBody: { height: 160, paddingTop: spacing[3] },
+  // Template preview
+  templatePreviewBox: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing[3],
+    marginTop: spacing[1],
+  },
+  templatePreviewLabel: { fontSize: fontSize.xs, fontWeight: fontWeight.semibold, color: colors.textSecondary, textTransform: 'uppercase' as const, letterSpacing: 0.5 },
+  templatePreviewValue: { fontSize: fontSize.sm, color: colors.textPrimary, marginTop: 2 },
   // Prospect list
   prospectCard: {
     backgroundColor: colors.surface,
@@ -510,16 +535,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   sheetTitle: { fontSize: fontSize.lg, fontWeight: fontWeight.semibold, color: colors.textPrimary },
-  templateOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing[3],
-    borderRadius: borderRadius.md,
-    gap: spacing[2],
-  },
-  templateOptionActive: { backgroundColor: colors.primaryLight },
-  templateOptionName: { fontSize: fontSize.base, fontWeight: fontWeight.semibold, color: colors.textPrimary },
-  templateOptionSubject: { fontSize: fontSize.sm, color: colors.textSecondary, marginTop: 1 },
   previewLabel: {
     fontSize: fontSize.xs,
     fontWeight: fontWeight.semibold,

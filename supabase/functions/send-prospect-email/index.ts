@@ -30,7 +30,9 @@ interface Recipient {
 }
 
 interface RequestBody {
-  templateId: string;
+  templateId?: string;
+  subject?: string;
+  body?: string;
   recipients: Recipient[];
 }
 
@@ -129,21 +131,30 @@ Deno.serve(async (req) => {
     }
 
     const { templateId, recipients } = body;
-    if (!templateId || !Array.isArray(recipients) || recipients.length === 0) {
-      return jsonResponse({ error: 'templateId and recipients are required' }, 400);
+    if (!Array.isArray(recipients) || recipients.length === 0) {
+      return jsonResponse({ error: 'recipients are required' }, 400);
     }
 
-    // ── 4. Load template ─────────────────────────────────────────────────────
+    // ── 4. Load template (or use inline subject+body) ───────────────────────
 
-    const { data: template } = await adminClient
-      .from('email_templates')
-      .select('id, name, subject, body, company_id')
-      .eq('id', templateId)
-      .single<EmailTemplate>();
+    let template: EmailTemplate | null = null;
 
-    if (!template) return jsonResponse({ error: 'Template not found' }, 404);
-    if (template.company_id !== profile.company_id) {
-      return jsonResponse({ error: 'Forbidden' }, 403);
+    if (templateId) {
+      const { data } = await adminClient
+        .from('email_templates')
+        .select('id, name, subject, body, company_id')
+        .eq('id', templateId)
+        .single<EmailTemplate>();
+
+      if (!data) return jsonResponse({ error: 'Template not found' }, 404);
+      if (data.company_id !== profile.company_id) {
+        return jsonResponse({ error: 'Forbidden' }, 403);
+      }
+      template = data;
+    } else if (body.subject && body.body) {
+      template = { id: '', name: 'Texto libre', subject: body.subject, body: body.body, company_id: profile.company_id };
+    } else {
+      return jsonResponse({ error: 'templateId or subject+body required' }, 400);
     }
 
     // ── 5. Send emails ───────────────────────────────────────────────────────
