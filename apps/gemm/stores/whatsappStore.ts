@@ -10,13 +10,21 @@ interface SendInput {
   templateId?: string;
 }
 
+interface ConnectionState {
+  state: 'open' | 'close' | 'connecting' | 'not_configured' | 'unknown';
+  qr?: { base64: string; code?: string } | null;
+}
+
 interface WhatsAppState {
   sends: WhatsAppSend[];
   loadingSends: boolean;
   prospectSends: Record<string, WhatsAppSend[]>;
   sending: boolean;
   error: string | null;
+  connection: ConnectionState | null;
+  checkingConnection: boolean;
 
+  checkConnection: () => Promise<ConnectionState>;
   sendWhatsApp: (input: SendInput) => Promise<boolean>;
   fetchAllSends: () => Promise<void>;
   fetchProspectSends: (prospectId: string) => Promise<void>;
@@ -28,6 +36,32 @@ export const useWhatsAppStore = create<WhatsAppState>((set) => ({
   prospectSends: {},
   sending: false,
   error: null,
+  connection: null,
+  checkingConnection: false,
+
+  checkConnection: async () => {
+    set({ checkingConnection: true });
+    console.log('[WA] checkConnection: starting...');
+    try {
+      const response = await supabase.functions.invoke('whatsapp-connection');
+      console.log('[WA] checkConnection response:', JSON.stringify(response.data), 'error:', response.error);
+      if (response.error || !response.data?.state) {
+        console.log('[WA] checkConnection: no valid state, falling back to unknown');
+        const fallback: ConnectionState = { state: 'unknown' };
+        set({ connection: fallback, checkingConnection: false });
+        return fallback;
+      }
+      const data = response.data as ConnectionState;
+      console.log('[WA] checkConnection: state =', data.state, data.qr ? '(QR available)' : '');
+      set({ connection: data, checkingConnection: false });
+      return data;
+    } catch (err) {
+      console.error('[WA] checkConnection error:', err);
+      const fallback: ConnectionState = { state: 'unknown' };
+      set({ connection: fallback, checkingConnection: false });
+      return fallback;
+    }
+  },
 
   sendWhatsApp: async (input) => {
     set({ sending: true, error: null });
