@@ -1,10 +1,13 @@
 /**
  * supabase/functions/whatsapp-connection/index.ts
  *
- * Check Evolution API instance connection state and return QR code if disconnected.
+ * Check Baileys server instance connection state and return QR code if disconnected.
  *
- * GET  → { state: "open" | "close" | "connecting", qr?: { base64, code } }
- * POST → force reconnect, returns same shape
+ * GET  → { state: "open" | "close" | "connecting" | "qr", qr?: { base64 } }
+ *
+ * Secrets required:
+ *   BAILEYS_API_URL   https://baileys-server-production.up.railway.app
+ *   BAILEYS_API_KEY   API key set in Railway env
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -30,8 +33,8 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const evolutionUrl = Deno.env.get('EVOLUTION_API_URL')!;
-    const evolutionKey = Deno.env.get('EVOLUTION_API_KEY')!;
+    const baileysUrl = Deno.env.get('BAILEYS_API_URL')!;
+    const baileysKey = Deno.env.get('BAILEYS_API_KEY')!;
 
     // Auth
     const authHeader = req.headers.get('Authorization');
@@ -64,29 +67,14 @@ Deno.serve(async (req) => {
     }
 
     const instance = config.whatsapp_instance;
+    const headers = { 'x-api-key': baileysKey };
 
-    // Check connection state
-    const stateRes = await fetch(
-      `${evolutionUrl}/instance/connectionState/${instance}`,
-      { headers: { apikey: evolutionKey } }
-    );
-    const stateData = await stateRes.json().catch(() => ({}));
-    const state: string = stateData?.instance?.state ?? stateData?.state ?? 'unknown';
+    // Get QR endpoint returns both state and QR in one call
+    const qrRes = await fetch(`${baileysUrl}/qr/${instance}`, { headers });
+    const qrData = await qrRes.json().catch(() => ({}));
+    const state: string = qrData?.state ?? 'unknown';
 
-    // If not open, try to get QR code for reconnection
-    if (state !== 'open') {
-      const connectRes = await fetch(
-        `${evolutionUrl}/instance/connect/${instance}`,
-        { headers: { apikey: evolutionKey } }
-      );
-      const connectData = await connectRes.json().catch(() => ({}));
-      const base64 = connectData?.base64 ?? null;
-      const code = connectData?.code ?? connectData?.pairingCode ?? null;
-
-      return json({ state, qr: base64 ? { base64, code } : null });
-    }
-
-    return json({ state });
+    return json({ state, qr: qrData?.qr ?? null });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('whatsapp-connection error:', message);

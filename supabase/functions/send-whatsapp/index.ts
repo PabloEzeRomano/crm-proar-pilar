@@ -1,7 +1,7 @@
 /**
  * supabase/functions/send-whatsapp/index.ts
  *
- * Sends a WhatsApp message via Evolution API and logs it to whatsapp_sends.
+ * Sends a WhatsApp message via Baileys server and logs it to whatsapp_sends.
  *
  * Request body:
  *   {
@@ -13,8 +13,8 @@
  *   }
  *
  * Secrets required (Supabase → Edge Functions → send-whatsapp):
- *   EVOLUTION_API_URL   https://evolution-api-production-9f0d5.up.railway.app
- *   EVOLUTION_API_KEY   global API key from Railway env
+ *   BAILEYS_API_URL   https://baileys-server-production.up.railway.app
+ *   BAILEYS_API_KEY   API key set in Railway env
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -40,8 +40,8 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const anonKey     = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const evolutionUrl = Deno.env.get('EVOLUTION_API_URL')!;
-    const evolutionKey = Deno.env.get('EVOLUTION_API_KEY')!;
+    const baileysUrl = Deno.env.get('BAILEYS_API_URL')!;
+    const baileysKey = Deno.env.get('BAILEYS_API_KEY')!;
 
     // Auth
     const authHeader = req.headers.get('Authorization');
@@ -91,26 +91,25 @@ Deno.serve(async (req) => {
     // Normalize phone: strip spaces, dashes, leading +
     const phone = body.recipientPhone.replace(/[\s\-\(\)]/g, '').replace(/^\+/, '');
 
-    // Call Evolution API
-    const evolutionRes = await fetch(
-      `${evolutionUrl}/message/sendText/${config.whatsapp_instance}`,
+    // Call Baileys server
+    const baileysRes = await fetch(
+      `${baileysUrl}/send/${config.whatsapp_instance}`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          apikey: evolutionKey,
+          'x-api-key': baileysKey,
         },
         body: JSON.stringify({
-          number: phone,
-          text: body.body,
+          phone,
+          message: body.body,
         }),
       }
     );
 
-    const evolutionData = await evolutionRes.json().catch(() => ({}));
-    const success = evolutionRes.ok;
-    const evolutionMessageId: string | null =
-      evolutionData?.key?.id ?? evolutionData?.messageId ?? null;
+    const baileysData = await baileysRes.json().catch(() => ({}));
+    const success = baileysRes.ok;
+    const evolutionMessageId: string | null = baileysData?.messageId ?? null;
 
     // Log to whatsapp_sends
     await adminClient.from('whatsapp_sends').insert({
@@ -123,11 +122,11 @@ Deno.serve(async (req) => {
       body:                 body.body,
       evolution_message_id: evolutionMessageId,
       status:               success ? 'sent' : 'failed',
-      error_message:        success ? null : JSON.stringify(evolutionData),
+      error_message:        success ? null : JSON.stringify(baileysData),
     });
 
     if (!success) {
-      return json({ error: 'Evolution API error', detail: evolutionData }, 502);
+      return json({ error: 'Baileys server error', detail: baileysData }, 502);
     }
 
     return json({ ok: true, messageId: evolutionMessageId });
