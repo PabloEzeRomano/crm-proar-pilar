@@ -384,6 +384,7 @@ export default function ImportWizardScreen() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [mapping, setMapping] = useState<ColumnMapping | null>(null);
   const [classificationTruthyValue, setClassificationTruthyValue] = useState<string>('');
+  const [updateExisting, setUpdateExisting] = useState(false);
 
   // Preview
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -520,8 +521,9 @@ export default function ImportWizardScreen() {
       }
 
       const newRows = valid.filter((r) => !r.cuit || !existingCuits.has(r.cuit));
-      setToImport(newRows.length);
-      setToSkip(valid.length - newRows.length);
+      const existingRows = valid.filter((r) => r.cuit && existingCuits.has(r.cuit));
+      setToImport(newRows.length + (updateExisting ? existingRows.length : 0));
+      setToSkip(updateExisting ? 0 : existingRows.length);
       setPreviewRows(
         valid.slice(0, 5).map((r) => ({
           Nombre: r.name,
@@ -626,22 +628,22 @@ export default function ImportWizardScreen() {
         })
         .filter((r) => r.name);
 
-      // Re-fetch existing CUITs
+      // Re-fetch existing CUITs with IDs
       const cuits = mapped.map((r) => r.cuit).filter(Boolean) as string[];
-      let existingCuits = new Set<string>();
+      let existingMap = new Map<string, string>(); // cuit → id
       if (cuits.length > 0) {
         const { data } = await supabase
           .from('clients')
-          .select('cuit')
+          .select('id, cuit')
           .eq('company_id', companyId)
           .in('cuit', cuits);
-        existingCuits = new Set(
-          (data ?? []).map((d) => d.cuit).filter(Boolean)
+        existingMap = new Map(
+          (data ?? []).filter((d) => d.cuit).map((d) => [d.cuit, d.id])
         );
       }
 
       const toInsert = mapped
-        .filter((r) => !r.cuit || !existingCuits.has(r.cuit))
+        .filter((r) => !r.cuit || !existingMap.has(r.cuit))
         .map(({ branch_name, ...rest }) => ({
           ...rest,
           branch_id: branch_name
@@ -649,21 +651,44 @@ export default function ImportWizardScreen() {
             : null,
         }));
 
-      setProgressTotal(toInsert.length);
+      const toUpdate = updateExisting
+        ? mapped
+            .filter((r) => r.cuit && existingMap.has(r.cuit))
+            .map(({ branch_name, owner_user_id, company_id: _cid, ...rest }) => ({
+              id: existingMap.get(rest.cuit!)!,
+              ...rest,
+              branch_id: branch_name
+                ? (branchMap.get(branch_name.toLowerCase().trim()) ?? null)
+                : null,
+            }))
+        : [];
+
+      setProgressTotal(toInsert.length + toUpdate.length);
       const BATCH = 100;
 
+      // Insert new
       for (let i = 0; i < toInsert.length; i += BATCH) {
         const batch = toInsert.slice(i, i + BATCH);
         const { error } = await supabase.from('clients').insert(batch);
-        if (error) {
-          errors += batch.length;
-        } else {
-          imported += batch.length;
-        }
+        if (error) errors += batch.length;
+        else imported += batch.length;
         setProgress(imported + errors);
       }
 
-      skipped = mapped.length - toInsert.length;
+      // Update existing (one by one — patch by id)
+      for (const row of toUpdate) {
+        const { id, ...fields } = row;
+        const { error } = await supabase
+          .from('clients')
+          .update(fields)
+          .eq('id', id)
+          .eq('company_id', companyId);
+        if (error) errors++;
+        else imported++;
+        setProgress(imported + errors);
+      }
+
+      skipped = updateExisting ? 0 : mapped.length - toInsert.length;
     } else {
       // Colaboradores — create branches + send invitations
       setProgressTotal(branchesToCreate.length + collaboratorsToInvite.length);
@@ -1068,6 +1093,32 @@ export default function ImportWizardScreen() {
           </View>
         )}
 
+        {importType === 'clientes' && toSkip > 0 && (
+          <Pressable
+            style={[styles.card, styles.toggleRow]}
+            onPress={() => {
+              setUpdateExisting((v) => !v);
+              setToImport((prev) =>
+                updateExisting ? prev - toSkip : prev + toSkip
+              );
+              setToSkip((prev) => (updateExisting ? toSkip : 0));
+            }}
+          >
+            <View style={styles.toggleInfo}>
+              <Text style={styles.toggleTitle}>Actualizar clientes existentes</Text>
+              <Text style={styles.toggleDesc}>
+                {toSkip} clientes ya existen en la DB.{' '}
+                {updateExisting ? 'Se actualizarán sus datos.' : 'Se saltearán.'}
+              </Text>
+            </View>
+            <MaterialCommunityIcons
+              name={updateExisting ? 'toggle-switch' : 'toggle-switch-off-outline'}
+              size={32}
+              color={updateExisting ? colors.primary : colors.textDisabled}
+            />
+          </Pressable>
+        )}
+
         {toImport === 0 ? (
           <View style={[styles.card, styles.warningBox]}>
             <MaterialCommunityIcons
@@ -1322,6 +1373,11 @@ const styles = StyleSheet.create({
   progressFill: { height: '100%', backgroundColor: colors.primary, borderRadius: borderRadius.full } as const,
 
   doneTitle: { fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, color: colors.textPrimary },
+
+  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing[3] },
+  toggleInfo: { flex: 1, gap: spacing[1] },
+  toggleTitle: { fontSize: fontSize.sm, fontWeight: fontWeight.semibold, color: colors.textPrimary },
+  toggleDesc: { fontSize: fontSize.xs, color: colors.textSecondary },
 
   classificationInput: {
     borderWidth: 1,
