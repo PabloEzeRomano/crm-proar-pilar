@@ -6,7 +6,7 @@
 
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -15,6 +15,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import * as XLSX from 'xlsx';
@@ -46,9 +47,13 @@ interface ClientMapping {
   address: string | null;
   city: string | null;
   phone: string | null;
+  phone2: string | null;
   email: string | null;
   commercial_classification: string | null;
   branch: string | null;
+  notes: string | null;
+  notes2: string | null;
+  notes3: string | null;
 }
 
 interface EmployeeMapping {
@@ -68,17 +73,21 @@ const CLIENT_FIELDS: {
   hint?: string;
 }[] = [
   { key: 'name', label: 'Nombre del cliente', required: true },
-  { key: 'cuit', label: 'Documento / CUIT', hint: 'Clave de deduplicación' },
+  { key: 'cuit', label: 'Documento / CUIT', hint: 'Clave de deduplicación — se normalizan guiones y puntos' },
   { key: 'address', label: 'Domicilio' },
   { key: 'city', label: 'Localidad' },
   { key: 'phone', label: 'Teléfono' },
+  { key: 'phone2', label: 'Teléfono 2 / Móvil' },
   { key: 'email', label: 'Email' },
   {
     key: 'commercial_classification',
     label: 'Calificación',
-    hint: 'ej. Bueno, Regular…',
+    hint: 'Configurá abajo qué valor equivale a "Oro"',
   },
   { key: 'branch', label: 'Unidad de Negocio' },
+  { key: 'notes', label: 'Notas (campo 1)' },
+  { key: 'notes2', label: 'Notas (campo 2)' },
+  { key: 'notes3', label: 'Notas (campo 3)' },
 ];
 
 const EMPLOYEE_FIELDS: {
@@ -115,7 +124,32 @@ function phone(val: unknown): string | null {
 
 function documento(val: unknown): string | null {
   if (val == null) return null;
-  return String(val).trim().replace(/\.0$/, '') || null;
+  const raw = String(val).trim();
+  if (raw === '' || raw.toLowerCase() === 'nan') return null;
+
+  // CUIL with dashes: 27-28534297-5 → 27285342975
+  if (raw.includes('-')) {
+    const s = raw.replace(/[-\s]/g, '');
+    if (/^\d+$/.test(s)) return s;
+  }
+
+  // DNI with dots as group separators: 28.534.297 → 28534297
+  // vs Excel decimal: 28534297.0 → 28534297
+  if (raw.includes('.')) {
+    const parts = raw.split('.');
+    const looksLikeGroupSep =
+      parts.length > 2 && parts.slice(1).every((p) => p.length === 3);
+    if (looksLikeGroupSep) return parts.join('') || null;
+    // Decimal (Excel float)
+    const n = Number(raw);
+    if (!isNaN(n) && n !== 0) return Math.round(n).toString();
+  }
+
+  // Plain number
+  const n = Number(raw);
+  if (!isNaN(n) && n !== 0) return Math.round(n).toString();
+
+  return raw || null;
 }
 
 function autoDetectMapping(
@@ -130,14 +164,18 @@ function autoDetectMapping(
   if (type === 'clientes') {
     return {
       name: h('apellido') ?? h('nombre') ?? h('cliente') ?? null,
-      cuit: h('documento') ?? h('cuit') ?? h('dni') ?? null,
+      cuit: h('documento') ?? h('cuil') ?? h('cuit') ?? h('dni') ?? null,
       address: h('domicil') ?? h('direcc') ?? null,
       city: h('localidad') ?? h('ciudad') ?? null,
-      phone: h('teléfono') ?? h('telefono') ?? h('cel') ?? null,
+      phone: h('telefono') ?? h('teléfono') ?? h('tel') ?? null,
+      phone2: h('movil') ?? h('móvil') ?? h('cel') ?? null,
       email: h('mail') ?? h('e-mail') ?? h('email') ?? null,
       commercial_classification:
-        h('calificac') ?? h('clasificac') ?? null,
+        h('oro') ?? h('calificac') ?? h('clasificac') ?? null,
       branch: h('unidad') ?? h('sucursal') ?? h('branch') ?? null,
+      notes: null,
+      notes2: null,
+      notes3: null,
     };
   }
 
@@ -345,6 +383,7 @@ export default function ImportWizardScreen() {
   const [parsed, setParsed] = useState<ParsedSheet | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [mapping, setMapping] = useState<ColumnMapping | null>(null);
+  const [classificationTruthyValue, setClassificationTruthyValue] = useState<string>('');
 
   // Preview
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -396,6 +435,39 @@ export default function ImportWizardScreen() {
     input.click();
   }
 
+  // ── Client row builder ─────────────────────────────────────────────────────
+
+  function buildClientRow(r: Record<string, unknown>, m: ClientMapping) {
+    const ph = m.phone ? phone(r[m.phone]) : null;
+    const ph2 = m.phone2 ? phone(r[m.phone2]) : null;
+    const em = m.email ? str(r[m.email])?.toLowerCase() ?? null : null;
+
+    const contacts: { name?: string; phone?: string; email?: string }[] = [];
+    if (ph) contacts.push({ name: 'Teléfono', phone: ph });
+    if (ph2) contacts.push({ name: 'Móvil', phone: ph2 });
+    if (em) contacts.push({ email: em });
+
+    const rawClass = m.commercial_classification
+      ? str(r[m.commercial_classification])
+      : null;
+    const commercial_classification = rawClass
+      ? classificationTruthyValue.trim()
+        ? rawClass.toLowerCase() === classificationTruthyValue.trim().toLowerCase()
+          ? 'Oro'
+          : null
+        : rawClass
+      : null;
+
+    const noteParts = [
+      m.notes ? str(r[m.notes]) : null,
+      m.notes2 ? str(r[m.notes2]) : null,
+      m.notes3 ? str(r[m.notes3]) : null,
+    ].filter(Boolean);
+    const notes = noteParts.length > 0 ? noteParts.join('\n') : null;
+
+    return { contacts, commercial_classification, notes };
+  }
+
   // ── Step: upload → map ─────────────────────────────────────────────────────
 
   function goToMap() {
@@ -418,18 +490,19 @@ export default function ImportWizardScreen() {
       const m = mapping as ClientMapping;
 
       // Build mapped rows
-      const mapped = parsed.rows.map((r) => ({
-        name: str(m.name ? r[m.name] : null),
-        cuit: m.cuit ? documento(r[m.cuit]) : null,
-        address: m.address ? str(r[m.address]) : null,
-        city: m.city ? str(r[m.city]) : null,
-        phone: m.phone ? phone(r[m.phone]) : null,
-        email: m.email ? str(r[m.email])?.toLowerCase() ?? null : null,
-        commercial_classification: m.commercial_classification
-          ? str(r[m.commercial_classification])
-          : null,
-        branch: m.branch ? str(r[m.branch]) : null,
-      }));
+      const mapped = parsed.rows.map((r) => {
+        const { contacts, commercial_classification, notes } = buildClientRow(r, m);
+        return {
+          name: str(m.name ? r[m.name] : null),
+          cuit: m.cuit ? documento(r[m.cuit]) : null,
+          address: m.address ? str(r[m.address]) : null,
+          city: m.city ? str(r[m.city]) : null,
+          contacts,
+          commercial_classification,
+          notes,
+          branch: m.branch ? str(r[m.branch]) : null,
+        };
+      });
 
       const valid = mapped.filter((r) => r.name);
       setTotalRows(valid.length);
@@ -454,7 +527,8 @@ export default function ImportWizardScreen() {
           Nombre: r.name,
           CUIT: r.cuit,
           Localidad: r.city,
-          Teléfono: r.phone,
+          Teléfonos: r.contacts.filter((c) => c.phone).map((c) => c.phone).join(' / ') || null,
+          Calificación: r.commercial_classification,
           UN: r.branch,
         }))
       );
@@ -535,20 +609,21 @@ export default function ImportWizardScreen() {
       );
 
       const mapped = parsed.rows
-        .map((r) => ({
-          owner_user_id: userId,
-          company_id: companyId,
-          name: str(m.name ? r[m.name] : null),
-          cuit: m.cuit ? documento(r[m.cuit]) : null,
-          address: m.address ? str(r[m.address]) : null,
-          city: m.city ? str(r[m.city]) : null,
-          phone: m.phone ? phone(r[m.phone]) : null,
-          email: m.email ? str(r[m.email])?.toLowerCase() ?? null : null,
-          commercial_classification: m.commercial_classification
-            ? str(r[m.commercial_classification])
-            : null,
-          branch_name: m.branch ? str(r[m.branch]) : null,
-        }))
+        .map((r) => {
+          const { contacts, commercial_classification, notes } = buildClientRow(r, m);
+          return {
+            owner_user_id: userId,
+            company_id: companyId,
+            name: str(m.name ? r[m.name] : null),
+            cuit: m.cuit ? documento(r[m.cuit]) : null,
+            address: m.address ? str(r[m.address]) : null,
+            city: m.city ? str(r[m.city]) : null,
+            contacts,
+            commercial_classification,
+            notes,
+            branch_name: m.branch ? str(r[m.branch]) : null,
+          };
+        })
         .filter((r) => r.name);
 
       // Re-fetch existing CUITs
@@ -567,15 +642,11 @@ export default function ImportWizardScreen() {
 
       const toInsert = mapped
         .filter((r) => !r.cuit || !existingCuits.has(r.cuit))
-        .map(({ phone: ph, email: em, branch_name, ...rest }) => ({
+        .map(({ branch_name, ...rest }) => ({
           ...rest,
           branch_id: branch_name
             ? (branchMap.get(branch_name.toLowerCase().trim()) ?? null)
             : null,
-          contacts:
-            ph || em
-              ? [{ phone: ph ?? undefined, email: em ?? undefined }]
-              : [],
         }));
 
       setProgressTotal(toInsert.length);
@@ -823,6 +894,32 @@ export default function ImportWizardScreen() {
             />
           ))}
         </View>
+
+        {importType === 'clientes' && (mapping as ClientMapping).commercial_classification && (
+          <View style={styles.card}>
+            <Text style={styles.label}>Calificación → "Oro"</Text>
+            <Text style={{ fontSize: fontSize.sm, color: colors.textSecondary }}>
+              ¿Qué valor en la columna{' '}
+              <Text style={{ fontWeight: fontWeight.semibold }}>
+                {(mapping as ClientMapping).commercial_classification}
+              </Text>{' '}
+              equivale a "Oro"? Cualquier otro valor se descartará.
+            </Text>
+            <TextInput
+              style={styles.classificationInput}
+              value={classificationTruthyValue}
+              onChangeText={setClassificationTruthyValue}
+              placeholder="ej: S, Oro, 1, true"
+              placeholderTextColor={colors.textDisabled}
+              autoCapitalize="none"
+            />
+            {!classificationTruthyValue.trim() && (
+              <Text style={{ fontSize: fontSize.xs, color: colors.warning }}>
+                Sin valor configurado, se importará el texto tal cual.
+              </Text>
+            )}
+          </View>
+        )}
 
         <View style={styles.row}>
           <Pressable style={styles.btnSecondary} onPress={() => setStep('upload')}>
@@ -1225,4 +1322,16 @@ const styles = StyleSheet.create({
   progressFill: { height: '100%', backgroundColor: colors.primary, borderRadius: borderRadius.full } as const,
 
   doneTitle: { fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, color: colors.textPrimary },
+
+  classificationInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    fontSize: fontSize.base,
+    color: colors.textPrimary,
+    backgroundColor: colors.background,
+    minHeight: 44,
+  },
 });
