@@ -46,14 +46,11 @@ interface ClientMapping {
   cuit: string | null;
   address: string | null;
   city: string | null;
-  phone: string | null;
-  phone2: string | null;
+  phones: string[];
   email: string | null;
   commercial_classification: string | null;
   branch: string | null;
-  notes: string | null;
-  notes2: string | null;
-  notes3: string | null;
+  notesColumns: string[];
 }
 
 interface EmployeeMapping {
@@ -66,8 +63,9 @@ type ColumnMapping = ClientMapping | EmployeeMapping;
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-const CLIENT_FIELDS: {
-  key: keyof ClientMapping;
+// Single-value fields for clientes (multi-value handled separately)
+const CLIENT_SINGLE_FIELDS: {
+  key: keyof Omit<ClientMapping, 'phones' | 'notesColumns'>;
   label: string;
   required?: boolean;
   hint?: string;
@@ -76,8 +74,6 @@ const CLIENT_FIELDS: {
   { key: 'cuit', label: 'Documento / CUIT', hint: 'Clave de deduplicación — se normalizan guiones y puntos' },
   { key: 'address', label: 'Domicilio' },
   { key: 'city', label: 'Localidad' },
-  { key: 'phone', label: 'Teléfono' },
-  { key: 'phone2', label: 'Teléfono 2 / Móvil' },
   { key: 'email', label: 'Email' },
   {
     key: 'commercial_classification',
@@ -85,9 +81,6 @@ const CLIENT_FIELDS: {
     hint: 'Configurá abajo qué valor equivale a "Oro"',
   },
   { key: 'branch', label: 'Unidad de Negocio' },
-  { key: 'notes', label: 'Notas (campo 1)' },
-  { key: 'notes2', label: 'Notas (campo 2)' },
-  { key: 'notes3', label: 'Notas (campo 3)' },
 ];
 
 const EMPLOYEE_FIELDS: {
@@ -162,20 +155,19 @@ function autoDetectMapping(
     ) ?? null;
 
   if (type === 'clientes') {
+    const tel = h('telefono') ?? h('teléfono') ?? h('tel');
+    const movil = h('movil') ?? h('móvil') ?? h('cel');
     return {
       name: h('apellido') ?? h('nombre') ?? h('cliente') ?? null,
       cuit: h('documento') ?? h('cuil') ?? h('cuit') ?? h('dni') ?? null,
       address: h('domicil') ?? h('direcc') ?? null,
       city: h('localidad') ?? h('ciudad') ?? null,
-      phone: h('telefono') ?? h('teléfono') ?? h('tel') ?? null,
-      phone2: h('movil') ?? h('móvil') ?? h('cel') ?? null,
+      phones: [tel, movil].filter(Boolean) as string[],
       email: h('mail') ?? h('e-mail') ?? h('email') ?? null,
       commercial_classification:
         h('oro') ?? h('calificac') ?? h('clasificac') ?? null,
       branch: h('unidad') ?? h('sucursal') ?? h('branch') ?? null,
-      notes: null,
-      notes2: null,
-      notes3: null,
+      notesColumns: [],
     };
   }
 
@@ -295,6 +287,105 @@ function ColumnPicker({
     </View>
   );
 }
+
+function MultiColumnPicker({
+  label,
+  hint,
+  value,
+  headers,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  value: string[];
+  headers: string[];
+  onChange: (v: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const available = headers.filter((h) => !value.includes(h));
+
+  return (
+    <View style={multiStyles.wrapper}>
+      <View style={pickerStyles.labelCol}>
+        <Text style={pickerStyles.label}>{label}</Text>
+        {hint && <Text style={pickerStyles.hint}>{hint}</Text>}
+      </View>
+      <View style={multiStyles.chipsRow}>
+        {value.map((col) => (
+          <View key={col} style={multiStyles.chip}>
+            <Text style={multiStyles.chipText} numberOfLines={1}>{col}</Text>
+            <Pressable onPress={() => onChange(value.filter((v) => v !== col))}>
+              <MaterialCommunityIcons name="close-circle" size={16} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+        ))}
+        {available.length > 0 && (
+          <Pressable style={multiStyles.addBtn} onPress={() => setOpen(true)}>
+            <MaterialCommunityIcons name="plus" size={16} color={colors.primary} />
+            <Text style={multiStyles.addBtnText}>Agregar</Text>
+          </Pressable>
+        )}
+        {value.length === 0 && available.length === 0 && (
+          <Text style={pickerStyles.triggerPlaceholder}>Sin columnas disponibles</Text>
+        )}
+      </View>
+
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <Pressable style={pickerStyles.backdrop} onPress={() => setOpen(false)}>
+          <View style={pickerStyles.dropdown}>
+            <Text style={pickerStyles.dropdownTitle}>{label}</Text>
+            <ScrollView style={{ maxHeight: 320 }}>
+              {available.map((h) => (
+                <Pressable
+                  key={h}
+                  style={pickerStyles.option}
+                  onPress={() => { onChange([...value, h]); setOpen(false); }}
+                >
+                  <Text style={pickerStyles.optionText}>{h}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
+    </View>
+  );
+}
+
+const multiStyles = StyleSheet.create({
+  wrapper: {
+    gap: spacing[2],
+    paddingVertical: spacing[2],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing[2],
+    paddingVertical: 4,
+    maxWidth: 200,
+  },
+  chipText: { fontSize: fontSize.sm, color: colors.textPrimary, flex: 1 },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing[2],
+    paddingVertical: 4,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderStyle: 'dashed',
+  },
+  addBtnText: { fontSize: fontSize.sm, color: colors.primary },
+});
 
 const pickerStyles = StyleSheet.create({
   row: {
@@ -439,13 +530,13 @@ export default function ImportWizardScreen() {
   // ── Client row builder ─────────────────────────────────────────────────────
 
   function buildClientRow(r: Record<string, unknown>, m: ClientMapping) {
-    const ph = m.phone ? phone(r[m.phone]) : null;
-    const ph2 = m.phone2 ? phone(r[m.phone2]) : null;
     const em = m.email ? str(r[m.email])?.toLowerCase() ?? null : null;
 
     const contacts: { name?: string; phone?: string; email?: string }[] = [];
-    if (ph) contacts.push({ name: 'Teléfono', phone: ph });
-    if (ph2) contacts.push({ name: 'Móvil', phone: ph2 });
+    m.phones.forEach((col, i) => {
+      const ph = phone(r[col]);
+      if (ph) contacts.push({ name: i === 0 ? 'Teléfono' : `Teléfono ${i + 1}`, phone: ph });
+    });
     if (em) contacts.push({ email: em });
 
     const rawClass = m.commercial_classification
@@ -459,11 +550,7 @@ export default function ImportWizardScreen() {
         : rawClass
       : null;
 
-    const noteParts = [
-      m.notes ? str(r[m.notes]) : null,
-      m.notes2 ? str(r[m.notes2]) : null,
-      m.notes3 ? str(r[m.notes3]) : null,
-    ].filter(Boolean);
+    const noteParts = m.notesColumns.map((col) => str(r[col])).filter(Boolean);
     const notes = noteParts.length > 0 ? noteParts.join('\n') : null;
 
     return { contacts, commercial_classification, notes };
@@ -892,8 +979,8 @@ export default function ImportWizardScreen() {
 
   function renderMap() {
     if (!parsed || !mapping) return null;
-    const fields =
-      importType === 'clientes' ? CLIENT_FIELDS : EMPLOYEE_FIELDS;
+    const fields = importType === 'clientes' ? CLIENT_SINGLE_FIELDS : EMPLOYEE_FIELDS;
+    const cm = mapping as ClientMapping;
 
     return (
       <View style={styles.stepContainer}>
@@ -918,6 +1005,24 @@ export default function ImportWizardScreen() {
               }
             />
           ))}
+          {importType === 'clientes' && (
+            <>
+              <MultiColumnPicker
+                label="Teléfonos"
+                hint="Seleccioná una o más columnas de teléfono"
+                value={cm.phones}
+                headers={parsed.headers}
+                onChange={(v) => setMapping((prev) => prev ? { ...prev, phones: v } : prev)}
+              />
+              <MultiColumnPicker
+                label="Notas"
+                hint="Se concatenan en el orden elegido, separadas por línea"
+                value={cm.notesColumns}
+                headers={parsed.headers}
+                onChange={(v) => setMapping((prev) => prev ? { ...prev, notesColumns: v } : prev)}
+              />
+            </>
+          )}
         </View>
 
         {importType === 'clientes' && (mapping as ClientMapping).commercial_classification && (
