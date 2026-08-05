@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -10,10 +11,9 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { useWhatsAppStore } from '@/stores/whatsappStore';
 import { useProspectsStore } from '@/stores/prospectsStore';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/lib/supabase';
@@ -24,15 +24,12 @@ import {
 } from '@/constants/theme';
 
 export default function WhatsAppComposeScreen() {
-  const router = useRouter();
   const {
     phone: prePhone,
     name: preName,
     prospectId: preProspectId,
   } = useLocalSearchParams<{ phone?: string; name?: string; prospectId?: string }>();
 
-  const sendWhatsApp = useWhatsAppStore((s) => s.sendWhatsApp);
-  const sending = useWhatsAppStore((s) => s.sending);
   const prospects = useProspectsStore((s) => s.prospects);
   const profile = useAuthStore((s) => s.profile);
 
@@ -43,6 +40,12 @@ export default function WhatsAppComposeScreen() {
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
+
+  useEffect(() => {
+    setPhone(prePhone ?? '');
+    setBody('');
+    setSelectedTemplate(null);
+  }, [prePhone]);
 
   useEffect(() => {
     (async () => {
@@ -70,7 +73,7 @@ export default function WhatsAppComposeScreen() {
     setBody(interpolate(t.body));
   }
 
-  async function handleSend() {
+  async function handleOpen() {
     let cleanPhone = phone.replace(/[\s\-\(\)]/g, '').replace(/^\+/, '').replace(/^0/, '');
     cleanPhone = cleanPhone.replace(/^(11|[2-9]\d{1,2})15(\d{8})$/, '$1$2');
     if (!cleanPhone.startsWith('549')) cleanPhone = '549' + cleanPhone;
@@ -78,20 +81,11 @@ export default function WhatsAppComposeScreen() {
       showAlert('Error', 'Completá el teléfono y el mensaje.');
       return;
     }
-    const ok = await sendWhatsApp({
-      recipientPhone: cleanPhone,
-      body: body.trim(),
-      recipientName: preName,
-      prospectId: preProspectId,
-      templateId: selectedTemplate?.id,
-    });
-    if (ok) {
-      if (preProspectId && prospect?.stage === 'lead') {
-        useProspectsStore.getState().moveProspect(preProspectId, 'contacted');
-      }
-      showAlert('Enviado', 'Mensaje enviado por WhatsApp.');
-      router.back();
+    if (preProspectId && prospect?.stage === 'lead') {
+      useProspectsStore.getState().moveProspect(preProspectId, 'contacted');
     }
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(body.trim())}`;
+    Linking.openURL(url);
   }
 
   return (
@@ -170,19 +164,13 @@ export default function WhatsAppComposeScreen() {
           style={({ pressed }) => [
             styles.sendBtn,
             pressed && styles.sendBtnPressed,
-            (sending || !phone.trim() || !body.trim()) && styles.sendBtnDisabled,
+            (!phone.trim() || !body.trim()) && styles.sendBtnDisabled,
           ]}
-          onPress={handleSend}
-          disabled={sending || !phone.trim() || !body.trim()}
+          onPress={handleOpen}
+          disabled={!phone.trim() || !body.trim()}
         >
-          {sending ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <MaterialCommunityIcons name="whatsapp" size={20} color="#fff" />
-              <Text style={styles.sendBtnText}>Enviar por WhatsApp</Text>
-            </>
-          )}
+          <MaterialCommunityIcons name="whatsapp" size={20} color="#fff" />
+          <Text style={styles.sendBtnText}>Abrir en WhatsApp</Text>
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
